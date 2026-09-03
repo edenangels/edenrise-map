@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EdenRise — Mapa da Herdade</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{--bg:#141a15;--panel:#1d241b;--ink:#e6e3d4;--muted:#9ba391;--line:#333b2f;--accent:#8fae7e}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+#app{display:flex;height:100vh}
+#side{width:270px;min-width:270px;background:var(--panel);border-right:1px solid var(--line);overflow-y:auto;padding:14px 14px 30px}
+#side h1{font-size:17px;margin:2px 0 2px}
+#side .sub{font-size:11px;color:var(--muted);margin-bottom:10px}
+.grp{margin:10px 0 4px;border-top:1px solid var(--line);padding-top:8px}
+.grp>label.gl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;display:flex;gap:7px;align-items:center;cursor:pointer}
+.lyr{display:flex;align-items:center;gap:7px;font-size:12.5px;padding:3px 0 3px 6px;cursor:pointer}
+.sw{width:14px;height:14px;border-radius:3px;flex:none;border:1.5px solid transparent}
+.sw.ln{height:4px;border-radius:2px}
+.sw.pt{border-radius:50%}
+#map{flex:1}
+.leaflet-popup-content-wrapper{background:var(--panel);color:var(--ink);border-radius:6px}
+.leaflet-popup-tip{background:var(--panel)}
+.pp h3{margin:0 0 6px;font-size:14px}
+.pp table{font-size:12px;border-collapse:collapse}
+.pp td{padding:1.5px 8px 1.5px 0;vertical-align:top}
+.pp td:first-child{color:var(--muted);white-space:nowrap}
+.pp .notes{margin-top:6px;font-size:11.5px;color:var(--muted);max-height:110px;overflow-y:auto;white-space:pre-wrap}
+#burger{display:none;position:fixed;z-index:1200;top:10px;left:10px;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:7px 10px;font-size:15px}
+@media(max-width:700px){
+  #side{position:fixed;z-index:1100;height:100vh;transform:translateX(-100%);transition:transform .2s}
+  #side.open{transform:none}
+  #burger{display:block}
+}
+.basemaps{display:flex;gap:6px;margin:8px 0 2px}
+.basemaps button{flex:1;font-size:11px;padding:5px 4px;background:var(--bg);color:var(--muted);border:1px solid var(--line);border-radius:5px;cursor:pointer}
+.basemaps button.on{color:var(--ink);border-color:var(--accent)}
+</style>
+</head>
+<body>
+<button id="burger" aria-label="Camadas">☰</button>
+<div id="app">
+  <nav id="side">
+    <h1>EdenRise — Herdade</h1>
+    <div class="sub">Mapa vivo da propriedade · dados 2026-09</div>
+    <div class="basemaps" id="basemaps"></div>
+    <div id="tree"></div>
+  </nav>
+  <div id="map"></div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="data.js"></script>
+<script>
+const GROUPS = [
+ ["10 · Cadastro & Legal", true, [
+   ["cadastre_parcels","Parcelas","pg","#ffffff",{fill:"rgba(0,0,0,0)",w:2.5}],
+   ["cadastre_boundaries_ln","Limites (partilha)","ln","#ffffff",{dash:"6 5",w:2}],
+   ["subsidy_parcels","Parcelas de subsídio","pg","#76ff03",{fill:"rgba(118,255,3,.10)",w:2}]]],
+ ["20 · Edifícios", true, [
+   ["buildings_pt","Edifícios (licenciamento)","pt","#4caf50",{cat:"status",colors:{registado:"#4caf50",nao_registado_licenciado:"#ff3d3d",por_classificar:"#ffc107"},r:7}]]],
+ ["30 · Água", true, [
+   ["water_sources_pt","Furos & poços","pt","#03a9f4",{r:6}],
+   ["water_storage_pt","Tanques & charcas","pt","#00bcd4",{r:6}],
+   ["water_network_pt","Rede água — pontos","pt","#81d4fa",{r:4}],
+   ["water_network_ln","Condutas de água","ln","#29b6f6",{w:2.2}],
+   ["wastewater_pt","Fossas","pt","#8d6e63",{r:6}]]],
+ ["40 · Energia & Telecom", true, [
+   ["power_pt","Eletricidade — pontos","pt","#ffab00",{r:5}],
+   ["power_ln","Eletricidade — linhas","ln","#ffd600",{w:2.4}],
+   ["power_pg","Eletricidade — áreas","pg","#ffd600",{fill:"rgba(255,214,0,.12)",w:1.6}],
+   ["telecom_pt","Telecom — pontos","pt","#e040fb",{r:4}],
+   ["telecom_ln","Telecom — linhas","ln","#e040fb",{dash:"5 5",w:1.8}]]],
+ ["50 · Agricultura", true, [
+   ["agri_features_pt","Produção — pontos","pt","#a5d6a7",{r:4}],
+   ["agri_features_ln","Produção — linhas","ln","#66bb66",{w:1.8}],
+   ["agri_features_pg","Produção — zonas","pg","#66bb6a",{fill:"rgba(102,187,106,.30)",w:1.6}],
+   ["orchards_ln","Pomares — linhas","ln","#9ccc65",{w:1.8}],
+   ["orchards_pg","Pomares — zonas","pg","#9ccc65",{fill:"rgba(156,204,101,.30)",w:1.6}],
+   ["irrigation_pt","Rega — pontos","pt","#00e5ff",{r:3.5}],
+   ["irrigation_ln","Rega — linhas","ln","#00e5ff",{dash:"4 4",w:1.6}],
+   ["irrigation_pg","Rega — zonas","pg","#00e5ff",{fill:"rgba(0,229,255,.15)",w:1.4,dash:"4 4"}],
+   ["grazing_parks_pg","Parques de pastoreio","pg","#d4e157",{fill:"rgba(212,225,87,.22)",w:2}]]],
+ ["60 · Floresta & Ecologia", true, [
+   ["tree_actions_pt","Cortes de árvores (ano)","pt","#ff9800",{cat:"year",colors:{2024:"#bdbdbd",2025:"#ff9800",2026:"#ffeb3b"},other:"#eceff1",r:6}],
+   ["tree_actions_ln","Cortes — linhas","ln","#ff9800",{dash:"5 4",w:2}],
+   ["hedges_pt","Sebes — pontos","pt","#2e7d32",{r:5}],
+   ["hedges_ln","Sebes — linhas","ln","#2e7d32",{w:2.6}],
+   ["hedges_pg","Sebes — zonas","pg","#2e7d32",{fill:"rgba(46,125,50,.35)",w:1.6}],
+   ["species_inventory_pt","Espécies — pontos","pt","#ba68c8",{r:5}],
+   ["species_inventory_ln","Espécies — linhas","ln","#ba68c8",{w:1.8}],
+   ["species_inventory_pg","Espécies — zonas","pg","#ba68c8",{fill:"rgba(186,104,200,.25)",w:1.4}],
+   ["beekeeping_pt","Apicultura — pontos","pt","#ffb300",{r:5}],
+   ["beekeeping_ln","Apicultura — linhas","ln","#ffb300",{w:1.8}],
+   ["beekeeping_pg","Apicultura — zonas","pg","#ffb300",{fill:"rgba(255,179,0,.10)",w:1.2}],
+   ["fire_mgmt_pt","Gestão fogo — pontos","pt","#ff7043",{r:6}],
+   ["fire_mgmt_pg","Gestão fogo — zonas","pg","#ff7043",{fill:"rgba(255,112,67,.18)",w:1.8,dash:"6 4"}],
+   ["paths_ln","Caminhos","ln","#d7ccc8",{dash:"6 4",w:2}]]],
+ ["70 · Propostas", false, [
+   ["prop_etar_pt","ETAR & duches — pontos","pt","#80deea",{r:5}],
+   ["prop_etar_ln","ETAR & duches — linhas","ln","#26a69a",{dash:"5 4",w:2}],
+   ["prop_etar_pg","ETAR & duches — zonas","pg","#4db6ac",{fill:"rgba(77,182,172,.22)",w:1.8,dash:"6 4"}],
+   ["prop_water_deposits_pt","Depósitos futuros — pontos","pt","#40c4ff",{r:5}],
+   ["prop_water_deposits_ln","Depósitos futuros — linhas","ln","#40c4ff",{dash:"5 4",w:1.8}],
+   ["prop_water_deposits_pg","Depósitos futuros — zonas","pg","#40c4ff",{fill:"rgba(64,196,255,.18)",w:1.6,dash:"6 4"}],
+   ["prop_reforestation_ln","Reflorestação — linhas","ln","#aed581",{dash:"5 4",w:2}],
+   ["prop_reforestation_pg","Reflorestação — zonas","pg","#aed581",{fill:"rgba(174,213,129,.18)",w:1.6,dash:"6 4"}]]],
+ ["00 · Notas", false, [
+   ["notes_pt","Notas / informações","pt","#ffffff",{r:5}]]],
+];
+const FIELD_PT = {status:"Estado",category:"Categoria",system:"Sistema",year:"Ano",
+  alternative:"Alternativa",cadastral_article:"Art.º matricial",areas_doc_m2:"Áreas (docs) m²",
+  spec:"Especificação",site:"Local",m2:"Área medida",m:"Comprimento"};
+const map = L.map("map",{zoomControl:true});
+const bases = {
+ "Esri": L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+   {maxZoom:19, attribution:"Imagery © Esri & partners"}),
+ "DGT 2023": L.tileLayer.wms("https://ortos.dgterritorio.gov.pt/wms/ortosat2023",
+   {layers:"ortoSat2023-CorVerdadeira", format:"image/png", maxZoom:20, attribution:"OrtoSat2023 © DGT"}),
+ "OSM": L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+   {maxZoom:19, attribution:"© OpenStreetMap contributors"}),
+};
+let curBase = "Esri"; bases[curBase].addTo(map);
+const bm = document.getElementById("basemaps");
+Object.keys(bases).forEach(k=>{
+  const b=document.createElement("button"); b.textContent=k; if(k===curBase)b.classList.add("on");
+  b.onclick=()=>{ map.removeLayer(bases[curBase]); curBase=k; bases[k].addTo(map);
+    bm.querySelectorAll("button").forEach(x=>x.classList.remove("on")); b.classList.add("on"); };
+  bm.appendChild(b);
+});
+L.control.scale({imperial:false}).addTo(map);
+function popup(p){
+  let h = `<div class="pp"><h3>${p.name||"—"}</h3><table>`;
+  for(const k of Object.keys(FIELD_PT)){
+    if(p[k]!==undefined && p[k]!==null && p[k]!==""){
+      let v = p[k];
+      if(k==="m2") v = Number(v).toLocaleString("pt-PT")+" m²";
+      if(k==="m") v = Number(v).toLocaleString("pt-PT")+" m";
+      h += `<tr><td>${FIELD_PT[k]}</td><td>${v}</td></tr>`;
+    }
+  }
+  h += "</table>";
+  if(p.notes_text) h += `<div class="notes">${String(p.notes_text).slice(0,600)}</div>`;
+  return h+"</div>";
+}
+const layerObjs = {};
+let allBounds = null;
+for(const [gname, gOn, layers] of GROUPS){
+  for(const [t, title, kind, color, opt] of layers){
+    const fc = DATA[t]; if(!fc) continue;
+    const colOf = p => opt.cat ? (opt.colors[p[opt.cat]] || opt.other || color) : color;
+    const lyr = L.geoJSON(fc, {
+      pointToLayer:(f,ll)=>L.circleMarker(ll,{radius:opt.r||5, fillColor:colOf(f.properties),
+        color:"#1c1c1c", weight:1.2, fillOpacity:.95}),
+      style:f=>({color:colOf(f.properties), weight:opt.w||2, dashArray:opt.dash||null,
+        fillColor:(opt.fill&&opt.fill.startsWith("rgba"))?colOf(f.properties):(opt.fill||color),
+        fillOpacity:opt.fill?parseFloat(opt.fill.match(/[\d.]+(?=\))/)?.[0] ?? .2):0}),
+      onEachFeature:(f,l)=>{ l.bindPopup(popup(f.properties),{maxWidth:290});
+        if(f.properties.name) l.bindTooltip(String(f.properties.name)); }
+    });
+    layerObjs[t] = {lyr, on:gOn};
+    if(gOn){ lyr.addTo(map);
+      const b = lyr.getBounds();
+      if(b.isValid()) allBounds = allBounds ? allBounds.extend(b) : b;
+    }
+  }
+}
+function fitAll(){ map.invalidateSize(); if(allBounds) map.fitBounds(allBounds.pad(0.06)); }
+fitAll();
+// container may not have its final size yet — retry until the fit sticks
+let fitTries = 0;
+const fitTimer = setInterval(()=>{ fitTries++;
+  if(map.getZoom() >= 5 || fitTries > 20) return clearInterval(fitTimer);
+  fitAll(); }, 150);
+// sidebar tree
+const tree = document.getElementById("tree");
+for(const [gname, gOn, layers] of GROUPS){
+  const g = document.createElement("div"); g.className="grp";
+  const gl = document.createElement("label"); gl.className="gl";
+  const gc = document.createElement("input"); gc.type="checkbox"; gc.checked=gOn;
+  gl.appendChild(gc); gl.appendChild(document.createTextNode(gname));
+  g.appendChild(gl);
+  const boxes=[];
+  for(const [t,title,kind,color,opt] of layers){
+    if(!layerObjs[t]) continue;
+    const row=document.createElement("label"); row.className="lyr";
+    const c=document.createElement("input"); c.type="checkbox"; c.checked=gOn;
+    const sw=document.createElement("span"); sw.className="sw "+kind;
+    sw.style.background = opt.cat ? Object.values(opt.colors)[0] : color;
+    if(kind==="pg"){ sw.style.background=opt.fill||"transparent"; sw.style.borderColor=color; }
+    row.appendChild(c); row.appendChild(sw); row.appendChild(document.createTextNode(title));
+    g.appendChild(row); boxes.push([c,t]);
+    c.onchange=()=>{ const o=layerObjs[t];
+      if(c.checked){ o.lyr.addTo(map); } else { map.removeLayer(o.lyr); } };
+  }
+  gc.onchange=()=>boxes.forEach(([c])=>{ if(c.checked!==gc.checked){ c.checked=gc.checked; c.onchange(); }});
+  tree.appendChild(g);
+}
+document.getElementById("burger").onclick=()=>document.getElementById("side").classList.toggle("open");
+</script>
+</body>
+</html>
