@@ -40,6 +40,22 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,sans-serif;background:
 .risk b{font-size:13px}
 .risk .lvl{display:inline-block;padding:1px 8px;border-radius:10px;font-weight:700;color:#111;margin-left:4px}
 .risk small{color:var(--muted);display:block;margin-top:3px}
+#searchbox{margin:8px 0 4px;position:relative}
+#q{width:100%;padding:7px 9px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;font-size:12.5px}
+#qres{position:absolute;left:0;right:0;top:100%;z-index:50;background:var(--panel);border:1px solid var(--line);border-radius:6px;max-height:240px;overflow-y:auto}
+.qhit{padding:6px 9px;font-size:12px;cursor:pointer;border-bottom:1px solid var(--line)} .qhit:hover{background:var(--bg)}
+#modes button.on{color:#111;background:var(--accent);border-color:var(--accent)}
+.big{width:100%;padding:11px;font-size:14px;font-weight:700;border-radius:8px;border:1px solid var(--line);background:var(--accent);color:#111;cursor:pointer}
+body.field .lyr{padding:7px 0 7px 6px;font-size:14px} body.field .lyr input{transform:scale(1.4);margin-right:6px} body.field .grp>label.gl{font-size:12px}
+.pin{width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,.5)}
+.pin.fire{background:#d32f2f;border:2px solid #fff} .pin.rep{background:#7a2f22;border:2px solid #fff}
+.pin.fire::after,.pin.rep::after{content:"";}
+.windarrow{font-size:34px;color:#fff;text-shadow:0 0 6px #000,0 0 2px #000;line-height:40px;text-align:center}
+.me{width:18px;height:18px;border-radius:50%;background:#4fc3f7;border:3px solid #fff;box-shadow:0 0 0 4px rgba(79,195,247,.35)}
+#divider{position:absolute;top:0;bottom:0;width:4px;background:#fff;box-shadow:0 0 8px rgba(0,0,0,.6);z-index:800;cursor:col-resize;touch-action:none}
+#divider::after{content:"◀ ▶";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#111;font-size:11px;padding:4px 6px;border-radius:12px;white-space:nowrap}
+.row2{display:flex;gap:6px;margin-top:4px} .row2 select{flex:1;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:5px;padding:4px;font-size:12px}
+.wrow{cursor:pointer;padding:2px 0} .wrow:hover{color:var(--accent)}
 .spark{margin-top:8px;border-top:1px solid var(--line);padding-top:6px}
 .spark .lbl{font-size:11px;color:var(--muted)}
 .spark svg{display:block;width:100%;height:46px;margin-top:2px}
@@ -445,5 +461,6 @@ function openWork(){
 window.addEventListener("hashchange", ()=>{ openAsset(); openWork(); });
 setTimeout(()=>{ openAsset(); openWork(); }, 400);
 </script>
+<script src="modes.js"></script>
 </body>
 </html>
