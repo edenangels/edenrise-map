@@ -5,17 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>EdenRise — Herdade 3D</title>
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<link rel="stylesheet" href="ui.css">
 <style>
-:root{--bg:#141a15;--panel:#1d241b;--ink:#e6e3d4;--muted:#9ba391;--line:#333b2f;--accent:#8fae7e}
-*{box-sizing:border-box} body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
-#map{position:absolute;inset:0}
-#panel{position:absolute;top:12px;left:12px;z-index:5;width:250px;background:rgba(29,36,27,.94);border:1px solid var(--line);border-radius:8px;padding:12px 13px;font-size:12.5px;max-height:calc(100vh - 24px);overflow-y:auto}
-#panel h1{font-size:15px;margin:0 0 2px} #panel .sub{color:var(--muted);font-size:11px;margin-bottom:8px}
+:root{--bg:var(--bark);--panel:var(--night);--ink:var(--linen);--accent:var(--oak)}
+#map{position:absolute;inset:44px 0 0 0}
+#panel{position:absolute;top:56px;left:12px;z-index:5;width:270px;background:rgba(28,24,19,.94);backdrop-filter:blur(10px);border:1px solid var(--line-2);border-radius:12px;padding:14px 14px;font-size:12.5px;max-height:calc(100vh - 70px);overflow-y:auto;box-shadow:var(--sh)}
+#panel h1{font-family:var(--display);font-size:18px;font-weight:600;margin:0 0 2px;letter-spacing:-.01em} #panel .sub{color:var(--muted);font-size:11px;margin-bottom:10px}
 .row{display:flex;gap:5px;margin:6px 0}
-.row button{flex:1;font-size:11px;padding:5px 3px;background:var(--bg);color:var(--muted);border:1px solid var(--line);border-radius:5px;cursor:pointer}
-.row button.on{color:var(--ink);border-color:var(--accent)}
-.gl{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:10px 0 3px;border-top:1px solid var(--line);padding-top:7px}
-.lyr{display:flex;align-items:center;gap:7px;padding:2px 0 2px 4px;cursor:pointer}
+.row button{flex:1;font:600 11px var(--ui);padding:6px 3px;background:var(--bark);color:var(--muted);border:1px solid var(--line);border-radius:6px;cursor:pointer;transition:all .15s}
+.row button.on{color:var(--linen);border-color:var(--oak);box-shadow:inset 0 0 0 1px var(--oak)}
+.gl{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:12px 0 4px;border-top:1px solid var(--line);padding-top:8px}
+.lyr{display:flex;align-items:center;gap:8px;padding:4px 4px;cursor:pointer;border-radius:6px} .lyr:hover{background:var(--night-2)}
 .sw{width:12px;height:12px;border-radius:50%;flex:none}
 .maplibregl-popup-content{background:var(--panel);color:var(--ink);border-radius:6px;font-size:12px;max-width:280px}
 .maplibregl-popup-tip{border-top-color:var(--panel)!important}

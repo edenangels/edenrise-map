@@ -5,69 +5,58 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>EdenRise — Mapa da Herdade</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="ui.css">
 <style>
-:root{--bg:#141a15;--panel:#1d241b;--ink:#e6e3d4;--muted:#9ba391;--line:#333b2f;--accent:#8fae7e}
-*{box-sizing:border-box}
-body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
-#app{display:flex;height:100vh}
-#side{width:270px;min-width:270px;background:var(--panel);border-right:1px solid var(--line);overflow-y:auto;padding:14px 14px 30px}
-#side h1{font-size:17px;margin:2px 0 2px}
-#side .sub{font-size:11px;color:var(--muted);margin-bottom:10px}
-.grp{margin:10px 0 4px;border-top:1px solid var(--line);padding-top:8px}
-.grp>label.gl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;display:flex;gap:7px;align-items:center;cursor:pointer}
-.lyr{display:flex;align-items:center;gap:7px;font-size:12.5px;padding:3px 0 3px 6px;cursor:pointer}
-.sw{width:14px;height:14px;border-radius:3px;flex:none;border:1.5px solid transparent}
-.sw.ln{height:4px;border-radius:2px}
-.sw.pt{border-radius:50%}
-#map{flex:1}
-.leaflet-popup-content-wrapper{background:var(--panel);color:var(--ink);border-radius:6px}
-.leaflet-popup-tip{background:var(--panel)}
-.pp h3{margin:0 0 6px;font-size:14px}
-.pp table{font-size:12px;border-collapse:collapse}
-.pp td{padding:1.5px 8px 1.5px 0;vertical-align:top}
-.pp td:first-child{color:var(--muted);white-space:nowrap}
+#app{display:flex;height:calc(100vh - 44px)}
+#side{width:300px;min-width:300px;background:var(--night);border-right:1px solid var(--line);overflow-y:auto;padding:14px 14px 40px;scrollbar-width:thin}
+#side h1{font-family:var(--display);font-size:20px;font-weight:600;margin:2px 0 0;letter-spacing:-.01em} #side .sub{font-size:11.5px;color:var(--muted);margin:2px 0 10px}
+#map{flex:1;background:var(--bark)}
+.leaflet-container{font-family:var(--ui)} .leaflet-bar a{background:var(--night);color:var(--linen);border-bottom-color:var(--line)} .leaflet-bar a:hover{background:var(--night-2)}
+.leaflet-control-scale-line{background:rgba(20,17,13,.7);color:var(--linen);border-color:var(--line-2);font-family:var(--mono);font-size:10px}
+.leaflet-tooltip{background:var(--night);color:var(--linen);border:1px solid var(--line-2);border-radius:6px;font-size:11.5px;padding:3px 7px} .leaflet-tooltip-top:before{border-top-color:var(--line-2)}
+.leaflet-popup-content-wrapper{background:var(--night);color:var(--linen);border-radius:8px} .leaflet-popup-tip{background:var(--night)}
+.pp h3{margin:0 0 6px;font-size:15px;font-family:var(--display);font-weight:600} .pp table{font-size:12px;border-collapse:collapse} .pp td{padding:2px 8px 2px 0;vertical-align:top} .pp td:first-child{color:var(--muted);white-space:nowrap}
 .pp .notes{margin-top:6px;font-size:11.5px;color:var(--muted);max-height:110px;overflow-y:auto;white-space:pre-wrap}
-#burger{display:none;position:fixed;z-index:1200;top:10px;left:10px;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:7px 10px;font-size:15px}
-@media(max-width:700px){
-  #side{position:fixed;z-index:1100;height:100vh;transform:translateX(-100%);transition:transform .2s}
-  #side.open{transform:none}
-  #burger{display:block}
-}
-.basemaps{display:flex;gap:6px;margin:8px 0 2px}
-.basemaps button{flex:1;font-size:11px;padding:5px 4px;background:var(--bg);color:var(--muted);border:1px solid var(--line);border-radius:5px;cursor:pointer}
-.basemaps button.on{color:var(--ink);border-color:var(--accent)}
-.risk{margin:10px 0 4px;padding:9px 11px;border:1px solid var(--line);border-radius:6px;background:var(--bg);font-size:12px;line-height:1.35}
-.risk b{font-size:13px}
-.risk .lvl{display:inline-block;padding:1px 8px;border-radius:10px;font-weight:700;color:#111;margin-left:4px}
-.risk small{color:var(--muted);display:block;margin-top:3px}
-#searchbox{margin:8px 0 4px;position:relative}
-#q{width:100%;padding:7px 9px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;font-size:12.5px}
-#qres{position:absolute;left:0;right:0;top:100%;z-index:50;background:var(--panel);border:1px solid var(--line);border-radius:6px;max-height:240px;overflow-y:auto}
-.qhit{padding:6px 9px;font-size:12px;cursor:pointer;border-bottom:1px solid var(--line)} .qhit:hover{background:var(--bg)}
-#modes button.on{color:#111;background:var(--accent);border-color:var(--accent)}
-.big{width:100%;padding:11px;font-size:14px;font-weight:700;border-radius:8px;border:1px solid var(--line);background:var(--accent);color:#111;cursor:pointer}
-body.field .lyr{padding:7px 0 7px 6px;font-size:14px} body.field .lyr input{transform:scale(1.4);margin-right:6px} body.field .grp>label.gl{font-size:12px}
-.pin{width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,.5)}
-.pin.fire{background:#d32f2f;border:2px solid #fff} .pin.rep{background:#7a2f22;border:2px solid #fff}
-.pin.fire::after,.pin.rep::after{content:"";}
+#burger{display:none;position:fixed;z-index:1200;top:52px;left:10px;background:var(--night);color:var(--linen);border:1px solid var(--line-2);border-radius:8px;padding:7px 11px;font-size:15px}
+@media(max-width:700px){ #side{position:fixed;z-index:1100;top:44px;height:calc(100vh - 44px);transform:translateX(-100%);transition:transform .2s} #side.open{transform:none} #burger{display:block} }
+/* sidebar blocks */
+.blk{margin:12px 0 0} .blk .bh{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px} .blk .bh .eyebrow{font-size:10px}
+.basemaps{display:flex;gap:6px;margin:8px 0 2px} .basemaps button{flex:1;font:600 11px var(--ui);padding:6px 4px;background:var(--bark);color:var(--muted);border:1px solid var(--line);border-radius:6px;cursor:pointer;transition:all .15s}
+.basemaps button.on{color:var(--linen);border-color:var(--oak);box-shadow:inset 0 0 0 1px var(--oak)} .basemaps button:hover{color:var(--linen)}
+#modes button{font-size:12px} #modes button.on{color:var(--bark);background:var(--straw);border-color:var(--straw)}
+.risk{margin:10px 0 4px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--bark);font-size:12px;line-height:1.4} .risk b{font-size:13px} .risk .lvl{display:inline-block;padding:1px 9px;border-radius:999px;font-weight:700;color:var(--bark);margin-left:6px;font-size:11.5px} .risk small{color:var(--muted);display:block;margin-top:3px}
+#searchbox{margin:10px 0 4px;position:relative} #q{width:100%;padding:9px 11px 9px 32px;background:var(--bark);color:var(--linen);border:1px solid var(--line);border-radius:8px;font:13px var(--ui);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238f8676' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-size:15px;background-position:10px center}
+#q:focus{border-color:var(--oak)} #qres{position:absolute;left:0;right:0;top:100%;z-index:50;background:var(--night);border:1px solid var(--line-2);border-radius:8px;max-height:260px;overflow-y:auto;box-shadow:var(--sh)} .qhit{padding:8px 11px;font-size:12.5px;cursor:pointer;border-bottom:1px solid var(--line)} .qhit:hover{background:var(--night-2)}
+/* layer tree: categories as accordions with switches */
+.cat{border:1px solid var(--line);border-radius:var(--r);margin:6px 0;background:var(--bark);overflow:hidden}
+.cat .ch{display:flex;align-items:center;gap:8px;padding:9px 10px;cursor:pointer;user-select:none} .cat .ch:hover{background:var(--night-2)}
+.cat .chev{width:14px;height:14px;transition:transform .18s;color:var(--muted);flex:none} .cat.open .chev{transform:rotate(90deg)}
+.cat .cn{flex:1;font-weight:600;font-size:12.5px;letter-spacing:.01em} .cat .cc{font-family:var(--mono);font-size:10.5px;color:var(--muted);padding:1px 6px;border:1px solid var(--line);border-radius:999px} .cat .cc.on{color:var(--oak);border-color:rgba(127,154,106,.5)}
+.cat .cb{display:none;padding:2px 6px 8px;border-top:1px solid var(--line)} .cat.open .cb{display:block}
+.lyr{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:6px 6px;cursor:pointer;border-radius:6px} .lyr:hover{background:var(--night-2)} .lyr .nm{flex:1}
+.sw{width:12px;height:12px;border-radius:3px;flex:none;border:1.5px solid transparent} .sw.ln{height:4px;border-radius:2px} .sw.pt{border-radius:50%}
+.tg{position:relative;width:30px;height:18px;flex:none} .tg input{opacity:0;width:0;height:0;position:absolute} .tg i{position:absolute;inset:0;background:var(--line-2);border-radius:999px;transition:background .15s} .tg i::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--linen-2);transition:transform .15s}
+.tg input:checked+i{background:var(--oak)} .tg input:checked+i::after{transform:translateX(12px);background:var(--bark)} .tg input:focus-visible+i{box-shadow:var(--focus)}
+.tree-tools{display:flex;gap:6px;align-items:center;justify-content:space-between;margin:12px 0 4px} .tree-tools .eyebrow{font-size:10px} .tree-tools button{font:600 10.5px var(--ui);background:transparent;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:3px 9px;cursor:pointer} .tree-tools button:hover{color:var(--linen);border-color:var(--line-2)}
+body.field .lyr{padding:9px 6px;font-size:14px} body.field .tg{transform:scale(1.15)}
+.big{width:100%;padding:12px;font:700 14px var(--ui);border-radius:8px;border:1px solid var(--line);background:var(--oak);color:var(--bark);cursor:pointer}
+.pin{width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,.5)} .pin.fire{background:#c4502b;border:2px solid #fff} .pin.rep{background:#7a2f22;border:2px solid #fff}
 .windarrow{font-size:34px;color:#fff;text-shadow:0 0 6px #000,0 0 2px #000;line-height:40px;text-align:center}
-.me{width:18px;height:18px;border-radius:50%;background:#4fc3f7;border:3px solid #fff;box-shadow:0 0 0 4px rgba(79,195,247,.35)}
-#divider{position:absolute;top:0;bottom:0;width:4px;background:#fff;box-shadow:0 0 8px rgba(0,0,0,.6);z-index:800;cursor:col-resize;touch-action:none}
-#divider::after{content:"◀ ▶";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#111;font-size:11px;padding:4px 6px;border-radius:12px;white-space:nowrap}
-.row2{display:flex;gap:6px;margin-top:4px} .row2 select{flex:1;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:5px;padding:4px;font-size:12px}
-.wrow{cursor:pointer;padding:2px 0} .wrow:hover{color:var(--accent)}
-.spark{margin-top:8px;border-top:1px solid var(--line);padding-top:6px}
-.spark .lbl{font-size:11px;color:var(--muted)}
-.spark svg{display:block;width:100%;height:46px;margin-top:2px}
+.me{width:18px;height:18px;border-radius:50%;background:#6f9fc0;border:3px solid #fff;box-shadow:0 0 0 4px rgba(111,159,192,.35)}
+#divider{position:absolute;top:0;bottom:0;width:4px;background:#fff;box-shadow:0 0 8px rgba(0,0,0,.6);z-index:800;cursor:col-resize;touch-action:none} #divider::after{content:"◀ ▶";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#111;font-size:11px;padding:4px 6px;border-radius:12px;white-space:nowrap}
+.row2{display:flex;gap:6px;margin-top:4px} .row2 select{flex:1;background:var(--bark);color:var(--linen);border:1px solid var(--line);border-radius:6px;padding:5px;font:12px var(--ui)}
+.wrow{cursor:pointer;padding:2px 0} .wrow:hover{color:var(--oak)}
+.spark{margin-top:8px;border-top:1px solid var(--line);padding-top:6px} .spark .lbl{font-size:11px;color:var(--muted)} .spark svg{display:block;width:100%;height:46px;margin-top:2px}
 </style>
 </head>
 <body>
 <button id="burger" aria-label="Camadas">☰</button>
 <div id="app">
   <nav id="side">
+    <div class="eyebrow">Herdade · Odemira</div>
     <h1 id="ttl">EdenRise — Herdade</h1>
     <div class="sub" id="sub">Mapa vivo da propriedade · dados 2026-09</div>
-    <div class="basemaps" id="langs"></div>
+    <div class="seg" id="langs"></div>
     <div class="basemaps" id="basemaps"></div>
     <div id="risk" class="risk"></div>
     <div id="live" class="grp"></div>
@@ -368,7 +357,7 @@ for(const [gname, gOn, layers] of GROUPS){
     }
   }
 }
-function fitAll(){ map.invalidateSize(); if(allBounds) map.fitBounds(allBounds.pad(0.06)); }
+function fitAll(){ map.invalidateSize(); const est = layerObjs.cadastre_parcels ? layerObjs.cadastre_parcels.lyr.getBounds() : allBounds; if(est && est.isValid()) map.fitBounds(est.pad(0.04)); }
 fitAll();
 // container may not have its final size yet — retry until the fit sticks
 let fitTries = 0;
@@ -377,37 +366,38 @@ const fitTimer = setInterval(()=>{ fitTries++;
   fitAll(); }, 150);
 // sidebar tree (rebuildable — bilingual)
 const tree = document.getElementById("tree");
+const OPEN_KEY = "edr_open_cats"; let openCats = new Set(); try{ openCats = new Set(JSON.parse(localStorage.getItem(OPEN_KEY)||"[]")); }catch(e){}
+function saveOpen(){ try{ localStorage.setItem(OPEN_KEY, JSON.stringify([...openCats])); }catch(e){} }
 function buildSidebar(){
   document.getElementById("ttl").textContent = UI[LANG].ttl;
   document.getElementById("sub").textContent = UI[LANG].sub;
   tree.innerHTML = "";
+  const tools = document.createElement("div"); tools.className = "tree-tools";
+  tools.innerHTML = `<span class="eyebrow">${LANG==="en"?"Layers by category":"Camadas por categoria"}</span><span><button id="tt-none">${LANG==="en"?"collapse all":"fechar todas"}</button></span>`;
+  tree.appendChild(tools);
   for(const [gname, gOn, layers] of GROUPS){
-    const g = document.createElement("div"); g.className="grp";
-    const gl = document.createElement("label"); gl.className="gl";
-    const gc = document.createElement("input"); gc.type="checkbox";
-    gl.appendChild(gc); gl.appendChild(document.createTextNode(gname_i18n(gname)));
-    g.appendChild(gl);
-    const boxes=[];
-    let anyOn = false;
-    for(const [t,title,kind,color,opt] of layers){
-      if(!layerObjs[t]) continue;
+    const present = layers.filter(([t])=>layerObjs[t]); if(!present.length) continue;
+    const cat = document.createElement("div"); cat.className = "cat" + (openCats.has(gname) ? " open" : "");
+    const onCount = present.filter(([t])=>map.hasLayer(layerObjs[t].lyr)).length;
+    cat.innerHTML = `<div class="ch"><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 6 6 6-6 6"/></svg><span class="cn">${gname_i18n(gname)}</span><span class="cc ${onCount?"on":""}">${onCount}/${present.length}</span><label class="tg" title="${LANG==="en"?"all":"todas"}"><input type="checkbox" class="gc" ${onCount===present.length?"checked":""}><i></i></label></div><div class="cb"></div>`;
+    const body = cat.querySelector(".cb"); const cc = cat.querySelector(".cc"); const boxes = [];
+    const refresh = ()=>{ const n = present.filter(([t])=>map.hasLayer(layerObjs[t].lyr)).length; cc.textContent = `${n}/${present.length}`; cc.classList.toggle("on", n>0); cat.querySelector(".gc").checked = n===present.length; };
+    for(const [t,title,kind,color,opt] of present){
       const on = map.hasLayer(layerObjs[t].lyr);
-      anyOn = anyOn || on;
-      const row=document.createElement("label"); row.className="lyr";
-      const c=document.createElement("input"); c.type="checkbox"; c.checked=on;
-      const sw=document.createElement("span"); sw.className="sw "+kind;
-      sw.style.background = opt.cat ? Object.values(opt.colors)[0] : color;
-      if(kind==="pg"){ sw.style.background=opt.fill||"transparent"; sw.style.borderColor=color; }
-      row.appendChild(c); row.appendChild(sw); row.appendChild(document.createTextNode(title_i18n(t, title)));
-      g.appendChild(row); boxes.push([c,t]);
-      c.onchange=()=>{ const o=layerObjs[t];
-        if(c.checked){ o.lyr.addTo(map); } else { map.removeLayer(o.lyr); } };
+      const row = document.createElement("label"); row.className = "lyr";
+      const sw = document.createElement("span"); sw.className = "sw "+kind;
+      sw.style.background = opt.cat ? Object.values(opt.colors)[0] : color; if(kind==="pg"){ sw.style.background = opt.fill||"transparent"; sw.style.borderColor = color; }
+      const nm = document.createElement("span"); nm.className = "nm"; nm.textContent = title_i18n(t, title);
+      const tg = document.createElement("span"); tg.className = "tg"; const c = document.createElement("input"); c.type = "checkbox"; c.checked = on; tg.appendChild(c); tg.appendChild(document.createElement("i"));
+      row.appendChild(sw); row.appendChild(nm); row.appendChild(tg); body.appendChild(row); boxes.push([c,t]);
+      c.onchange = ()=>{ const o = layerObjs[t]; if(c.checked){ o.lyr.addTo(map); } else { map.removeLayer(o.lyr); } refresh(); };
       layerObjs[t].box = c;
     }
-    gc.checked = anyOn;
-    gc.onchange=()=>boxes.forEach(([c])=>{ if(c.checked!==gc.checked){ c.checked=gc.checked; c.onchange(); }});
-    tree.appendChild(g);
+    cat.querySelector(".ch").onclick = e=>{ if(e.target.closest(".tg")) return; cat.classList.toggle("open"); cat.classList.contains("open") ? openCats.add(gname) : openCats.delete(gname); saveOpen(); };
+    cat.querySelector(".gc").onchange = e=>{ boxes.forEach(([c])=>{ if(c.checked!==e.target.checked){ c.checked = e.target.checked; c.onchange(); } }); };
+    tree.appendChild(cat);
   }
+  document.getElementById("tt-none").onclick = ()=>{ openCats.clear(); saveOpen(); document.querySelectorAll(".cat").forEach(c=>c.classList.remove("open")); };
 }
 buildSidebar();
 // ── live feeds: EFFIS (Copernicus) daily fire danger, hotspots, burnt areas ──
@@ -424,22 +414,21 @@ const LIVE = {
          lyr: L.tileLayer.wms(EFFIS,{layers:"effis.nrt.ba",format:"image/png",opacity:.85,pane:"effis",attribution:"EFFIS © Copernicus"})},
 };
 function buildLive(){
-  const el = document.getElementById("live"); el.innerHTML = "";
-  const gl = document.createElement("label"); gl.className="gl";
-  gl.appendChild(document.createTextNode(LANG==="en" ? "🛰️ Live satellite & risk" : "🛰️ Satélite & risco — em direto"));
-  el.appendChild(gl);
+  const el = document.getElementById("live"); el.innerHTML = ""; el.className = "cat" + (openCats.has("__live") ? " open" : "");
+  const n = Object.values(LIVE).filter(v=>map.hasLayer(v.lyr)).length;
+  el.innerHTML = `<div class="ch"><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 6 6 6-6 6"/></svg><span class="cn">${LANG==="en"?"🛰️ Live satellite & risk":"🛰️ Satélite & risco — em direto"}</span><span class="cc ${n?"on":""}">${n}/${Object.keys(LIVE).length}</span></div><div class="cb"></div>`;
+  const body = el.querySelector(".cb");
   for(const [k,v] of Object.entries(LIVE)){
     const row=document.createElement("label"); row.className="lyr";
-    const c=document.createElement("input"); c.type="checkbox"; c.checked = map.hasLayer(v.lyr);
-    c.onchange=()=>{ c.checked ? v.lyr.addTo(map) : map.removeLayer(v.lyr); };
-    const sw=document.createElement("span"); sw.className="sw pg"; sw.style.borderColor="#ff7043"; sw.style.background="rgba(255,112,67,.25)";
-    row.appendChild(c); row.appendChild(sw); row.appendChild(document.createTextNode(v[LANG]));
-    el.appendChild(row);
+    row.innerHTML = `<span class="sw pg" style="border-color:#c4502b;background:rgba(196,80,43,.25)"></span><span class="nm">${v[LANG]}</span><span class="tg"><input type="checkbox" ${map.hasLayer(v.lyr)?"checked":""}><i></i></span>`;
+    row.querySelector("input").onchange = e=>{ e.target.checked ? v.lyr.addTo(map) : map.removeLayer(v.lyr); buildLive(); };
+    body.appendChild(row);
   }
-  const note=document.createElement("div"); note.style.cssText="font-size:10.5px;color:var(--muted);padding:3px 0 0 6px";
+  const note=document.createElement("div"); note.style.cssText="font-size:10.5px;color:var(--muted);padding:4px 6px 0";
   const upd = (typeof SATDATA!=="undefined") ? SATDATA.updated : "—";
-  note.textContent = LANG==="en" ? `Sentinel-2 vegetation series in zone popups · updated ${upd}` : `Série de vegetação Sentinel-2 nas fichas das zonas · atualizado ${upd}`;
-  el.appendChild(note);
+  note.textContent = LANG==="en" ? `Sentinel-2 vegetation series in zone cards · updated ${upd}` : `Série de vegetação Sentinel-2 nas fichas · atualizado ${upd}`;
+  body.appendChild(note);
+  el.querySelector(".ch").onclick = ()=>{ el.classList.toggle("open"); el.classList.contains("open") ? openCats.add("__live") : openCats.delete("__live"); saveOpen(); };
 }
 buildLive();
 // ── IPMA daily fire-risk badge for Odemira (concelho 0211) ──
@@ -456,7 +445,7 @@ fetch("https://api.ipma.pt/open-data/forecast/meteorology/rcm/rcm-d0.json").then
 }).catch(()=>{});
 // language switch
 const langsEl = document.getElementById("langs");
-[["pt","Português"],["en","English"]].forEach(([code,label])=>{
+[["pt","PT"],["en","EN"]].forEach(([code,label])=>{
   const b=document.createElement("button"); b.textContent=label; b.dataset.lang=code;
   if(code===LANG) b.classList.add("on");
   b.onclick=()=>{ LANG=code; try{localStorage.setItem("edr_lang",code);}catch(e){}
