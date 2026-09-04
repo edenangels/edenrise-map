@@ -55,13 +55,14 @@ if(!SR) mic.hidden=true; else { const rec=new SR(); rec.lang = L_==="en"?"en-GB"
   rec.onresult=e=>{ q.value=e.results[0][0].transcript; }; rec.onend=()=>{ on=false; mic.classList.remove("on"); if(q.value) send(); }; }
 // ---------- roles ----------
 function setRole(r){ ROLE=r; const el=document.getElementById("brole"); el.className="role "+r; el.textContent=T[r]||r; }
+window.edrAuth = { get key(){ return KEY; }, get role(){ return ROLE; }, get actor(){ return ACTOR; }, signIn: ()=>document.getElementById("brole").onclick() };
 document.getElementById("brole").onclick = async ()=>{ if(KEY){ if(confirm(T.logout+"?")){ KEY=""; try{localStorage.removeItem("edr_role_key");}catch(e){} setRole("viewer"); } return; }
   const k = prompt(T.keyPrompt); if(!k) return; const n = prompt(T.name, ACTOR||""); if(n){ ACTOR=n; try{localStorage.setItem("edr_actor",n);}catch(e){} }
   KEY=k.trim(); try{localStorage.setItem("edr_role_key",KEY);}catch(e){} const h = await fetch(API+"/health",{headers:hdr()}).then(r=>r.json()); setRole(h.role||"viewer"); if(h.role==="viewer"){ KEY=""; try{localStorage.removeItem("edr_role_key");}catch(e){} alert(L_==="en"?"Key not recognised.":"Chave não reconhecida."); } };
 (async()=>{ if(KEY){ try{ const h=await fetch(API+"/health",{headers:hdr()}).then(r=>r.json()); setRole(h.role||"viewer"); }catch(e){} } })();
 // ---------- live layers from the brain (proposals, occurrences) ----------
 const liveP = L.layerGroup().addTo(map), liveO = L.layerGroup().addTo(map);
-async function loadFeatures(){ try{ const d = await fetch(API+"/features").then(r=>r.json()); liveP.clearLayers(); liveO.clearLayers();
+async function loadFeatures(){ if(window.renderFeatures) return window.renderFeatures(); try{ const d = await fetch(API+"/features").then(r=>r.json()); liveP.clearLayers(); liveO.clearLayers();
   for(const f of d.features){ const p=f.properties; const isO = p.layer==="ocorrencias"; const c=f.geometry.coordinates; const m=L.marker([c[1],c[0]],{icon:L.divIcon({className:"",html:`<div class="prop-pin ${isO?"occ":""}">${isO?"!":"+"}</div>`,iconSize:[30,30],iconAnchor:[15,30]})});
     m.on("click", ()=>{ if(window.showCard) showCard({name:p.name, kind:p.kind, status:p.status, created_by:p.created_by, created_at:String(p.created_at).slice(0,16), note:p.note, brain_id:p.id}, L.latLng(c[1],c[0]), isO?T.layerO:T.layerP); });
     (isO?liveO:liveP).addLayer(m); } }catch(e){} }

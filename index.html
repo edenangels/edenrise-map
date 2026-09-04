@@ -226,19 +226,19 @@ const FIELD_PT = {asset_id:"ID do ativo",status:"Estado",category:"Categoria",sy
  score:"Score aptidão",rank:"Posição",slope_pct_mean:"Declive médio (%)",dist_path_m:"Dist. caminho (m)",dist_water_m:"Dist. rede água (m)",dist_building_m:"Dist. edifício (m)",aspect:"Exposição",
  classe:"Classe",rank_risk:"Posição (1 = mais exposto)",canopy_cover_30m_pct:"Copado a 30 m (%)",tall_trees_20m:"Árvores ≥8 m a 20 m",stressed_trees_30m:"Copas stressadas a 30 m",slope_mean_deg:"Declive (°)",fuel_strip_status:"Faixa de combustível",actions:"Ações",
  twi_mean:"Índice humidade (TWI)",upstream_ha:"Área a montante (ha)",risco:"Risco",canopy_cover_pct:"Copado (%)",runoff_coef:"Coef. escoamento",runoff_m3_50mm:"Escoamento a 50 mm (m³)",area_ha:"Área (ha)"};
-const map = L.map("map",{zoomControl:true});
+const map = L.map("map",{zoomControl:true, maxZoom:22, zoomSnap:0.5, zoomDelta:0.5, wheelPxPerZoomLevel:90});
 const bases = {
  "Esri": L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-   {maxZoom:19, attribution:"Imagery © Esri & partners"}),
+   {maxNativeZoom:19, maxZoom:22, attribution:"Imagery © Esri & partners"}),
  "DGT 2025": L.layerGroup([
-   L.tileLayer.wms("https://ortos.dgterritorio.gov.pt/wms/ortosat2023", {layers:"ortoSat2023-CorVerdadeira", format:"image/png", maxZoom:20, attribution:"OrtoSat2023 © DGT"}),
-   L.tileLayer("ortho2025/{z}/{x}/{y}.jpg", {minZoom:12, maxNativeZoom:18, maxZoom:20, bounds:[[37.497,-8.661],[37.526,-8.628]], attribution:"Ortofotos 2025 © DGT"})]),
+   L.tileLayer.wms("https://ortos.dgterritorio.gov.pt/wms/ortosat2023", {layers:"ortoSat2023-CorVerdadeira", format:"image/png", maxZoom:22, attribution:"OrtoSat2023 © DGT"}),
+   L.tileLayer("ortho2025/{z}/{x}/{y}.jpg", {minZoom:12, maxNativeZoom:20, maxZoom:22, bounds:[[37.497,-8.661],[37.526,-8.628]], attribution:"Ortofotos 2025 © DGT"})]),
  "DGT 2023": L.tileLayer.wms("https://ortos.dgterritorio.gov.pt/wms/ortosat2023",
-   {layers:"ortoSat2023-CorVerdadeira", format:"image/png", maxZoom:20, attribution:"OrtoSat2023 © DGT"}),
+   {layers:"ortoSat2023-CorVerdadeira", format:"image/png", maxZoom:22, attribution:"OrtoSat2023 © DGT"}),
  "OSM": L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-   {maxZoom:19, attribution:"© OpenStreetMap contributors"}),
+   {maxNativeZoom:19, maxZoom:22, attribution:"© OpenStreetMap contributors"}),
 };
-let curBase = "Esri"; bases[curBase].addTo(map);
+let curBase = "DGT 2025"; bases[curBase].addTo(map);
 const bm = document.getElementById("basemaps");
 Object.keys(bases).forEach(k=>{
   const b=document.createElement("button"); b.textContent=k; if(k===curBase)b.classList.add("on");
@@ -248,7 +248,7 @@ Object.keys(bases).forEach(k=>{
 });
 L.control.scale({imperial:false}).addTo(map);
 map.createPane("relief"); map.getPane("relief").style.mixBlendMode="multiply"; map.getPane("relief").style.zIndex=250;
-const relief = L.tileLayer("hillshade/{z}/{x}/{y}.png",{minZoom:12,maxNativeZoom:17,maxZoom:20,opacity:.6,pane:"relief",bounds:[[37.497,-8.661],[37.526,-8.628]]});
+const relief = L.tileLayer("hillshade/{z}/{x}/{y}.png",{minZoom:12,maxNativeZoom:17,maxZoom:22,opacity:.6,pane:"relief",bounds:[[37.497,-8.661],[37.526,-8.628]]});
 (()=>{ const b=document.createElement("button"); b.textContent="⛰"; b.title="Relevo LiDAR"; b.onclick=()=>{ map.hasLayer(relief)?map.removeLayer(relief):relief.addTo(map); b.classList.toggle("on", map.hasLayer(relief)); }; bm.appendChild(b); })();
 function popup(p){
   const F = fields_i18n();
@@ -517,5 +517,8 @@ setTimeout(()=>{ openAsset(); openWork(); }, 400);
 <script src="view.js"></script>
 <script src="nav.js"></script>
 <script src="brain.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@geoman-io/leaflet-geoman-free@2.17.0/dist/leaflet-geoman.css">
+<script src="https://cdn.jsdelivr.net/npm/@geoman-io/leaflet-geoman-free@2.17.0/dist/leaflet-geoman.min.js"></script>
+<script src="edit.js"></script>
 </body>
 </html>
