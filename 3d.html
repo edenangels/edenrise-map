@@ -39,6 +39,7 @@ a{color:var(--accent)}
 <script src="data.js"></script>
 <script src="ops-data.js"></script>
 <script src="hydro-data.js"></script>
+<script src="trees-data.js"></script>
 <script>
 const OGC = "https://ogcapi.dgterritorio.gov.pt/collections/";
 const ogcMap = c => `${OGC}${c}/map?bbox={bbox-epsg-3857}&bbox-crs=http://www.opengis.net/def/crs/EPSG/0/3857&width=256&height=256&f=png`;
@@ -49,9 +50,9 @@ const BASES = {
 };
 let LANG = "pt"; try{ LANG = localStorage.getItem("edr_lang") || ((navigator.language||"pt").toLowerCase().startsWith("pt")?"pt":"en"); }catch(e){}
 const T = {pt:{ttl:"EdenRise — Herdade 3D",sub:"Gémeo digital · terreno real + ortofotos DGT",hint:"Arrastar com botão direito / dois dedos para inclinar e rodar. Clicar em qualquer elemento para a ficha. Terreno: Copernicus/Terrarium (30 m) — passa a 50 cm com o LiDAR DGT.",
-             groups:{core:"Herdade",ops:"Operações",hydro:"Água & terreno"}, fly:"✈ Voo", tilt:"⟲ 3D / 2D"},
+             groups:{core:"Herdade",ops:"Operações",hydro:"Água & terreno",trees:"🌳 Árvores (LiDAR 2024)"}, fly:"✈ Voo", tilt:"⟲ 3D / 2D"},
            en:{ttl:"EdenRise — Estate 3D",sub:"Digital twin · real terrain + DGT orthophotos",hint:"Right-drag / two fingers to tilt and rotate. Click any feature for its record. Terrain: Copernicus/Terrarium (30 m) — upgrades to 50 cm with DGT LiDAR.",
-             groups:{core:"Estate",ops:"Operations",hydro:"Water & terrain"}, fly:"✈ Fly", tilt:"⟲ 3D / 2D"}};
+             groups:{core:"Estate",ops:"Operations",hydro:"Water & terrain",trees:"🌳 Trees (LiDAR 2024)"}, fly:"✈ Fly", tilt:"⟲ 3D / 2D"}};
 // layer catalogue (subset of the 2D map, chosen for 3D legibility)
 const LAYERS = [
  ["core","cadastre_parcels",{pt:"Limite da herdade",en:"Estate boundary"},"line","#ffffff",2.4,true],
@@ -70,15 +71,19 @@ const LAYERS = [
  ["ops","asset_registry",{pt:"Ativos (EDR-…)",en:"Assets (EDR-…)"},"circle","#ffffff",5,false],
  ["ops","fire_fuel_strips",{pt:"Faixas de combustível",en:"Fuel strips"},"fill","#ff5722",.18,false],
  ["ops","boundary_deviations",{pt:"Desvios de limite",en:"Boundary deviations"},"fill","#e91e63",.35,false],
- ["hydro","hydro_streams",{pt:"Linhas de água (modeladas)",en:"Modelled streams"},"line","#40c4ff",2.2,true],
+ ["hydro","hydro_streams",{pt:"Linhas de água (LiDAR 2 m)",en:"Modelled streams (LiDAR 2 m)"},"line","#40c4ff",2.2,true],
  ["hydro","hydro_catchments",{pt:"Bacias de drenagem",en:"Catchments"},"line","#80deea",1.2,false],
+ ["trees","tree_tops",{pt:"Árvores individuais (LiDAR)",en:"Individual trees (LiDAR)"},"circle","#2e7d32",3.5,false],
+ ["trees","tree_crowns",{pt:"Copas (LiDAR)",en:"Tree crowns (LiDAR)"},"fill","#43a047",.35,false],
 ];
 const HYDRO = (typeof HYDRODATA !== "undefined") ? HYDRODATA : {};
-const src = t => DATA[t] || (typeof OPSDATA!=="undefined" && OPSDATA[t]) || HYDRO[t];
+const TREES = (typeof TREEDATA !== "undefined") ? TREEDATA : {};
+const src = t => DATA[t] || (typeof OPSDATA!=="undefined" && OPSDATA[t]) || HYDRO[t] || TREES[t];
 let curBase = "dgt23";
 const map = new maplibregl.Map({container:"map", zoom:14, center:[-8.645,37.512], pitch:58, bearing:-20, maxPitch:80,
   style:{version:8, sources:{
-    terrain:{type:"raster-dem", tiles:["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"], encoding:"terrarium", tileSize:256, maxzoom:15, attribution:"Terrain: Mapzen/AWS Terrarium"},
+    terrain:{type:"raster-dem", tiles:[location.href.replace(/[^/]*$/,"") + "terrain/{z}/{x}/{y}.png"], encoding:"mapbox", tileSize:256, minzoom:11, maxzoom:16,
+             bounds:[-8.71,37.45,-8.58,37.575], attribution:"Terreno: LiDAR 2024 © DGT (50 cm) + Terrarium"},
     base:{type:"raster", tiles:BASES[curBase].tiles, tileSize:256, attribution:BASES[curBase].attr},
     fwi:{type:"raster", tiles:["https://maps.effis.emergency.copernicus.eu/effis?service=WMS&version=1.3.0&request=GetMap&layers=mf010.fwi&styles=&crs=EPSG:3857&bbox={bbox-epsg-3857}&width=256&height=256&format=image/png&time="+new Date().toISOString().slice(0,10)], tileSize:256, attribution:"EFFIS © Copernicus"},
   }, layers:[
@@ -90,8 +95,8 @@ window.__errs = []; map.on("error", e => window.__errs.push(String(e && e.error 
 map.addControl(new maplibregl.NavigationControl({visualizePitch:true}), "top-right");
 map.addControl(new maplibregl.ScaleControl({unit:"metric"}));
 map.addControl(new maplibregl.TerrainControl({source:"terrain", exaggeration:1.4}), "top-right");
-const FIELDS = {pt:{asset_id:"ID",status:"Estado",category:"Categoria",system:"Sistema",year:"Ano",cadastral_article:"Art.º",areas_doc_m2:"Áreas (docs) m²",m2:"Área",m:"Comprimento",kind:"Tipo",area_ha:"Área (ha)",order:"Ordem"},
-                en:{asset_id:"ID",status:"Status",category:"Category",system:"System",year:"Year",cadastral_article:"Article",areas_doc_m2:"Areas (docs) m²",m2:"Area",m:"Length",kind:"Type",area_ha:"Area (ha)",order:"Order"}};
+const FIELDS = {pt:{asset_id:"ID",tree_id:"ID árvore",height_m:"Altura (m)",crown_m2:"Copa (m²)",crown_diam_m:"Diâm. copa (m)",status:"Estado",category:"Categoria",system:"Sistema",year:"Ano",cadastral_article:"Art.º",areas_doc_m2:"Áreas (docs) m²",m2:"Área",m:"Comprimento",kind:"Tipo",area_ha:"Área (ha)",source:"Fonte"},
+                en:{asset_id:"ID",tree_id:"Tree ID",height_m:"Height (m)",crown_m2:"Crown (m²)",crown_diam_m:"Crown diam. (m)",status:"Status",category:"Category",system:"System",year:"Year",cadastral_article:"Article",areas_doc_m2:"Areas (docs) m²",m2:"Area",m:"Length",kind:"Type",area_ha:"Area (ha)",source:"Source"}};
 function popupHtml(p){
   const F = FIELDS[LANG]; let h = `<div class="pp"><h3>${p.name||p.asset_id||"—"}</h3><table>`;
   for(const k of Object.keys(F)) if(p[k]!==undefined && p[k]!==null && p[k]!=="") h += `<tr><td>${F[k]}</td><td>${k==="m2"?Number(p.m2).toLocaleString()+" m²":k==="m"?Number(p.m).toLocaleString()+" m":p[k]}</td></tr>`;
