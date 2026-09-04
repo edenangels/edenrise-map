@@ -36,6 +36,13 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,sans-serif;background:
 .basemaps{display:flex;gap:6px;margin:8px 0 2px}
 .basemaps button{flex:1;font-size:11px;padding:5px 4px;background:var(--bg);color:var(--muted);border:1px solid var(--line);border-radius:5px;cursor:pointer}
 .basemaps button.on{color:var(--ink);border-color:var(--accent)}
+.risk{margin:10px 0 4px;padding:9px 11px;border:1px solid var(--line);border-radius:6px;background:var(--bg);font-size:12px;line-height:1.35}
+.risk b{font-size:13px}
+.risk .lvl{display:inline-block;padding:1px 8px;border-radius:10px;font-weight:700;color:#111;margin-left:4px}
+.risk small{color:var(--muted);display:block;margin-top:3px}
+.spark{margin-top:8px;border-top:1px solid var(--line);padding-top:6px}
+.spark .lbl{font-size:11px;color:var(--muted)}
+.spark svg{display:block;width:100%;height:46px;margin-top:2px}
 </style>
 </head>
 <body>
@@ -46,6 +53,8 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,sans-serif;background:
     <div class="sub" id="sub">Mapa vivo da propriedade · dados 2026-09</div>
     <div class="basemaps" id="langs"></div>
     <div class="basemaps" id="basemaps"></div>
+    <div id="risk" class="risk"></div>
+    <div id="live" class="grp"></div>
     <div id="tree"></div>
   </nav>
   <div id="map"></div>
@@ -53,6 +62,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,sans-serif;background:
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="data.js"></script>
 <script src="ops-data.js"></script>
+<script src="sat-data.js"></script>
 <script>
 const GROUPS = [
  ["10 · Cadastro & Legal", true, [
@@ -196,7 +206,33 @@ function popup(p){
   }
   h += "</table>";
   if(p.notes_text) h += `<div class="notes">${String(p.notes_text).slice(0,600)}</div>`;
+  h += sparkline(p);
   return h+"</div>";
+}
+// ── satellite series (Sentinel-2) matched by zone name ──
+function satSeries(p){
+  if(typeof SATDATA === "undefined" || !p.name) return null;
+  const pts = [];
+  for(const s of Object.values(SATDATA.series)){ if(s.name === p.name) pts.push(...s.pts); }
+  if(!pts.length) return null;
+  // average same-date readings across polygons sharing the name
+  const byDate = {};
+  for(const [d,ndvi,ndmi] of pts){ const b = byDate[d] = byDate[d] || [0,0,0]; b[0]+=ndvi; b[1]+=ndmi; b[2]++; }
+  return Object.entries(byDate).sort().map(([d,b])=>[d, b[0]/b[2], b[1]/b[2]]);
+}
+function sparkline(p){
+  const s = satSeries(p); if(!s || s.length < 2) return "";
+  const W=260, H=46, pad=3, vals = s.map(x=>x[1]), lo=Math.min(...vals), hi=Math.max(...vals);
+  const x = i => pad + i*(W-2*pad)/(s.length-1), y = v => H-pad-((v-lo)/Math.max(hi-lo,0.05))*(H-2*pad);
+  const path = vals.map((v,i)=>(i?"L":"M")+x(i).toFixed(1)+","+y(v).toFixed(1)).join(" ");
+  const last = s[s.length-1], first = s[0];
+  const trend = last[1]-first[1];
+  const lbl = LANG==="en"
+    ? `Vegetation (NDVI) · ${first[0].slice(5)} → ${last[0].slice(5)} · latest ${last[1].toFixed(2)} · moisture ${last[2].toFixed(2)}`
+    : `Vegetação (NDVI) · ${first[0].slice(5)} → ${last[0].slice(5)} · atual ${last[1].toFixed(2)} · humidade ${last[2].toFixed(2)}`;
+  return `<div class="spark"><div class="lbl">🛰️ ${lbl} <b style="color:${trend<-0.05?'#ff7043':'#8fae7e'}">${trend>=0?'▲':'▼'}${Math.abs(trend).toFixed(2)}</b></div>
+    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><path d="${path}" fill="none" stroke="#8fae7e" stroke-width="1.8"/>
+    <circle cx="${x(s.length-1).toFixed(1)}" cy="${y(last[1]).toFixed(1)}" r="2.6" fill="#ffeb3b"/></svg></div>`;
 }
 const layerObjs = {};
 let allBounds = null;
@@ -262,6 +298,50 @@ function buildSidebar(){
   }
 }
 buildSidebar();
+// ── live feeds: EFFIS (Copernicus) daily fire danger, hotspots, burnt areas ──
+const today = new Date().toISOString().slice(0,10);
+const EFFIS = "https://maps.effis.emergency.copernicus.eu/effis";
+// EFFIS paints sea/no-data opaque white — a multiply blend makes white vanish and colours tint the imagery
+map.createPane("effis"); map.getPane("effis").style.mixBlendMode = "multiply"; map.getPane("effis").style.zIndex = 350;
+const LIVE = {
+  fwi:  {pt:"Perigo de incêndio hoje (EFFIS FWI)", en:"Fire danger today (EFFIS FWI)",
+         lyr: L.tileLayer.wms(EFFIS,{layers:"mf010.fwi",format:"image/png",opacity:.8,time:today,pane:"effis",attribution:"EFFIS © Copernicus"})},
+  hs:   {pt:"Focos de calor ativos (satélite, 24h)", en:"Active fire hotspots (satellite, 24h)",
+         lyr: L.tileLayer.wms(EFFIS,{layers:"all.hs",format:"image/png",pane:"effis",attribution:"EFFIS © Copernicus"})},
+  ba:   {pt:"Áreas ardidas recentes (EFFIS)", en:"Recent burnt areas (EFFIS)",
+         lyr: L.tileLayer.wms(EFFIS,{layers:"effis.nrt.ba",format:"image/png",opacity:.85,pane:"effis",attribution:"EFFIS © Copernicus"})},
+};
+function buildLive(){
+  const el = document.getElementById("live"); el.innerHTML = "";
+  const gl = document.createElement("label"); gl.className="gl";
+  gl.appendChild(document.createTextNode(LANG==="en" ? "🛰️ Live satellite & risk" : "🛰️ Satélite & risco — em direto"));
+  el.appendChild(gl);
+  for(const [k,v] of Object.entries(LIVE)){
+    const row=document.createElement("label"); row.className="lyr";
+    const c=document.createElement("input"); c.type="checkbox"; c.checked = map.hasLayer(v.lyr);
+    c.onchange=()=>{ c.checked ? v.lyr.addTo(map) : map.removeLayer(v.lyr); };
+    const sw=document.createElement("span"); sw.className="sw pg"; sw.style.borderColor="#ff7043"; sw.style.background="rgba(255,112,67,.25)";
+    row.appendChild(c); row.appendChild(sw); row.appendChild(document.createTextNode(v[LANG]));
+    el.appendChild(row);
+  }
+  const note=document.createElement("div"); note.style.cssText="font-size:10.5px;color:var(--muted);padding:3px 0 0 6px";
+  const upd = (typeof SATDATA!=="undefined") ? SATDATA.updated : "—";
+  note.textContent = LANG==="en" ? `Sentinel-2 vegetation series in zone popups · updated ${upd}` : `Série de vegetação Sentinel-2 nas fichas das zonas · atualizado ${upd}`;
+  el.appendChild(note);
+}
+buildLive();
+// ── IPMA daily fire-risk badge for Odemira (concelho 0211) ──
+const RCM = {1:["Reduzido","Low","#8fae7e"],2:["Moderado","Moderate","#d4e157"],3:["Elevado","High","#ffb300"],4:["Muito elevado","Very high","#ff7043"],5:["Máximo","Maximum","#e53935"]};
+let rcmToday = null;
+function renderRisk(){
+  const el = document.getElementById("risk");
+  if(rcmToday == null){ el.innerHTML = ""; return; }
+  const r = RCM[rcmToday] || ["?", "?", "#999"];
+  el.innerHTML = `<b>${LANG==="en"?"Fire risk today":"Risco de incêndio hoje"}</b><span class="lvl" style="background:${r[2]}">${LANG==="en"?r[1]:r[0]}</span><small>IPMA · Odemira · ${today}</small>`;
+}
+fetch("https://api.ipma.pt/open-data/forecast/meteorology/rcm/rcm-d0.json").then(r=>r.json()).then(d=>{
+  rcmToday = d.local && d.local["0211"] ? d.local["0211"].data.rcm : null; renderRisk();
+}).catch(()=>{});
 // language switch
 const langsEl = document.getElementById("langs");
 [["pt","Português"],["en","English"]].forEach(([code,label])=>{
@@ -269,7 +349,7 @@ const langsEl = document.getElementById("langs");
   if(code===LANG) b.classList.add("on");
   b.onclick=()=>{ LANG=code; try{localStorage.setItem("edr_lang",code);}catch(e){}
     langsEl.querySelectorAll("button").forEach(x=>x.classList.toggle("on", x.dataset.lang===code));
-    buildSidebar(); map.closePopup(); };
+    buildSidebar(); buildLive(); renderRisk(); map.closePopup(); };
   langsEl.appendChild(b);
 });
 document.getElementById("burger").onclick=()=>document.getElementById("side").classList.toggle("open");

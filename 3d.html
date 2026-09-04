@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EdenRise — Herdade 3D</title>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<style>
+:root{--bg:#141a15;--panel:#1d241b;--ink:#e6e3d4;--muted:#9ba391;--line:#333b2f;--accent:#8fae7e}
+*{box-sizing:border-box} body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+#map{position:absolute;inset:0}
+#panel{position:absolute;top:12px;left:12px;z-index:5;width:250px;background:rgba(29,36,27,.94);border:1px solid var(--line);border-radius:8px;padding:12px 13px;font-size:12.5px;max-height:calc(100vh - 24px);overflow-y:auto}
+#panel h1{font-size:15px;margin:0 0 2px} #panel .sub{color:var(--muted);font-size:11px;margin-bottom:8px}
+.row{display:flex;gap:5px;margin:6px 0}
+.row button{flex:1;font-size:11px;padding:5px 3px;background:var(--bg);color:var(--muted);border:1px solid var(--line);border-radius:5px;cursor:pointer}
+.row button.on{color:var(--ink);border-color:var(--accent)}
+.gl{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:10px 0 3px;border-top:1px solid var(--line);padding-top:7px}
+.lyr{display:flex;align-items:center;gap:7px;padding:2px 0 2px 4px;cursor:pointer}
+.sw{width:12px;height:12px;border-radius:50%;flex:none}
+.maplibregl-popup-content{background:var(--panel);color:var(--ink);border-radius:6px;font-size:12px;max-width:280px}
+.maplibregl-popup-tip{border-top-color:var(--panel)!important}
+.pp h3{margin:0 0 5px;font-size:13.5px} .pp td{padding:1px 8px 1px 0;vertical-align:top} .pp td:first-child{color:var(--muted)}
+.hint{font-size:10.5px;color:var(--muted);margin-top:8px;line-height:1.35}
+a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="panel">
+  <h1 id="ttl">EdenRise — Herdade 3D</h1>
+  <div class="sub" id="sub">Gémeo digital · terreno real + ortofotos DGT</div>
+  <div class="row" id="langs"></div>
+  <div class="row" id="bases"></div>
+  <div class="row"><button id="tilt">⟲ 3D / 2D</button><button id="fly">✈ Voo</button></div>
+  <div id="tree"></div>
+  <div class="hint" id="hint"></div>
+</div>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="data.js"></script>
+<script src="ops-data.js"></script>
+<script src="hydro-data.js"></script>
+<script>
+const OGC = "https://ogcapi.dgterritorio.gov.pt/collections/";
+const ogcMap = c => `${OGC}${c}/map?bbox={bbox-epsg-3857}&bbox-crs=http://www.opengis.net/def/crs/EPSG/0/3857&width=256&height=256&f=png`;
+const BASES = {
+  dgt18: {pt:"DGT 2018 · 25 cm", en:"DGT 2018 · 25 cm", tiles:[ogcMap("ortos2018-rgb")], attr:"Ortofotos 2018 © DGT"},
+  dgt23: {pt:"DGT 2023 · 30 cm", en:"DGT 2023 · 30 cm", tiles:[ogcMap("ortos-rgb")], attr:"OrtoSat2023 © DGT"},
+  esri:  {pt:"Esri", en:"Esri", tiles:["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], attr:"© Esri & partners"},
+};
+let LANG = "pt"; try{ LANG = localStorage.getItem("edr_lang") || ((navigator.language||"pt").toLowerCase().startsWith("pt")?"pt":"en"); }catch(e){}
+const T = {pt:{ttl:"EdenRise — Herdade 3D",sub:"Gémeo digital · terreno real + ortofotos DGT",hint:"Arrastar com botão direito / dois dedos para inclinar e rodar. Clicar em qualquer elemento para a ficha. Terreno: Copernicus/Terrarium (30 m) — passa a 50 cm com o LiDAR DGT.",
+             groups:{core:"Herdade",ops:"Operações",hydro:"Água & terreno"}, fly:"✈ Voo", tilt:"⟲ 3D / 2D"},
+           en:{ttl:"EdenRise — Estate 3D",sub:"Digital twin · real terrain + DGT orthophotos",hint:"Right-drag / two fingers to tilt and rotate. Click any feature for its record. Terrain: Copernicus/Terrarium (30 m) — upgrades to 50 cm with DGT LiDAR.",
+             groups:{core:"Estate",ops:"Operations",hydro:"Water & terrain"}, fly:"✈ Fly", tilt:"⟲ 3D / 2D"}};
+// layer catalogue (subset of the 2D map, chosen for 3D legibility)
+const LAYERS = [
+ ["core","cadastre_parcels",{pt:"Limite da herdade",en:"Estate boundary"},"line","#ffffff",2.4,true],
+ ["core","subsidy_parcels",{pt:"Parcelas de subsídio",en:"Subsidy parcels"},"line","#76ff03",1.6,false],
+ ["core","buildings_pt",{pt:"Edifícios",en:"Buildings"},"circle","#4caf50",7,true],
+ ["core","water_network_ln",{pt:"Condutas de água",en:"Water pipes"},"line","#29b6f6",2.2,true],
+ ["core","water_sources_pt",{pt:"Furos & poços",en:"Boreholes & wells"},"circle","#03a9f4",6,true],
+ ["core","water_storage_pt",{pt:"Tanques & charcas",en:"Tanks & ponds"},"circle","#00bcd4",6,true],
+ ["core","wastewater_pt",{pt:"Fossas",en:"Septic tanks"},"circle","#8d6e63",6,false],
+ ["core","power_ln",{pt:"Eletricidade",en:"Electricity"},"line","#ffd600",2.2,true],
+ ["core","paths_ln",{pt:"Caminhos",en:"Paths"},"line","#d7ccc8",2,true],
+ ["core","grazing_parks_pg",{pt:"Parques de pastoreio",en:"Grazing parks"},"fill","#d4e157",.22,true],
+ ["core","agri_features_pg",{pt:"Produção vegetal",en:"Crops"},"fill","#66bb6a",.3,false],
+ ["core","hedges_ln",{pt:"Sebes",en:"Hedges"},"line","#2e7d32",2.4,false],
+ ["core","tree_actions_pt",{pt:"Cortes de árvores",en:"Tree cuts"},"circle","#ff9800",5,false],
+ ["ops","asset_registry",{pt:"Ativos (EDR-…)",en:"Assets (EDR-…)"},"circle","#ffffff",5,false],
+ ["ops","fire_fuel_strips",{pt:"Faixas de combustível",en:"Fuel strips"},"fill","#ff5722",.18,false],
+ ["ops","boundary_deviations",{pt:"Desvios de limite",en:"Boundary deviations"},"fill","#e91e63",.35,false],
+ ["hydro","hydro_streams",{pt:"Linhas de água (modeladas)",en:"Modelled streams"},"line","#40c4ff",2.2,true],
+ ["hydro","hydro_catchments",{pt:"Bacias de drenagem",en:"Catchments"},"line","#80deea",1.2,false],
+];
+const HYDRO = (typeof HYDRODATA !== "undefined") ? HYDRODATA : {};
+const src = t => DATA[t] || (typeof OPSDATA!=="undefined" && OPSDATA[t]) || HYDRO[t];
+let curBase = "dgt23";
+const map = new maplibregl.Map({container:"map", zoom:14, center:[-8.645,37.512], pitch:58, bearing:-20, maxPitch:80,
+  style:{version:8, sources:{
+    terrain:{type:"raster-dem", tiles:["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"], encoding:"terrarium", tileSize:256, maxzoom:15, attribution:"Terrain: Mapzen/AWS Terrarium"},
+    base:{type:"raster", tiles:BASES[curBase].tiles, tileSize:256, attribution:BASES[curBase].attr},
+    fwi:{type:"raster", tiles:["https://maps.effis.emergency.copernicus.eu/effis?service=WMS&version=1.3.0&request=GetMap&layers=mf010.fwi&styles=&crs=EPSG:3857&bbox={bbox-epsg-3857}&width=256&height=256&format=image/png&time="+new Date().toISOString().slice(0,10)], tileSize:256, attribution:"EFFIS © Copernicus"},
+  }, layers:[
+    {id:"base", type:"raster", source:"base"},
+    {id:"hill", type:"hillshade", source:"terrain", paint:{"hillshade-exaggeration":.35,"hillshade-shadow-color":"#1b2418"}},
+    {id:"fwi", type:"raster", source:"fwi", paint:{"raster-opacity":.45}, layout:{visibility:"none"}},
+  ], terrain:{source:"terrain", exaggeration:1.4}}});
+window.__errs = []; map.on("error", e => window.__errs.push(String(e && e.error && e.error.message || e)));
+map.addControl(new maplibregl.NavigationControl({visualizePitch:true}), "top-right");
+map.addControl(new maplibregl.ScaleControl({unit:"metric"}));
+map.addControl(new maplibregl.TerrainControl({source:"terrain", exaggeration:1.4}), "top-right");
+const FIELDS = {pt:{asset_id:"ID",status:"Estado",category:"Categoria",system:"Sistema",year:"Ano",cadastral_article:"Art.º",areas_doc_m2:"Áreas (docs) m²",m2:"Área",m:"Comprimento",kind:"Tipo",area_ha:"Área (ha)",order:"Ordem"},
+                en:{asset_id:"ID",status:"Status",category:"Category",system:"System",year:"Year",cadastral_article:"Article",areas_doc_m2:"Areas (docs) m²",m2:"Area",m:"Length",kind:"Type",area_ha:"Area (ha)",order:"Order"}};
+function popupHtml(p){
+  const F = FIELDS[LANG]; let h = `<div class="pp"><h3>${p.name||p.asset_id||"—"}</h3><table>`;
+  for(const k of Object.keys(F)) if(p[k]!==undefined && p[k]!==null && p[k]!=="") h += `<tr><td>${F[k]}</td><td>${k==="m2"?Number(p.m2).toLocaleString()+" m²":k==="m"?Number(p.m).toLocaleString()+" m":p[k]}</td></tr>`;
+  h += "</table>"; if(p.notes_text) h += `<div style="margin-top:5px;color:#9ba391;font-size:11px;max-height:90px;overflow:auto">${String(p.notes_text).slice(0,400)}</div>`;
+  return h+"</div>";
+}
+const state = {};
+map.on("load", ()=>{
+  for(const [grp, t, title, kind, color, size, on] of LAYERS){
+    const fc = src(t); if(!fc) continue;
+    map.addSource(t, {type:"geojson", data:fc});
+    const vis = on ? "visible" : "none";
+    if(kind==="fill"){
+      map.addLayer({id:t, type:"fill", source:t, paint:{"fill-color":color,"fill-opacity":size}, layout:{visibility:vis}});
+      map.addLayer({id:t+"_o", type:"line", source:t, paint:{"line-color":color,"line-width":1.2}, layout:{visibility:vis}});
+    } else if(kind==="line"){
+      map.addLayer({id:t, type:"line", source:t, paint:{"line-color":color,"line-width":size}, layout:{visibility:vis,"line-cap":"round","line-join":"round"}});
+    } else {
+      map.addLayer({id:t, type:"circle", source:t, paint:{"circle-radius":size,"circle-color":color,"circle-stroke-color":"#111","circle-stroke-width":1.2}, layout:{visibility:vis}});
+    }
+    state[t] = on;
+    map.on("click", t, e=>{ new maplibregl.Popup().setLngLat(e.lngLat).setHTML(popupHtml(e.features[0].properties)).addTo(map); });
+    map.on("mouseenter", t, ()=>map.getCanvas().style.cursor="pointer"); map.on("mouseleave", t, ()=>map.getCanvas().style.cursor="");
+  }
+  buildPanel();
+});
+function setVis(t, on){ state[t]=on; const v = on?"visible":"none"; if(map.getLayer(t)) map.setLayoutProperty(t,"visibility",v); if(map.getLayer(t+"_o")) map.setLayoutProperty(t+"_o","visibility",v); }
+function buildPanel(){
+  const tx = T[LANG];
+  document.getElementById("ttl").textContent = tx.ttl; document.getElementById("sub").textContent = tx.sub;
+  document.getElementById("hint").textContent = tx.hint; document.getElementById("fly").textContent = tx.fly; document.getElementById("tilt").textContent = tx.tilt;
+  const L = document.getElementById("langs"); L.innerHTML = "";
+  [["pt","Português"],["en","English"]].forEach(([c,l])=>{ const b=document.createElement("button"); b.textContent=l; if(c===LANG) b.classList.add("on");
+    b.onclick=()=>{ LANG=c; try{localStorage.setItem("edr_lang",c);}catch(e){} buildPanel(); }; L.appendChild(b); });
+  const B = document.getElementById("bases"); B.innerHTML = "";
+  for(const [k,v] of Object.entries(BASES)){ const b=document.createElement("button"); b.textContent=v[LANG]; if(k===curBase) b.classList.add("on");
+    b.onclick=()=>{ curBase=k; map.getSource("base").setTiles(v.tiles); buildPanel(); }; B.appendChild(b); }
+  const tree = document.getElementById("tree"); tree.innerHTML = "";
+  let cur = null;
+  for(const [grp, t, title, kind, color] of LAYERS){
+    if(!src(t)) continue;
+    if(grp!==cur){ cur=grp; const g=document.createElement("div"); g.className="gl"; g.textContent=tx.groups[grp]; tree.appendChild(g); }
+    const row=document.createElement("label"); row.className="lyr";
+    const c=document.createElement("input"); c.type="checkbox"; c.checked=!!state[t]; c.onchange=()=>setVis(t,c.checked);
+    const sw=document.createElement("span"); sw.className="sw"; sw.style.background=color;
+    row.appendChild(c); row.appendChild(sw); row.appendChild(document.createTextNode(title[LANG])); tree.appendChild(row);
+  }
+  // live fire danger
+  const g=document.createElement("div"); g.className="gl"; g.textContent = LANG==="en"?"🛰️ Live":"🛰️ Em direto"; tree.appendChild(g);
+  const row=document.createElement("label"); row.className="lyr"; const c=document.createElement("input"); c.type="checkbox";
+  c.checked = map.getLayoutProperty("fwi","visibility")==="visible"; c.onchange=()=>map.setLayoutProperty("fwi","visibility",c.checked?"visible":"none");
+  const sw=document.createElement("span"); sw.className="sw"; sw.style.background="#ff7043";
+  row.appendChild(c); row.appendChild(sw); row.appendChild(document.createTextNode(LANG==="en"?"Fire danger today (EFFIS)":"Perigo de incêndio hoje (EFFIS)")); tree.appendChild(row);
+}
+document.getElementById("tilt").onclick = ()=> map.easeTo({pitch: map.getPitch()>10 ? 0 : 60, duration:800});
+document.getElementById("fly").onclick = ()=> {
+  map.easeTo({center:[-8.652,37.508], zoom:15.2, pitch:65, bearing:-60, duration:2500});
+  setTimeout(()=>map.easeTo({center:[-8.641,37.516], zoom:15.4, pitch:62, bearing:40, duration:5000}), 2600);
+};
+</script>
+</body>
+</html>
