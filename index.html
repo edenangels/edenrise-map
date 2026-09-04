@@ -67,6 +67,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,sans-serif;background:
 <script src="trees-data.js"></script>
 <script src="buildings-data.js"></script>
 <script src="suitability-data.js"></script>
+<script src="work-data.js"></script>
 <script>
 const GROUPS = [
  ["10 · Cadastro & Legal", true, [
@@ -236,7 +237,23 @@ function popup(p){
   h += "</table>";
   if(p.notes_text) h += `<div class="notes">${String(p.notes_text).slice(0,600)}</div>`;
   h += sparkline(p);
+  h += workBadge(p);
   return h+"</div>";
+}
+// ── ClickUp mirror: live task status per work key (FIRE-/PERMIT- on the feature, INSP- via asset inspections) ──
+function workBadge(p){
+  if(typeof WORKDATA === "undefined") return "";
+  const keys = []; if(p.key) keys.push(p.key);
+  if(Array.isArray(p.inspections)) p.inspections.forEach(i=>keys.push(i.key));
+  const rows = keys.map(k=>[k, WORKDATA.items[k]]).filter(([k,w])=>w);
+  if(!rows.length) return "";
+  const L = LANG==="en";
+  let h = `<div class="spark"><div class="lbl">🔁 ${L?"ClickUp":"ClickUp"} · ${L?"synced":"sincronizado"} ${String(WORKDATA.synced).slice(0,16).replace("T"," ")}</div>`;
+  for(const [k,w] of rows){
+    const col = w.closed ? "#8fae7e" : (w.cu==="in progress" ? "#7fa8cc" : "#cda452");
+    h += `<div style="font-size:12px;margin-top:3px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${col};margin-right:6px"></span><b>${k}</b> · ${w.cu||"—"} · ${L?"map":"mapa"}: ${w.gis||"—"}${w.due?" · "+w.due:""} ${w.url?`· <a href="${w.url}" target="_blank" style="color:#7fa8cc">${L?"open task":"abrir tarefa"}</a>`:""}</div>`;
+  }
+  return h + "</div>";
 }
 // ── satellite series (Sentinel-2) matched by zone name ──
 function satSeries(p){
@@ -395,8 +412,20 @@ function openAsset(){
       if(ll){ map.setView(ll, 18); l.openPopup(ll); }
     }});
 }
-window.addEventListener("hashchange", openAsset);
-setTimeout(openAsset, 400);
+// deep link: #work=FIRE-012 / PERMIT-003 / INSP-021 → zoom + popup on the related feature
+function openWork(){
+  const m = location.hash.match(/#work=([A-Z]+-\d{3})/i); if(!m) return;
+  const key = m[1].toUpperCase(); let hit = null;
+  const scan = (t, test) => { const o = layerObjs[t]; if(!o||hit) return; o.lyr.eachLayer(l=>{ if(!hit && l.feature && test(l.feature.properties)) hit = [o, l]; }); };
+  scan("fire_fuel_strips", p=>p.key===key); scan("tree_permits", p=>p.key===key);
+  scan("asset_registry", p=>Array.isArray(p.inspections) && p.inspections.some(i=>i.key===key));
+  if(!hit) return;
+  const [o, l] = hit; if(!map.hasLayer(o.lyr)){ o.lyr.addTo(map); if(o.box) o.box.checked = true; }
+  const ll = (typeof l.getLatLng==="function") ? l.getLatLng() : l.getBounds().getCenter();
+  map.setView(ll, 18); l.openPopup(ll);
+}
+window.addEventListener("hashchange", ()=>{ openAsset(); openWork(); });
+setTimeout(()=>{ openAsset(); openWork(); }, 400);
 </script>
 </body>
 </html>

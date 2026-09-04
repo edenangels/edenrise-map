@@ -42,6 +42,7 @@ a{color:var(--accent)}
 <script src="trees-data.js"></script>
 <script src="buildings-data.js"></script>
 <script src="suitability-data.js"></script>
+<script src="work-data.js"></script>
 <script>
 const OGC = "https://ogcapi.dgterritorio.gov.pt/collections/";
 const ogcMap = c => `${OGC}${c}/map?bbox={bbox-epsg-3857}&bbox-crs=http://www.opengis.net/def/crs/EPSG/0/3857&width=256&height=256&f=png`;
@@ -112,6 +113,13 @@ function popupHtml(p){
   const F = FIELDS[LANG]; let h = `<div class="pp"><h3>${p.name||p.asset_id||"—"}</h3><table>`;
   for(const k of Object.keys(F)) if(p[k]!==undefined && p[k]!==null && p[k]!=="") h += `<tr><td>${F[k]}</td><td>${k==="m2"?Number(p.m2).toLocaleString()+" m²":k==="m"?Number(p.m).toLocaleString()+" m":p[k]}</td></tr>`;
   h += "</table>"; if(p.notes_text) h += `<div style="margin-top:5px;color:#9ba391;font-size:11px;max-height:90px;overflow:auto">${String(p.notes_text).slice(0,400)}</div>`;
+  if(typeof WORKDATA !== "undefined"){
+    let insp = []; try{ insp = typeof p.inspections==="string" ? JSON.parse(p.inspections) : (p.inspections||[]); }catch(e){}
+    const keys = (p.key ? [p.key] : []).concat(insp.map(i=>i.key));
+    for(const k of keys){ const w = WORKDATA.items[k]; if(!w) continue;
+      const col = w.closed ? "#8fae7e" : (w.cu==="in progress" ? "#7fa8cc" : "#cda452");
+      h += `<div style="margin-top:4px;font-size:11.5px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${col};margin-right:5px"></span><b>${k}</b> · ${w.cu||"—"} · ${LANG==="en"?"map":"mapa"}: ${w.gis||"—"} ${w.url?`· <a href="${w.url}" target="_blank">${LANG==="en"?"task":"tarefa"}</a>`:""}</div>`; }
+  }
   return h+"</div>";
 }
 const state = {};
