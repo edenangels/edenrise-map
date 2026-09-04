@@ -120,11 +120,15 @@ function applyOverrides(feats){ for(const l of Object.values(dim)){ try{ l.setSt
 /* ---------- enter / exit ---------- */
 function ensureGeoman(){ if(!map.pm && window.L && L.PM && L.PM.Map){ try{ map.pm=new L.PM.Map(map); }catch(e){} } if(map.pm) return true; showHint(EN?"Edit tools failed to load — check the connection.":"As ferramentas de edição não carregaram — verifique a ligação."); return false; }
 async function toggle(){ if(E.on) return exit(); const a=auth(); if(a.role==="viewer"){ if(a.signIn) await a.signIn(); if(auth().role==="viewer"){ toast&&toast(T.need); return; } }
-  if(!ensureGeoman()) return; E.on=true; btn.classList.add("on"); btn.innerHTML=btn.innerHTML.replace(T.edit,T.editing); tools.hidden=false; showHint(T.pick);
+  if(!ensureGeoman()) return; E.on=true; btn.classList.add("on"); btn.hidden=false; tools.hidden=false; refreshBtn(); showHint(T.pick);
   map.pm.setGlobalOptions({snappable:true,snapDistance:14,allowSelfIntersection:false,pathOptions:{color:"#c9a227",weight:3,fillColor:"#c9a227",fillOpacity:.15},templineStyle:{color:"#c9a227"},hintlineStyle:{color:"#c9a227",dashArray:"5 5"},markerStyle:{icon:pin("#c9a227","+")}});
   hookCore(true); if(!E.changeset){ E.changeset="CS-"+Date.now().toString(36).toUpperCase(); } }
-function exit(){ if(typeof endPlace==="function") endPlace(); if(map.hasLayer(grid)) map.removeLayer(grid); gridOn=false; setTool(null); E.on=false; btn.classList.remove("on"); btn.innerHTML=btn.innerHTML.replace(T.editing,T.edit); tools.hidden=true; showHint(null); closeForm(); hookCore(false); }
+function exit(){ if(typeof endPlace==="function") endPlace(); if(map.hasLayer(grid)) map.removeLayer(grid); gridOn=false; setTool(null); E.on=false; btn.classList.remove("on"); tools.hidden=true; refreshBtn(); showHint(null); closeForm(); hookCore(false); }
 btn.onclick=toggle;
+function refreshBtn(){ const a=auth(); const roleTxt=a.role==="leader"?(EN?"LEADERSHIP":"LIDERANÇA"):a.role==="field"?(EN?"FIELD":"TERRENO"):""; btn.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>${E.on?T.editing:T.edit}${roleTxt&&!E.on?` <span style="opacity:.7;font-weight:500">· ${roleTxt}</span>`:""}`; const nb=document.getElementById("nav-edit"); if(nb){ nb.classList.toggle("on",E.on); nb.title=roleTxt||(EN?"Sign in with a team key":"Entre com a chave da equipa"); } }
+setInterval(refreshBtn,1500);
+// keep the floating button clear of the Brain chat panel
+new MutationObserver(()=>{ const b=document.getElementById("brain"); btn.hidden=!!(b&&!b.hidden)&&!E.on; }).observe(document.getElementById("map"),{attributes:true,subtree:true,attributeFilter:["hidden"]});
 /* intercept clicks on core items while editing */
 const origShow=window.showCard; let pickBlock=false;
 window.showCard=function(p,ll,t){ if(E.on) return; return origShow&&origShow(p,ll,t); };

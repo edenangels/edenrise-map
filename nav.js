@@ -10,7 +10,7 @@
   const nav = document.createElement("nav"); nav.id = "appnav";
   nav.innerHTML = `<a class="brand" href="index.html"><span class="mark"></span><span class="t">EdenRise</span></a>` +
     items.map(([h,l])=>`<a href="${h}" class="${h===here?"on":""}">${l[LANG]}</a>`).join("") +
-    `<span class="sp"></span><button class="share" id="navshare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v13"/></svg><span>${t.share}</span></button>`;
+    `<span class="sp"></span><button class="edit" id="nav-edit" title="${LANG==="en"?"Add or change items on the map":"Adicionar ou alterar itens no mapa"}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span>${LANG==="en"?"EDIT":"EDITAR"}</span></button><button class="share" id="navshare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v13"/></svg><span>${t.share}</span></button>`;
   document.body.prepend(nav);
   window.toast = function(msg){ const el=document.createElement("div"); el.className="toast"; el.textContent=msg; document.body.appendChild(el); setTimeout(()=>el.remove(), 1800); };
   function link(){ return window.viewLink ? window.viewLink() : location.href; }
@@ -37,5 +37,7 @@
     if(typeof QRCode==="undefined"){ const s=document.createElement("script"); s.src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"; s.onload=drawQR; document.head.appendChild(s); } else drawQR();
   }
   document.getElementById("navshare").onclick = openSheet;
+  document.getElementById("nav-edit").onclick = ()=>{ if(window.edrEdit) window.edrEdit.toggle(); else location.href = "index.html#edit"; };
+  const est = document.createElement("style"); est.textContent = `.nav .edit{display:inline-flex;align-items:center;gap:7px;margin-right:8px;background:var(--night-2);color:var(--linen);border:1px solid var(--line-2);border-radius:999px;padding:8px 14px;font:700 12px var(--display);letter-spacing:.06em;cursor:pointer}.nav .edit svg{width:14px;height:14px}.nav .edit:hover{border-color:var(--straw);color:var(--straw)}.nav .edit.on{background:var(--straw);color:var(--bark);border-color:var(--straw)}@media(max-width:700px){.nav .edit span{display:none}.nav .edit{padding:8px 10px}}`; document.head.appendChild(est);
   window.openShare = openSheet;
 })();
