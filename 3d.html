@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>EdenRise — Herdade 3D</title>
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
-<link rel="stylesheet" href="ui.css">
+<link rel="stylesheet" href="ui.css?v=16286725">
 <style>
 :root{--bg:var(--bark);--panel:var(--night);--ink:var(--linen);--accent:var(--oak)}
 #map{position:absolute;inset:44px 0 0 0}
@@ -37,13 +37,13 @@ a{color:var(--accent)}
   <div class="hint" id="hint"></div>
 </div>
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-<script src="data.js"></script>
-<script src="ops-data.js"></script>
-<script src="hydro-data.js"></script>
-<script src="trees-data.js"></script>
-<script src="buildings-data.js"></script>
-<script src="suitability-data.js"></script>
-<script src="work-data.js"></script>
+<script src="data.js?v=0737499e"></script>
+<script src="ops-data.js?v=2751505a"></script>
+<script src="hydro-data.js?v=8395b210"></script>
+<script src="trees-data.js?v=87638c70"></script>
+<script src="buildings-data.js?v=0fc788f4"></script>
+<script src="suitability-data.js?v=4e99bc9f"></script>
+<script src="work-data.js?v=ad554e35"></script>
 <script>
 const OGC = "https://ogcapi.dgterritorio.gov.pt/collections/";
 const ogcMap = c => `${OGC}${c}/map?bbox={bbox-epsg-3857}&bbox-crs=http://www.opengis.net/def/crs/EPSG/0/3857&width=256&height=256&f=png`;
@@ -196,6 +196,6 @@ document.getElementById("fly").onclick = ()=> {
   setTimeout(()=>map.easeTo({center:[-8.641,37.516], zoom:15.4, pitch:62, bearing:40, duration:5000}), 2600);
 };
 </script>
-<script src="nav.js"></script>
+<script src="nav.js?v=6b356f39"></script>
 </body>
 </html>

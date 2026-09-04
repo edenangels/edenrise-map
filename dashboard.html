@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>EdenRise — Painel da Herdade</title>
-<link rel="stylesheet" href="ui.css">
+<link rel="stylesheet" href="ui.css?v=16286725">
 <style>
 .wrap{max-width:1180px;margin:0 auto;padding:18px 18px 70px}
 .hero{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin:6px 0 14px}
@@ -32,9 +32,9 @@
 </div>
 <div class="foot" id="foot"></div>
 </div>
-<script src="sat-data.js"></script><script src="alerts-data.js"></script><script src="work-data.js"></script>
-<script src="defensible-data.js"></script><script src="water-data.js"></script><script src="habitat-data.js"></script>
-<script src="suitability-data.js"></script><script src="trees-data.js"></script>
+<script src="sat-data.js?v=98dc79f4"></script><script src="alerts-data.js?v=be6d89d5"></script><script src="work-data.js?v=ad554e35"></script>
+<script src="defensible-data.js?v=f90a6c7b"></script><script src="water-data.js?v=4ce94f9b"></script><script src="habitat-data.js?v=ee3f5cf1"></script>
+<script src="suitability-data.js?v=4e99bc9f"></script><script src="trees-data.js?v=87638c70"></script>
 <script>
 let LANG="pt"; try{LANG=localStorage.getItem("edr_lang")||((navigator.language||"pt").toLowerCase().startsWith("pt")?"pt":"en");}catch(e){}
 const T={pt:{eb:"Painel de operações · Herdade EdenRise",ttl:"O estado da terra, hoje",sub:"Satélite, LiDAR, meteorologia e trabalho — numa só página, atualizada automaticamente.",
@@ -108,7 +108,7 @@ render();
 fetch("https://api.ipma.pt/open-data/forecast/meteorology/rcm/rcm-d0.json").then(r=>r.json()).then(d=>{rcm=d.local&&d.local["0211"]?d.local["0211"].data.rcm:null;render();}).catch(()=>{});
 fetch("https://api.open-meteo.com/v1/forecast?latitude=37.512&longitude=-8.645&current=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m,relative_humidity_2m&timezone=Europe%2FLisbon").then(r=>r.json()).then(w=>{const c=w.current; const dirs=LANG==="en"?["N","NE","E","SE","S","SW","W","NW"]:["N","NE","E","SE","S","SO","O","NO"]; wind={spd:c.wind_speed_10m,gust:c.wind_gusts_10m,rh:c.relative_humidity_2m,temp:c.temperature_2m,card:dirs[Math.round(c.wind_direction_10m/45)%8]}; render();}).catch(()=>{});
 </script>
-<script src="nav.js"></script>
+<script src="nav.js?v=6b356f39"></script>
 <script>
 (function(){ const EN=(typeof LANG!=="undefined"&&LANG==="en"); const API="https://edenrise-brain.edenrise.workers.dev";
  document.getElementById("h_upd").textContent=EN?"Map edits & updates":"Edições e atualizações do mapa"; document.getElementById("editlink").textContent=EN?"Open edit mode →":"Abrir modo edição →";

@@ -21,7 +21,7 @@ h1{font-size:16px;margin:4px 0 8px} .sub{font-size:11.5px;color:#5f685c;margin-b
 <div class="tools"><select id="cat"><option value="">todas as categorias</option></select><button onclick="window.print()">🖨︎ Imprimir</button></div>
 <div class="sheet"><h1>Etiquetas QR — ativos da herdade</h1><div class="sub">Cada QR abre a ficha do ativo no mapa (com inspeções e tarefas). Imprimir em papel autocolante resistente a intempéries; A4 = 21 etiquetas.</div><div class="grid" id="grid"></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="ops-data.js"></script>
+<script src="ops-data.js?v=2751505a"></script>
 <script>
 const CAT={BLD:"Edifício",WTR:"Furo / poço",STO:"Tanque / charca",WWT:"Fossa",PWR:"Eletricidade",TLC:"Telecom",IRR:"Rega"};
 const base = location.origin + location.pathname.replace(/[^/]*$/,"") + "index.html#asset=";
@@ -38,5 +38,5 @@ function render(){
 }
 sel.onchange=render; render();
 </script>
-<script src="nav.js"></script>
+<script src="nav.js?v=6b356f39"></script>
 </body></html>

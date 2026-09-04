@@ -8,7 +8,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>EdenRise — Mapa da Herdade</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="ui.css">
+<link rel="stylesheet" href="ui.css?v=16286725">
 <style>
 #app{display:flex;height:calc(100vh - 44px)}
 #side{width:300px;min-width:300px;background:var(--night);border-right:1px solid var(--line);overflow-y:auto;padding:14px 14px 40px;scrollbar-width:thin}
@@ -67,16 +67,16 @@ body.field .lyr{padding:9px 6px;font-size:14px} body.field .tg{transform:scale(1
   <div id="map"></div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="data.js"></script>
-<script src="ops-data.js"></script>
-<script src="sat-data.js"></script>
-<script src="hydro-data.js"></script>
-<script src="buildings-data.js"></script>
-<script src="suitability-data.js"></script>
-<script src="work-data.js"></script>
-<script src="defensible-data.js"></script>
-<script src="water-data.js"></script>
-<script src="habitat-data.js"></script>
+<script src="data.js?v=0737499e"></script>
+<script src="ops-data.js?v=2751505a"></script>
+<script src="sat-data.js?v=98dc79f4"></script>
+<script src="hydro-data.js?v=8395b210"></script>
+<script src="buildings-data.js?v=0fc788f4"></script>
+<script src="suitability-data.js?v=4e99bc9f"></script>
+<script src="work-data.js?v=ad554e35"></script>
+<script src="defensible-data.js?v=f90a6c7b"></script>
+<script src="water-data.js?v=4ce94f9b"></script>
+<script src="habitat-data.js?v=ee3f5cf1"></script>
 <script>
 const GROUPS = [
  ["10 · Cadastro & Legal", true, [
@@ -512,13 +512,13 @@ function openWork(){
 window.addEventListener("hashchange", ()=>{ openAsset(); openWork(); });
 setTimeout(()=>{ openAsset(); openWork(); }, 400);
 </script>
-<script src="modes.js"></script>
-<script src="card.js"></script>
-<script src="view.js"></script>
-<script src="nav.js"></script>
-<script src="brain.js"></script>
+<script src="modes.js?v=3017256b"></script>
+<script src="card.js?v=7f569cfc"></script>
+<script src="view.js?v=2b45a96b"></script>
+<script src="nav.js?v=6b356f39"></script>
+<script src="brain.js?v=0c638b2a"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@geoman-io/leaflet-geoman-free@2.17.0/dist/leaflet-geoman.css">
 <script src="https://cdn.jsdelivr.net/npm/@geoman-io/leaflet-geoman-free@2.17.0/dist/leaflet-geoman.min.js"></script>
-<script src="edit.js"></script>
+<script src="edit.js?v=6ab16c23"></script>
 </body>
 </html>

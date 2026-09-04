@@ -139,9 +139,9 @@ function hookCore(on){ if(typeof layerObjs==="undefined") return; for(const [t,o
 map.on("layeradd",e=>{ if(E.on&&e.layer&&e.layer.feature&&!e.layer.__ed&&e.layer.__t===undefined){ for(const [t,o] of Object.entries(layerObjs||{})) if(o.geo&&o.geo.hasLayer&&o.geo.hasLayer(e.layer)){ e.layer.__t=t; e.layer.on("click",onCore); } } });
 /* ---------- tools ---------- */
 const SHAPE={point:"Marker",line:"Line",area:"Polygon",rect:"Rectangle",circle:"Circle"};
-function setTool(t){ if(!map.pm) return; map.pm.disableDraw(); if(E.cur&&E.cur.pm){ E.cur.pm.disable(); E.cur.pm.disableLayerDrag&&E.cur.pm.disableLayerDrag(); E.cur.pm.disableRotate&&E.cur.pm.disableRotate(); }
+function setTool(t){ if(!map.pm) return; map.pm.disableDraw(); map.dragging.enable(); if(E.cur&&E.cur.pm){ E.cur.pm.disable(); E.cur.pm.disableLayerDrag&&E.cur.pm.disableLayerDrag(); E.cur.pm.disableRotate&&E.cur.pm.disableRotate(); }
   E.tool=t; tools.querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.t===t)); mapEl.classList.toggle("ed-draw",!!(t&&SHAPE[t]));
-  if(t&&SHAPE[t]){ map.pm.enableDraw(SHAPE[t],{finishOn:"dblclick",continueDrawing:false}); showHint(t==="point"?(EN?"Tap where it goes":"Toque onde fica"):T.drawHint); }
+  if(t&&SHAPE[t]){ map.dragging.disable(); map.pm.enableDraw(SHAPE[t],{finishOn:"dblclick",continueDrawing:false}); showHint(t==="point"?(EN?"Tap where it goes":"Toque onde fica"):T.drawHint); }
   else if(t==="select"){ showHint(T.sel); if(E.cur){ E.cur.pm.enable({allowSelfIntersection:false}); } }
   else if(t==="move"&&E.cur){ E.cur.pm.enableLayerDrag(); showHint(EN?"Drag the item":"Arraste o item"); }
   else if(t==="rotate"&&E.cur&&E.cur.pm.enableRotate){ E.cur.pm.enableRotate(); showHint(EN?"Drag to rotate":"Arraste para rodar"); }
@@ -150,11 +150,19 @@ tools.addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) r
 function snapshot(){ if(!E.cur) return; E.undo.push(E.cur.toGeoJSON().geometry); if(E.undo.length>25) E.undo.shift(); }
 function undo(){ if(!E.cur||!E.undo.length) return; const g=E.undo.pop(); if(E.cur instanceof L.Circle||E.cur instanceof L.Marker) E.cur.setLatLng([g.coordinates[1],g.coordinates[0]]); else if(g.type==="LineString") E.cur.setLatLngs(g.coordinates.map(c=>[c[1],c[0]])); else E.cur.setLatLngs(g.coordinates.map(r=>r.map(c=>[c[1],c[0]]))); refreshMeasures(); }
 let drawing=null;
-map.on("pm:drawstart",e=>{ drawing=e.workingLayer; e.workingLayer.on("pm:vertexadded",ev=>{ if(!gridOn||!SH.snap) return; const sn=snapLL(ev.latlng); const ll=e.workingLayer.getLatLngs(); const arr=flat(ll); if(arr&&arr.length){ arr[arr.length-1]=sn; e.workingLayer.setLatLngs(ll); } if(ev.marker) ev.marker.setLatLng(sn); }); });
-map.on("pm:drawend",()=>{ drawing=null; dims.clearLayers(); });
-map.on("mousemove",e=>{ if(!E.on||!E.tool||!SHAPE[E.tool]||!map.pm||!map.pm.Draw) return; const d=map.pm.Draw[SHAPE[E.tool]]; const sn=snapLL(e.latlng);
-  if(d&&d._hintMarker&&gridOn&&SH.snap) d._hintMarker.setLatLng(sn);
-  if(!drawing) return; if(drawing instanceof L.Circle){ dimsFor(drawing); return; } const pts=flat(drawing.getLatLngs())||[]; if(E.tool==="rect"){ if(pts.length>=4) showDims(pts,true); } else showDims(pts, E.tool==="area", sn); });
+map.on("pm:drawstart",e=>{ drawing=e.workingLayer; const d=map.pm.Draw[e.shape]; if(d){ if(d._startMarker) d._startMarker.__snapped=false; if(d._centerMarker) d._centerMarker.__snapped=false; } e.workingLayer.on("pm:vertexadded",ev=>{ if(!gridOn||!SH.snap) return; const sn=snapLL(ev.latlng); const ll=e.workingLayer.getLatLngs(); const arr=flat(ll); if(arr&&arr.length){ arr[arr.length-1]=sn; e.workingLayer.setLatLngs(ll); } if(ev.marker) ev.marker.setLatLng(sn); }); });
+map.on("pm:drawend",()=>{ drawing=null; dims.clearLayers(); map.dragging.enable(); });
+function cursorMove(ll){ if(!E.on) return;
+  if(placeMode==="tap"&&anchor){ onMovePreview({latlng:ll}); return; }
+  if(placeMode==="drag"&&dragA){ dragMove({latlng:ll}); return; }
+  if(!E.tool||!SHAPE[E.tool]||!map.pm||!map.pm.Draw) return; const d=map.pm.Draw[SHAPE[E.tool]]; const sn=(gridOn&&SH.snap)?snapLL(ll):ll;
+  if(d&&d._hintMarker) d._hintMarker.setLatLng(sn);                                   // moves Geoman
+  if(gridOn&&SH.snap&&d){ const sm=d._startMarker||d._centerMarker; if(sm&&!sm.__snapped){ sm.setLatLng(snapLL(sm.getLatLng())); sm.__snapped=true; } }   // first corner / centre on the grid while previewing's hint line / rectangle / circle with the finger or mouse
+  if(!drawing){ if(E.tool==="point") { dims.clearLayers(); dimLabel(sn, `${sn.lat.toFixed(5)}, ${sn.lng.toFixed(5)}`, "live"); } return; }
+  if(drawing instanceof L.Circle){ dimsFor(drawing); return; } const pts=flat(drawing.getLatLngs())||[]; if(E.tool==="rect"){ if(pts.length>=4) showDims(pts,true); } else showDims(pts, E.tool==="area", sn); }
+map.on("mousemove",e=>cursorMove(e.latlng));
+map.getContainer().addEventListener("touchmove",e=>{ if(!E.on) return; const t=e.touches&&e.touches[0]; if(!t||e.touches.length>1) return; cursorMove(map.mouseEventToLatLng(t)); },{passive:true});
+map.getContainer().addEventListener("touchstart",e=>{ if(!E.on) return; const t=e.touches&&e.touches[0]; if(!t||e.touches.length>1) return; cursorMove(map.mouseEventToLatLng(t)); },{passive:true});
 map.on("pm:create",e=>{ map.pm.disableDraw(); let l=e.layer; if(e.shape==="Rectangle"){ const ll=flat(l.getLatLngs()).map(snapLL); map.removeLayer(l); l=L.polygon(ll,{color:"#c9a227",weight:3,fillColor:"#c9a227",fillOpacity:.15}); } else snapLayer(l);
   if(!work.hasLayer(l)) work.addLayer(l); startEdit(l,{preset:null,shape:e.shape.toLowerCase()}); });
 function startEdit(l,ctx){ if(E.cur&&E.cur!==l&&work.hasLayer(E.cur)&&!E.cur.__keep) work.removeLayer(E.cur); E.cur=l; E.undo=[]; E.ctx=ctx; E.tool=null; tools.querySelectorAll("button").forEach(b=>b.classList.remove("on")); mapEl.classList.remove("ed-draw");
@@ -261,7 +269,7 @@ function buildShape(c,extra){ const P=proj(c), t=SH.rot*Math.PI/180, u=[Math.sin
 function shapeMeasures(){ if(SH.kind==="rect") return {a:SH.a,b:SH.b,area:SH.a*SH.b,per:2*(SH.a+SH.b)}; if(SH.kind==="sq") return {a:SH.a,b:SH.a,area:SH.a*SH.a,per:4*SH.a}; if(SH.kind==="circle") return {area:Math.PI*SH.r*SH.r,per:2*Math.PI*SH.r};
   if(SH.kind==="ellipse"){ const a=SH.a/2,b=SH.b/2,h=((a-b)**2)/((a+b)**2); return {area:Math.PI*a*b,per:Math.PI*(a+b)*(1+3*h/(10+Math.sqrt(4-3*h)))}; } if(SH.kind==="ngon"){ const n=Math.max(3,SH.n|0); return {area:n*SH.side*SH.side/(4*Math.tan(Math.PI/n)),per:n*SH.side}; } return {len:SH.len}; }
 let preview=null, placeMode=null;
-function endPlace(){ if(placeMode==="tap") map.off("click",onTapPlace); map.off("mousemove",onMovePreview); if(placeMode==="drag"){ map.dragging.enable(); const el=map.getContainer(); el.removeEventListener("touchstart",dragStart); el.removeEventListener("touchmove",dragMove); el.removeEventListener("touchend",dragEnd); map.off("mousedown",dragStart); map.off("mousemove",dragMove); map.off("mouseup",dragEnd); }
+function endPlace(){ map.dragging.enable(); if(placeMode==="tap") map.off("click",onTapPlace); map.off("mousemove",onMovePreview); if(placeMode==="drag"){ map.dragging.enable(); const el=map.getContainer(); el.removeEventListener("touchstart",dragStart); el.removeEventListener("touchmove",dragMove); el.removeEventListener("touchend",dragEnd); map.off("mousedown",dragStart); map.off("mousemove",dragMove); map.off("mouseup",dragEnd); }
   if(preview){ map.removeLayer(preview); preview=null; } anchor=null; placeMode=null; mapEl.classList.remove("ed-draw"); }
 function drop(c){ endPlace(); const l=buildShape(c); work.addLayer(l); startEdit(l,{preset:null,shape:SH.kind}); showHint(null); }
 let anchor=null;                                                       // point 1 of the two-click insert
@@ -298,7 +306,7 @@ function openShapes(){ setTool(null); closeForm(); form.hidden=false; const u=SH
   form.querySelector("#sgrid").onchange=e=>{ rd(); setGrid(+e.target.value); };
   form.querySelectorAll("#shd input,#srot").forEach(i=>i.onchange=()=>{ rd(); openShapes(); });
   form.querySelector("#ecancel").onclick=()=>{ endPlace(); closeForm(); showHint(T.pick); };
-  form.querySelector("#splace").onclick=()=>{ rd(); endPlace(); placeMode="tap"; mapEl.classList.add("ed-draw"); showHint(SH.kind==="circle"?T.p1c:T.p1); setTimeout(()=>map.once("click",onTapPlace),0); };
+  form.querySelector("#splace").onclick=()=>{ rd(); endPlace(); placeMode="tap"; mapEl.classList.add("ed-draw"); map.dragging.disable(); showHint(SH.kind==="circle"?T.p1c:T.p1); setTimeout(()=>map.once("click",onTapPlace),0); };
   form.querySelector("#sdrag").onclick=()=>{ rd(); endPlace(); placeMode="drag"; mapEl.classList.add("ed-draw"); showHint(T.dragH); map.dragging.disable(); const el=map.getContainer(); el.addEventListener("touchstart",dragStart,{passive:false}); el.addEventListener("touchmove",dragMove,{passive:false}); el.addEventListener("touchend",dragEnd); map.on("mousedown",dragStart); map.on("mousemove",dragMove); map.on("mouseup",dragEnd); };
   form.querySelector("#sgps").onclick=()=>{ rd(); if(!navigator.geolocation) return toast&&toast(T.gpsE); showHint(T.gpsH); navigator.geolocation.getCurrentPosition(pos=>{ const c=L.latLng(pos.coords.latitude,pos.coords.longitude); const acc=L.circle(c,{radius:pos.coords.accuracy||10,color:"#5b8fb9",weight:1,fillOpacity:.08,interactive:false}).addTo(map); setTimeout(()=>map.removeLayer(acc),6000); map.setView(c,Math.max(map.getZoom(),19)); toast&&toast(`GPS ±${Math.round(pos.coords.accuracy||0)} m ${T.acc}`); drop(snapLL(c)); },()=>{ showHint(T.pick); toast&&toast(T.gpsE); },{enableHighAccuracy:true,timeout:12000,maximumAge:0}); };
 }
