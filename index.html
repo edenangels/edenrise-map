@@ -65,6 +65,8 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,sans-serif;background:
 <script src="sat-data.js"></script>
 <script src="hydro-data.js"></script>
 <script src="trees-data.js"></script>
+<script src="buildings-data.js"></script>
+<script src="suitability-data.js"></script>
 <script>
 const GROUPS = [
  ["10 · Cadastro & Legal", true, [
@@ -130,18 +132,24 @@ const GROUPS = [
    ["hydro_streams","Linhas de água (modeladas, 2 m)","ln","#40c4ff",{w:1.8}],
    ["hydro_catchments","Bacias de drenagem","pg","#80deea",{fill:"rgba(128,222,234,.10)",w:1.2}],
    ["tree_tops","Árvores individuais","pt","#2e7d32",{r:2.5}],
-   ["tree_crowns","Copas","pg","#43a047",{fill:"rgba(67,160,71,.30)",w:.8}]]],
+   ["tree_crowns","Copas — vigor 2025","pg","#43a047",{cat:"vigour",colors:{vigoroso:"#43a047",moderado:"#fdd835",stressado:"#e53935"},other:"#9e9e9e",fill:"rgba(67,160,71,.45)",w:.6}]]],
+ ["🏗️ Edifícios & planeamento", false, [
+   ["building_footprints","Implantações de edifícios (LiDAR)","pg","#ffcc80",{cat:"status",colors:{registado:"#66bb6a",nao_registado_licenciado:"#ef5350",por_classificar:"#ffca28"},fill:"rgba(255,204,128,.55)",w:1.4}],
+   ["suitability_zones","Zonas aptas para construir (score ≥65)","pg","#ff8f00",{fill:"rgba(255,213,79,.45)",w:1.8}]]],
 ];
 Object.assign(DATA, typeof OPSDATA !== "undefined" ? OPSDATA : {});
 Object.assign(DATA, typeof HYDRODATA !== "undefined" ? HYDRODATA : {});
 Object.assign(DATA, typeof TREEDATA !== "undefined" ? TREEDATA : {});
+Object.assign(DATA, typeof BUILDINGDATA !== "undefined" ? BUILDINGDATA : {});
+Object.assign(DATA, typeof SUITDATA !== "undefined" ? SUITDATA : {});
 // ── bilingual UI ──────────────────────────────────────────────
 const G_EN = {"10 · Cadastro & Legal":"10 · Cadastre & Legal","20 · Edifícios":"20 · Buildings",
  "30 · Água":"30 · Water","40 · Energia & Telecom":"40 · Energy & Telecom",
  "50 · Agricultura":"50 · Agriculture","60 · Floresta & Ecologia":"60 · Forestry & Ecology",
  "70 · Propostas":"70 · Proposals","00 · Notas":"00 · Notes",
  "OPS · Conformidade & Ativos":"OPS · Compliance & Assets",
- "LiDAR 2024 · Terreno & árvores":"LiDAR 2024 · Terrain & trees"};
+ "LiDAR 2024 · Terreno & árvores":"LiDAR 2024 · Terrain & trees",
+ "🏗️ Edifícios & planeamento":"🏗️ Buildings & planning"};
 const T_EN = {cadastre_parcels:"Land parcels",cadastre_boundaries_ln:"Boundary lines (partilha)",
  subsidy_parcels:"Subsidy parcels",buildings_pt:"Buildings (licensing status)",
  water_sources_pt:"Boreholes & wells",water_storage_pt:"Tanks, ponds & dams",
@@ -164,14 +172,17 @@ const T_EN = {cadastre_parcels:"Land parcels",cadastre_boundaries_ln:"Boundary l
  prop_reforestation_ln:"Reforestation infra — lines",prop_reforestation_pg:"Reforestation infra — zones",
  asset_registry:"Assets (EDR-…)",fire_fuel_strips:"Fuel-management strips (DL 82/2021)",
  boundary_deviations:"Boundary deviations (vs cadastre)",tree_permits:"Cuts needing ICNF permit",
- hydro_streams:"Modelled streams (2 m LiDAR)",hydro_catchments:"Catchments",tree_tops:"Individual trees",tree_crowns:"Tree crowns"};
+ hydro_streams:"Modelled streams (2 m LiDAR)",hydro_catchments:"Catchments",tree_tops:"Individual trees",tree_crowns:"Tree crowns — 2025 vigour",
+ building_footprints:"Building footprints (LiDAR)",suitability_zones:"Build-suitable zones (score ≥65)"};
 const FIELD_EN = {asset_id:"Asset ID",status:"Status",category:"Category",system:"System",year:"Year",
  alternative:"Alternative",cadastral_article:"Cadastral article",areas_doc_m2:"Areas (docs) m²",
  spec:"Specification",site:"Site",m2:"Measured area",m:"Length",kind:"Type",radius_m:"Radius (m)",
  legal_ref:"Legal basis",source_name:"Source",permit_status:"Permit",authority:"Authority",
  core_status:"Status (core)",core_category:"Category (core)",area_m2:"Area m²",ref:"Cadastral ref.",
  pct_dentro:"% inside boundary",tree_name:"Tree",note:"Note",
- tree_id:"Tree ID",height_m:"Height (m)",crown_m2:"Crown (m²)",crown_diam_m:"Crown diam. (m)",area_ha:"Area (ha)"};
+ tree_id:"Tree ID",height_m:"Height (m)",crown_m2:"Crown (m²)",crown_diam_m:"Crown diam. (m)",area_ha:"Area (ha)",
+ ndvi_2025:"NDVI 2025",vigour:"Vigour",oak_candidate:"Cork/holm-oak candidate",roof_elev_m:"Roof elev. (m)",footprint_m2:"Footprint (m²)",
+ score:"Suitability score",rank:"Rank",slope_pct_mean:"Mean slope (%)",dist_path_m:"Dist. to track (m)",dist_water_m:"Dist. to water net (m)",dist_building_m:"Dist. to building (m)",aspect:"Aspect"};
 const UI = {pt:{ttl:"EdenRise — Herdade",sub:"Mapa vivo da propriedade · dados 2026-09"},
             en:{ttl:"EdenRise — Estate",sub:"Living map of the property · data 2026-09"}};
 let LANG = "pt";
@@ -187,7 +198,9 @@ const FIELD_PT = {asset_id:"ID do ativo",status:"Estado",category:"Categoria",sy
   permit_status:"Licença",authority:"Autoridade",core_status:"Estado (núcleo)",
   core_category:"Categoria (núcleo)",area_m2:"Área m²",ref:"Ref. cadastral",
   pct_dentro:"% dentro do limite",tree_name:"Árvore",note:"Nota",
- tree_id:"ID árvore",height_m:"Altura (m)",crown_m2:"Copa (m²)",crown_diam_m:"Diâm. copa (m)",area_ha:"Área (ha)"};
+ tree_id:"ID árvore",height_m:"Altura (m)",crown_m2:"Copa (m²)",crown_diam_m:"Diâm. copa (m)",area_ha:"Área (ha)",
+ ndvi_2025:"NDVI 2025",vigour:"Vigor",oak_candidate:"Candidata sobro/azinho",roof_elev_m:"Cota telhado (m)",footprint_m2:"Implantação (m²)",
+ score:"Score aptidão",rank:"Posição",slope_pct_mean:"Declive médio (%)",dist_path_m:"Dist. caminho (m)",dist_water_m:"Dist. rede água (m)",dist_building_m:"Dist. edifício (m)",aspect:"Exposição"};
 const map = L.map("map",{zoomControl:true});
 const bases = {
  "Esri": L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
