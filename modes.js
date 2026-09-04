@@ -125,7 +125,7 @@ enter.time = function(){
   divider.addEventListener("mousedown",start); divider.addEventListener("touchstart",start,{passive:false}); window.addEventListener("mousemove",move); window.addEventListener("touchmove",move,{passive:false}); window.addEventListener("mouseup",end); window.addEventListener("touchend",end);
   map.on("move", clip); map.on("resize", clip);
   const sl=document.getElementById("tsl"); const paint=()=>{ const d=dates[+sl.value]; let sum=0,n=0;
-    ["grazing_parks_pg","agri_features_pg"].forEach(tn=>{ const o=layerObjs[tn]; if(!o) return; o.lyr.eachLayer(l=>{ const nm=l.feature.properties.name; let v=null;
+    ["grazing_parks_pg","agri_features_pg"].forEach(tn=>{ const o=layerObjs[tn]; if(!o) return; (o.geo||o.lyr).eachLayer(l=>{ const nm=l.feature.properties.name; let v=null;
       for(const s of Object.values(SATDATA.series)){ if(s.name!==nm) continue; let best=null; for(const p of s.pts){ if(p[0]<=d) best=p; } if(best){ v=best[1]; break; } }
       if(v==null){ l.setStyle({fillOpacity:.05,color:"#666"}); return; } sum+=v;n++; const col = v>=.6?"#1b5e20":v>=.45?"#7cb342":v>=.35?"#fdd835":v>=.25?"#fb8c00":"#8d6e63"; l.setStyle({fillColor:col,fillOpacity:.65,color:col,weight:1}); }); });
     document.getElementById("tinfo").innerHTML=`<b>${d}</b> · ${t.mean} ${n?(sum/n).toFixed(2):"—"}`; };
@@ -134,7 +134,7 @@ enter.time = function(){
 };
 function clip(){ if(!divider) return; const r=document.getElementById("map").getBoundingClientRect(); const x=parseFloat(divider.style.left); const pane=map.getPane("swipeR"); const p=map.containerPointToLayerPoint([x,0]); pane.style.clipPath=`inset(0 0 0 ${x}px)`; pane.style.webkitClipPath=pane.style.clipPath; }
 leavers.time = ()=>{ ["L","R"].forEach(k=>{ if(layers[k]){ map.removeLayer(layers[k]); delete layers[k]; } }); if(divider){ divider.remove(); divider=null; } map.off("move", clip); map.off("resize", clip);
-  bases[curBase].addTo(map); ["grazing_parks_pg","agri_features_pg"].forEach(tn=>{ const o=layerObjs[tn]; if(o) o.lyr.resetStyle(); }); };
+  bases[curBase].addTo(map); ["grazing_parks_pg","agri_features_pg"].forEach(tn=>{ const o=layerObjs[tn]; if(o) (o.geo||o.lyr).resetStyle(); }); };
 
 // ---------- 🔍 SEARCH ----------
 const IDX = [];
@@ -152,9 +152,9 @@ q.oninput = ()=>{ const v=q.value.trim().toLowerCase(); if(v.length<2){ qres.inn
   qres.querySelectorAll(".qhit[data-i]").forEach(el=>el.onclick=()=>{ const h=hits[+el.dataset.i]; goTo(h); qres.innerHTML=""; q.value=h.label; });
 };
 q.onkeydown = e=>{ if(e.key==="Enter"){ const first=qres.querySelector(".qhit[data-i]"); if(first) first.click(); } };
-function goTo(h){ const o=layerObjs[h.t]; setLayer(h.t,true); let target=null; o.lyr.eachLayer(l=>{ if(!target && l.feature===h.f) target=l; });
+function goTo(h){ const o=layerObjs[h.t]; setLayer(h.t,true); let target=null; (o.geo||o.lyr).eachLayer(l=>{ if(!target && l.feature===h.f) target=l; });
   if(!target) return; const ll = typeof target.getLatLng==="function" ? target.getLatLng() : target.getBounds().getCenter();
-  map.setView(ll, typeof target.getLatLng==="function"?18:17); target.openPopup(ll); }
+  map.setView(ll, typeof target.getLatLng==="function"?18:17); if(window.showCard) showCard(h.f.properties, ll, h.t); else target.openPopup(ll); }
 
 // ---------- wiring ----------
 renderBar();

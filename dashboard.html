@@ -92,4 +92,5 @@ function render(){
 }
 render();
 fetch("https://api.ipma.pt/open-data/forecast/meteorology/rcm/rcm-d0.json").then(r=>r.json()).then(d=>{rcm=d.local&&d.local["0211"]?d.local["0211"].data.rcm:null;render();}).catch(()=>{});
-</script></div></body></html>
+</script></div><script src="nav.js"></script>
+</body></html>

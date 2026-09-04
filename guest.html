@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EdenRise — Mapa para Hóspedes</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Public+Sans:wght@400;600&display=swap">
+<style>
+:root{--paper:#f5f1e6;--ink:#2b3327;--muted:#6d7466;--oak:#4b6b3f;--line:#d9d3c2}
+*{box-sizing:border-box} body{margin:0;background:var(--paper);color:var(--ink);font-family:"Public Sans",-apple-system,sans-serif}
+#wrap{display:grid;grid-template-columns:340px 1fr;height:100vh}
+#story{padding:22px 24px;overflow-y:auto;border-right:1px solid var(--line);background:var(--paper)}
+h1{font-family:"Cormorant Garamond",Georgia,serif;font-size:34px;font-weight:600;margin:0 0 2px;line-height:1.05}
+.lede{font-size:13px;color:var(--muted);margin-bottom:16px}
+.chap{border-top:1px solid var(--line);padding:12px 0;cursor:pointer} .chap h3{font-family:"Cormorant Garamond",serif;font-size:21px;margin:0 0 4px;font-weight:600} .chap p{font-size:13px;line-height:1.55;margin:0;color:#3f4739}
+.chap.on h3{color:var(--oak)}
+#map{height:100%} .leaflet-container{background:#e3dfd2;font-family:"Public Sans",sans-serif}
+.gt{background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:6px;font-size:12px;padding:3px 8px;box-shadow:none;font-weight:600}
+.langs{position:fixed;bottom:12px;left:12px;display:flex;gap:6px;z-index:900} .langs button{font-size:11px;padding:5px 9px;border:1px solid var(--line);background:#fff;border-radius:5px;cursor:pointer}
+@media(max-width:760px){ #wrap{grid-template-columns:1fr;grid-template-rows:55vh 1fr} #story{border-right:none;border-top:1px solid var(--line);order:2} }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <aside id="story"><h1 id="ttl"></h1><div class="lede" id="lede"></div><div id="chaps"></div></aside>
+  <div id="map"></div>
+</div>
+<div class="langs"><button onclick="setLang('pt')">PT</button><button onclick="setLang('en')">EN</button></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="data.js"></script><script src="habitat-data.js"></script>
+<script>
+let LANG="pt"; try{LANG=localStorage.getItem("edr_lang")||"pt";}catch(e){}
+function setLang(l){LANG=l;try{localStorage.setItem("edr_lang",l);}catch(e){}render();}
+const T={pt:{ttl:"Herdade EdenRise",lede:"Um mapa para quem chega: os caminhos, as casas, a água e o montado de sobreiro que nos rodeia.",
+  chaps:[["Montado de sobreiro","Quase 92 hectares de floresta de sobreiro — a árvore que dá a cortiça, protegida por lei, descascada uma vez a cada nove anos. Milhares de árvores individuais vivem aqui; muitas têm mais de cem anos.","sobro"],
+         ["Água","Furos, poços, charcas e a rede de condutas que liga tudo. No verão a paisagem seca; a água guardada é o que mantém pomares e pastagens vivos.","agua"],
+         ["Casas e moinhos","O Moinho de Água, o Moinho de Vento, a Casa Principal e as ruínas reconstruídas — cada edifício conta uma parte da história da herdade.","casas"],
+         ["Caminhos","Os trilhos e caminhos rurais que atravessam a propriedade. Peça o mapa impresso na receção para os percursos a pé.","caminhos"],
+         ["Pastagens","Parques de pastoreio onde os animais rodam ao longo do ano — a base do sistema regenerativo da herdade.","pastagens"]]},
+ en:{ttl:"Herdade EdenRise",lede:"A map for those arriving: the tracks, the houses, the water and the cork-oak woodland around us.",
+  chaps:[["Cork-oak woodland","Nearly 92 hectares of cork-oak forest — the tree that gives cork, protected by law, harvested once every nine years. Thousands of individual trees live here; many are over a century old.","sobro"],
+         ["Water","Boreholes, wells, ponds and the pipe network that links everything. In summer the land dries; stored water is what keeps orchards and pastures alive.","agua"],
+         ["Houses and mills","The Water Mill, the Windmill, the Main House and the rebuilt ruins — each building tells part of the estate's story.","casas"],
+         ["Tracks","The trails and rural tracks crossing the property. Ask reception for the printed walking map.","caminhos"],
+         ["Pastures","Grazing parks where the animals rotate through the year — the base of the estate's regenerative system.","pastagens"]]}};
+const map=L.map("map",{zoomControl:true,attributionControl:false});
+L.tileLayer("https://ortos.dgterritorio.gov.pt/wms/ortosat2023?service=WMS&version=1.3.0&request=GetMap&layers=ortoSat2023-CorVerdadeira&styles=&crs=EPSG:3857&bbox={bbox-epsg-3857}&width=256&height=256&format=image/png",{opacity:.0}); // placeholder (Leaflet has no bbox template) — use WMS below
+L.tileLayer.wms("https://ortos.dgterritorio.gov.pt/wms/ortosat2023",{layers:"ortoSat2023-CorVerdadeira",format:"image/png",opacity:.85}).addTo(map);
+const bnd=L.geoJSON(DATA.cadastre_parcels,{style:{color:"#f5f1e6",weight:3,fill:false,dashArray:"1 0"}}).addTo(map);
+const layers={
+  sobro:L.geoJSON(HABDATA.habitat_cos2025,{filter:f=>/sobreiro/i.test(f.properties.classe),style:{color:"#4b6b3f",weight:1,fillColor:"#4b6b3f",fillOpacity:.35}}),
+  agua:L.layerGroup([L.geoJSON(DATA.water_storage_pt,{pointToLayer:(f,ll)=>L.circleMarker(ll,{radius:7,fillColor:"#2c5f7c",color:"#fff",weight:2,fillOpacity:1}).bindTooltip(f.properties.name||"",{className:"gt"})}),
+                     L.geoJSON(DATA.water_network_ln,{style:{color:"#2c5f7c",weight:2,opacity:.7}})]),
+  casas:L.geoJSON(DATA.buildings_pt,{filter:f=>f.properties.status==="registado"&&/moinho|casa|main|restaurante|ruina|tea/i.test(f.properties.name||""),pointToLayer:(f,ll)=>L.circleMarker(ll,{radius:8,fillColor:"#b5563b",color:"#fff",weight:2,fillOpacity:1}).bindTooltip(f.properties.name,{permanent:true,direction:"right",className:"gt"})}),
+  caminhos:L.geoJSON(DATA.paths_ln,{style:{color:"#f5f1e6",weight:3,dashArray:"6 5"}}),
+  pastagens:L.geoJSON(DATA.grazing_parks_pg,{style:{color:"#c9b458",weight:1.5,fillColor:"#c9b458",fillOpacity:.25}})};
+map.fitBounds(bnd.getBounds().pad(.06));
+let cur=null;
+function show(k){ if(cur&&layers[cur]) map.removeLayer(layers[cur]); cur=k; layers[k].addTo(map); document.querySelectorAll(".chap").forEach(c=>c.classList.toggle("on",c.dataset.k===k)); }
+function render(){ const t=T[LANG]; document.getElementById("ttl").textContent=t.ttl; document.getElementById("lede").textContent=t.lede;
+  document.getElementById("chaps").innerHTML=t.chaps.map(([h,p,k])=>`<div class="chap ${k===cur?"on":""}" data-k="${k}"><h3>${h}</h3><p>${p}</p></div>`).join("");
+  document.querySelectorAll(".chap").forEach(c=>c.onclick=()=>show(c.dataset.k)); }
+render(); show("sobro");
+</script>
+<script src="nav.js"></script>
+</body></html>

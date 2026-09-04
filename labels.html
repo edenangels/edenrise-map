@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EdenRise — Etiquetas QR dos Ativos</title>
+<style>
+body{margin:0;background:#e9e7df;color:#1e2a20;font-family:-apple-system,"Segoe UI",Roboto,sans-serif}
+.tools{position:fixed;top:46px;right:12px;display:flex;gap:6px;z-index:10} .tools button,.tools select{font-size:12px;padding:6px 10px;border:1px solid #d6d2c2;border-radius:6px;background:#fff;cursor:pointer}
+.sheet{max-width:820px;margin:16px auto;background:#fff;padding:14px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.lbl{border:1.5px solid #1e2a20;border-radius:8px;padding:8px 8px 6px;display:flex;gap:8px;align-items:center;page-break-inside:avoid;break-inside:avoid}
+.lbl .qr{width:86px;height:86px;flex:none} .lbl .qr img,.lbl .qr canvas{width:86px!important;height:86px!important}
+.lbl .id{font-family:"IBM Plex Mono",monospace;font-weight:700;font-size:15px;letter-spacing:.02em}
+.lbl .nm{font-size:11.5px;line-height:1.25;margin-top:2px} .lbl .cat{font-size:9.5px;color:#5f685c;text-transform:uppercase;letter-spacing:.08em;margin-top:4px}
+.lbl .brand{font-size:9px;color:#5f685c;margin-top:2px}
+h1{font-size:16px;margin:4px 0 8px} .sub{font-size:11.5px;color:#5f685c;margin-bottom:10px}
+@media print{ body{background:#fff} .tools{display:none} .sheet{margin:0;max-width:none;padding:0} .grid{gap:6px} h1,.sub{display:none} }
+</style>
+</head>
+<body>
+<div class="tools"><select id="cat"><option value="">todas as categorias</option></select><button onclick="window.print()">🖨︎ Imprimir</button></div>
+<div class="sheet"><h1>Etiquetas QR — ativos da herdade</h1><div class="sub">Cada QR abre a ficha do ativo no mapa (com inspeções e tarefas). Imprimir em papel autocolante resistente a intempéries; A4 = 21 etiquetas.</div><div class="grid" id="grid"></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="ops-data.js"></script>
+<script>
+const CAT={BLD:"Edifício",WTR:"Furo / poço",STO:"Tanque / charca",WWT:"Fossa",PWR:"Eletricidade",TLC:"Telecom",IRR:"Rega"};
+const base = location.origin + location.pathname.replace(/[^/]*$/,"") + "index.html#asset=";
+const assets = OPSDATA.asset_registry.features.map(f=>f.properties).sort((a,b)=>a.asset_id.localeCompare(b.asset_id));
+const sel=document.getElementById("cat"); Object.entries(CAT).forEach(([k,v])=>sel.add(new Option(v,k)));
+const only = location.hash.replace("#","");
+function render(){
+  const g=document.getElementById("grid"); g.innerHTML="";
+  assets.filter(a=>(!sel.value||a.category===sel.value)&&(!only||a.asset_id===only)).forEach(a=>{
+    const d=document.createElement("div"); d.className="lbl";
+    d.innerHTML=`<div class="qr"></div><div><div class="id">${a.asset_id}</div><div class="nm">${a.name||""}</div><div class="cat">${CAT[a.category]||a.category}</div><div class="brand">EdenRise · scan → mapa</div></div>`;
+    g.appendChild(d); new QRCode(d.querySelector(".qr"),{text:base+a.asset_id,width:86,height:86,correctLevel:QRCode.CorrectLevel.M});
+  });
+}
+sel.onchange=render; render();
+</script>
+<script src="nav.js"></script>
+</body></html>

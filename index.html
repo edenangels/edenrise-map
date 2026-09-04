@@ -80,7 +80,6 @@ body.field .lyr{padding:7px 0 7px 6px;font-size:14px} body.field .lyr input{tran
 <script src="ops-data.js"></script>
 <script src="sat-data.js"></script>
 <script src="hydro-data.js"></script>
-<script src="trees-data.js"></script>
 <script src="buildings-data.js"></script>
 <script src="suitability-data.js"></script>
 <script src="work-data.js"></script>
@@ -257,6 +256,9 @@ Object.keys(bases).forEach(k=>{
   bm.appendChild(b);
 });
 L.control.scale({imperial:false}).addTo(map);
+map.createPane("relief"); map.getPane("relief").style.mixBlendMode="multiply"; map.getPane("relief").style.zIndex=250;
+const relief = L.tileLayer("hillshade/{z}/{x}/{y}.png",{minZoom:12,maxNativeZoom:17,maxZoom:20,opacity:.6,pane:"relief",bounds:[[37.497,-8.661],[37.526,-8.628]]});
+(()=>{ const b=document.createElement("button"); b.textContent="⛰"; b.title="Relevo LiDAR"; b.onclick=()=>{ map.hasLayer(relief)?map.removeLayer(relief):relief.addTo(map); b.classList.toggle("on", map.hasLayer(relief)); }; bm.appendChild(b); })();
 function popup(p){
   const F = fields_i18n();
   let h = `<div class="pp"><h3>${p.name||p.asset_id||p.tree_name||"—"}</h3><table>`;
@@ -316,20 +318,50 @@ function sparkline(p){
 }
 const layerObjs = {};
 let allBounds = null;
+// ── brand symbols (SVG) per asset type ──
+const SVG = {
+  house: '<path d="M3 11.5 12 4l9 7.5v8.5h-6v-6H9v6H3z"/>',
+  well:  '<path d="M12 2 4 20h16zM12 9l3.5 8h-7z"/>',
+  tank:  '<path d="M4 6h16v12H4z M6 8v8h12V8z"/>',
+  fossa: '<path d="M12 3 4 12l8 9 8-9zM12 8l4 4-4 4-4-4z"/>',
+  bolt:  '<path d="M13 2 4 14h6l-1 8 9-12h-6z"/>',
+  antenna: '<path d="M11 22V9.4a3 3 0 1 1 2 0V22zM5.5 7.5a7 7 0 0 1 13 0l-1.7 1a5 5 0 0 0-9.6 0zM8 9a4 4 0 0 1 8 0l-1.7 1a2 2 0 0 0-4.6 0z"/>',
+  tree:  '<path d="M12 2 6 11h3l-4 6h6v5h2v-5h6l-4-6h3z"/>',
+  drop:  '<path d="M12 2s6 7 6 12a6 6 0 0 1-12 0c0-5 6-12 6-12z"/>',
+  pin:   '<path d="M12 22s7-7.6 7-13a7 7 0 1 0-14 0c0 5.4 7 13 7 13zm0-9.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/>',
+};
+const SYMBOL = {buildings_pt:"house", water_sources_pt:"well", water_storage_pt:"tank", wastewater_pt:"fossa", power_pt:"bolt", telecom_pt:"antenna",
+  tree_actions_pt:"tree", irrigation_pt:"drop", notes_pt:"pin",
+  asset_registry:p=>({BLD:"house",WTR:"well",STO:"tank",WWT:"fossa",PWR:"bolt",TLC:"antenna",IRR:"drop"}[p.category]||"pin")};
+function symIcon(kind, color, size){ return L.divIcon({className:"", iconSize:[size,size], iconAnchor:[size/2,size/2],
+  html:`<svg viewBox="0 0 24 24" width="${size}" height="${size}" style="filter:drop-shadow(0 1px 2px rgba(0,0,0,.8))"><circle cx="12" cy="12" r="11" fill="${color}" stroke="#111" stroke-width="1.5"/><g fill="#111" transform="translate(4.8 4.8) scale(.6)">${SVG[kind]}</g></svg>`}); }
+const LAZY = {tree_tops:"trees-data.js", tree_crowns:"trees-data.js"};
+function buildLayer(t, title, kind, color, opt, fc){
+  const colOf = p => opt.cat ? (opt.colors[p[opt.cat]] || opt.other || color) : color;
+  const sym = SYMBOL[t]; const size = Math.max(16, (opt.r||5)*3.4);
+  return L.geoJSON(fc, {
+    pointToLayer:(f,ll)=> sym ? L.marker(ll,{icon:symIcon(typeof sym==="function"?sym(f.properties):sym, colOf(f.properties), size)})
+                              : L.circleMarker(ll,{radius:opt.r||5, fillColor:colOf(f.properties), color:"#1c1c1c", weight:1.2, fillOpacity:.95}),
+    style:f=>({color:colOf(f.properties), weight:opt.w||2, dashArray:opt.dash||null,
+      fillColor:(opt.fill&&opt.fill.startsWith("rgba"))?colOf(f.properties):(opt.fill||color),
+      fillOpacity:opt.fill?parseFloat(opt.fill.match(/[\d.]+(?=\))/)?.[0] ?? .2):0}),
+    onEachFeature:(f,l)=>{ l.on("click", e=>{ if(window.showCard) showCard(f.properties, e.latlng, title_i18n(t, title)); else L.popup().setLatLng(e.latlng).setContent(popup(f.properties)).openOn(map); });
+      if(f.properties.name) l.bindTooltip(String(f.properties.name)); }
+  });
+}
+function loadScript(src){ return new Promise((res,rej)=>{ const sc=document.createElement("script"); sc.src=src; sc.onload=res; sc.onerror=rej; document.head.appendChild(sc); }); }
 for(const [gname, gOn, layers] of GROUPS){
   for(const [t, title, kind, color, opt] of layers){
-    const fc = DATA[t]; if(!fc) continue;
-    const colOf = p => opt.cat ? (opt.colors[p[opt.cat]] || opt.other || color) : color;
-    const lyr = L.geoJSON(fc, {
-      pointToLayer:(f,ll)=>L.circleMarker(ll,{radius:opt.r||5, fillColor:colOf(f.properties),
-        color:"#1c1c1c", weight:1.2, fillOpacity:.95}),
-      style:f=>({color:colOf(f.properties), weight:opt.w||2, dashArray:opt.dash||null,
-        fillColor:(opt.fill&&opt.fill.startsWith("rgba"))?colOf(f.properties):(opt.fill||color),
-        fillOpacity:opt.fill?parseFloat(opt.fill.match(/[\d.]+(?=\))/)?.[0] ?? .2):0}),
-      onEachFeature:(f,l)=>{ l.bindPopup(()=>popup(f.properties),{maxWidth:290});
-        if(f.properties.name) l.bindTooltip(String(f.properties.name)); }
-    });
-    layerObjs[t] = {lyr, on:gOn};
+    const fc = DATA[t];
+    if(!fc && LAZY[t]){                       // heavy layer: placeholder group, data loads on first toggle
+      const group = L.layerGroup(); const o = layerObjs[t] = {lyr:group, on:false, lazy:LAZY[t], loaded:false, t, title, kind, color, opt};
+      group.on("add", async ()=>{ if(o.loaded) return; o.loaded = true; if(typeof TREEDATA==="undefined") await loadScript(o.lazy); Object.assign(DATA, TREEDATA);
+        o.geo = buildLayer(t, title, kind, color, opt, DATA[t]); group.addLayer(o.geo); });
+      continue;
+    }
+    if(!fc) continue;
+    const lyr = buildLayer(t, title, kind, color, opt, fc);
+    layerObjs[t] = {lyr, on:gOn, geo:lyr};
     if(gOn){ lyr.addTo(map);
       const b = lyr.getBounds();
       if(b.isValid()) allBounds = allBounds ? allBounds.extend(b) : b;
@@ -443,24 +475,27 @@ function openAsset(){
     if(l.feature && l.feature.properties.asset_id === m[1].toUpperCase()){
       const ll = (typeof l.getLatLng === "function") ? l.getLatLng()
                : (typeof l.getBounds === "function" ? l.getBounds().getCenter() : null);
-      if(ll){ map.setView(ll, 18); l.openPopup(ll); }
+      if(ll){ map.setView(ll, 18); if(window.showCard) showCard(l.feature.properties, ll, 'EDR'); else l.openPopup(ll); }
     }});
 }
 // deep link: #work=FIRE-012 / PERMIT-003 / INSP-021 → zoom + popup on the related feature
 function openWork(){
   const m = location.hash.match(/#work=([A-Z]+-\d{3})/i); if(!m) return;
   const key = m[1].toUpperCase(); let hit = null;
-  const scan = (t, test) => { const o = layerObjs[t]; if(!o||hit) return; o.lyr.eachLayer(l=>{ if(!hit && l.feature && test(l.feature.properties)) hit = [o, l]; }); };
+  const scan = (t, test) => { const o = layerObjs[t]; if(!o||hit) return; (o.geo||o.lyr).eachLayer(l=>{ if(!hit && l.feature && test(l.feature.properties)) hit = [o, l]; }); };
   scan("fire_fuel_strips", p=>p.key===key); scan("tree_permits", p=>p.key===key);
   scan("asset_registry", p=>Array.isArray(p.inspections) && p.inspections.some(i=>i.key===key));
   if(!hit) return;
   const [o, l] = hit; if(!map.hasLayer(o.lyr)){ o.lyr.addTo(map); if(o.box) o.box.checked = true; }
   const ll = (typeof l.getLatLng==="function") ? l.getLatLng() : l.getBounds().getCenter();
-  map.setView(ll, 18); l.openPopup(ll);
+  map.setView(ll, 18); if(window.showCard) showCard(l.feature.properties, ll, key); else l.openPopup(ll);
 }
 window.addEventListener("hashchange", ()=>{ openAsset(); openWork(); });
 setTimeout(()=>{ openAsset(); openWork(); }, 400);
 </script>
 <script src="modes.js"></script>
+<script src="card.js"></script>
+<script src="view.js"></script>
+<script src="nav.js"></script>
 </body>
 </html>
