@@ -192,6 +192,9 @@ const map = L.map("map",{zoomControl:true});
 const bases = {
  "Esri": L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
    {maxZoom:19, attribution:"Imagery © Esri & partners"}),
+ "DGT 2025": L.layerGroup([
+   L.tileLayer.wms("https://ortos.dgterritorio.gov.pt/wms/ortosat2023", {layers:"ortoSat2023-CorVerdadeira", format:"image/png", maxZoom:20, attribution:"OrtoSat2023 © DGT"}),
+   L.tileLayer("ortho2025/{z}/{x}/{y}.jpg", {minZoom:12, maxNativeZoom:18, maxZoom:20, bounds:[[37.497,-8.661],[37.526,-8.628]], attribution:"Ortofotos 2025 © DGT"})]),
  "DGT 2023": L.tileLayer.wms("https://ortos.dgterritorio.gov.pt/wms/ortosat2023",
    {layers:"ortoSat2023-CorVerdadeira", format:"image/png", maxZoom:20, attribution:"OrtoSat2023 © DGT"}),
  "OSM": L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
