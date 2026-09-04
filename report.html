@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EdenRise — Relatório de Identidade da Propriedade</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{--ink:#1e2a20;--muted:#5f685c;--line:#d6d2c2;--paper:#f7f5ef;--oak:#3f5c36;--blue:#33628c}
+*{box-sizing:border-box} body{margin:0;background:#e9e7df;color:var(--ink);font-family:"Public Sans",-apple-system,"Segoe UI",sans-serif;font-size:13.5px;line-height:1.5}
+.page{background:var(--paper);max-width:860px;margin:18px auto;padding:34px 40px;border:1px solid var(--line)}
+.neat{border:1.5px solid #a9a48f;outline:1px solid #a9a48f;outline-offset:3px;padding:22px 26px;margin-bottom:22px}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:Georgia,"Spectral",serif;font-size:30px;margin:.2em 0 .2em;font-weight:600} h2{font-family:Georgia,serif;font-size:17px;margin:22px 0 8px;border-bottom:1px solid var(--line);padding-bottom:4px}
+.meta{display:flex;flex-wrap:wrap;gap:6px 22px;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted);margin-top:10px;border-top:1px solid var(--line);padding-top:8px} .meta b{color:var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:12.5px} th{text-align:left;font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:5px 8px 5px 0;border-bottom:1.5px solid #a9a48f}
+td{padding:5px 8px 5px 0;border-bottom:1px solid var(--line);vertical-align:top} .num{text-align:right;font-variant-numeric:tabular-nums}
+#map{height:360px;border:1px solid var(--line);margin:8px 0 4px} .cap{font-size:11px;color:var(--muted)}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin:8px 0}
+.kv div{border:1px solid var(--line);padding:8px 10px} .kv .k{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em} .kv .v{font-size:18px;font-weight:700}
+.tools{position:fixed;top:10px;right:10px;display:flex;gap:6px} .tools button,.tools a{font-size:11px;padding:6px 10px;background:#fff;border:1px solid var(--line);border-radius:5px;cursor:pointer;text-decoration:none;color:var(--ink)}
+@media print{.tools{display:none} body{background:#fff} .page{margin:0;border:none;max-width:none}}
+</style>
+</head>
+<body>
+<div class="tools"><button onclick="setLang('pt')">PT</button><button onclick="setLang('en')">EN</button><button onclick="window.print()">🖨︎ PDF</button><a href="index.html">↩︎</a></div>
+<div class="page">
+<div class="neat"><div class="eyebrow" id="eb"></div><h1 id="ttl"></h1><div id="lede"></div>
+<div class="meta"><span id="m1"></span><span id="m2"></span><span id="m3"></span><span id="m4"></span></div></div>
+<div id="map"></div><div class="cap" id="cap"></div>
+<h2 id="h1"></h2><div class="kv" id="kv"></div>
+<h2 id="h2"></h2><table id="tb"></table>
+<h2 id="h3"></h2><table id="tc"></table>
+<h2 id="h4"></h2><table id="ti"></table>
+<h2 id="h5"></h2><table id="th"></table>
+<h2 id="h6"></h2><div id="lidar"></div>
+<div class="cap" style="margin-top:22px" id="foot"></div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="data.js"></script><script src="ops-data.js"></script><script src="habitat-data.js"></script><script src="trees-data.js"></script><script src="buildings-data.js"></script>
+<script>
+let LANG="pt"; try{LANG=localStorage.getItem("edr_lang")||"pt";}catch(e){}
+function setLang(l){LANG=l;try{localStorage.setItem("edr_lang",l);}catch(e){}render();}
+const T={pt:{eb:"Relatório de identidade da propriedade",ttl:"Herdade EdenRise",lede:"Síntese factual da propriedade gerada a partir do sistema de informação geográfica: limites, edifícios e licenciamento, infraestruturas, cadastro oficial, capital natural e terreno LiDAR.",
+ h1:"Números-chave",h2:"Edifícios e situação matricial",h3:"Cadastro oficial (DGT) — prédios que compõem a herdade",h4:"Infraestruturas inventariadas",h5:"Ocupação do solo COS 2025",h6:"Terreno e coberto (LiDAR DGT 2024)",
+ kv:["Área do limite levantado","Prédios cadastrais oficiais","Edifícios inventariados","Registados","Árvores individuais","Copado"],cols:["Edifício","Estado","Art.º matricial","Áreas nos documentos (m²)"],ccols:["Ref. cadastral","Área oficial (m²)","% dentro do limite"],icols:["Categoria","Elementos"],hcols:["Classe","ha","%"],
+ cap:"Limite levantado (branco) sobre a ortofoto DGT 2023; edifícios coloridos por estado.",foot:"Gerado pelo GIS EdenRise. Fontes: levantamento próprio (núcleo), Cadastro Predial DGT (snapshot 2026-09-03), COS 2025, LiDAR DGT 2024, ORTOS-2025. Documento informativo — não substitui certidões."},
+ en:{eb:"Property identity report",ttl:"Herdade EdenRise",lede:"Factual synthesis of the property generated from the geographic information system: boundaries, buildings and licensing, infrastructure, official cadastre, natural capital and LiDAR terrain.",
+ h1:"Key figures",h2:"Buildings and cadastral status",h3:"Official cadastre (DGT) — parcels forming the estate",h4:"Inventoried infrastructure",h5:"Land cover COS 2025",h6:"Terrain and canopy (DGT LiDAR 2024)",
+ kv:["Surveyed boundary area","Official cadastral parcels","Inventoried buildings","Registered","Individual trees","Canopy"],cols:["Building","Status","Cadastral article","Areas in documents (m²)"],ccols:["Cadastral ref.","Official area (m²)","% inside boundary"],icols:["Category","Features"],hcols:["Class","ha","%"],
+ cap:"Surveyed boundary (white) over DGT 2023 ortho; buildings coloured by status.",foot:"Generated by the EdenRise GIS. Sources: own survey (core), DGT Cadastro Predial (snapshot 2026-09-03), COS 2025, DGT LiDAR 2024, ORTOS-2025. Informational — does not replace official certificates."}};
+const H=typeof HABDATA!=="undefined"?HABDATA.summary:null, TR=typeof TREEDATA!=="undefined"?TREEDATA.tree_tops.features:[], OPS=typeof OPSDATA!=="undefined"?OPSDATA:{};
+const map=L.map("map",{zoomControl:false,attributionControl:false,dragging:false,scrollWheelZoom:false});
+L.tileLayer.wms("https://ortos.dgterritorio.gov.pt/wms/ortosat2023",{layers:"ortoSat2023-CorVerdadeira",format:"image/png"}).addTo(map);
+const bnd=L.geoJSON(DATA.cadastre_parcels,{style:{color:"#fff",weight:3,fill:false}}).addTo(map);
+L.geoJSON(DATA.buildings_pt,{pointToLayer:(f,ll)=>L.circleMarker(ll,{radius:6,fillColor:{registado:"#4caf50",nao_registado_licenciado:"#ff3d3d"}[f.properties.status]||"#ffc107",color:"#111",weight:1,fillOpacity:.95})}).addTo(map);
+map.fitBounds(bnd.getBounds().pad(.05));
+function render(){
+  const t=T[LANG]; for(const k of ["eb","ttl","lede","h1","h2","h3","h4","h5","h6","cap","foot"]) document.getElementById(k).textContent=t[k];
+  const parcel=DATA.cadastre_parcels.features[0].properties, cad=(OPS.cadastro_oficial?OPS.cadastro_oficial.features:[]).filter(f=>f.properties.pct_dentro>50);
+  const b=DATA.buildings_pt.features, reg=b.filter(f=>f.properties.status==="registado").length;
+  document.getElementById("m1").innerHTML=`CRS <b>EPSG:3763</b>`; document.getElementById("m2").innerHTML=`${LANG==="en"?"DATE":"DATA"} <b>${new Date().toISOString().slice(0,10)}</b>`;
+  document.getElementById("m3").innerHTML=`${LANG==="en"?"MUNICIPALITY":"CONCELHO"} <b>Odemira</b>`; document.getElementById("m4").innerHTML=`${LANG==="en"?"OWNER":"TITULAR"} <b>EdenRise</b>`;
+  const vals=[(parcel.m2/1e4).toFixed(1)+" ha", cad.length, b.length, reg+" / "+b.length, TR.length.toLocaleString(), H?H.canopy_pct_of_parcel+" % ("+H.canopy_ha+" ha)":"—"];
+  document.getElementById("kv").innerHTML=t.kv.map((k,i)=>`<div><div class="k">${k}</div><div class="v">${vals[i]}</div></div>`).join("");
+  document.getElementById("tb").innerHTML=`<tr>${t.cols.map(c=>`<th>${c}</th>`).join("")}</tr>`+b.slice().sort((x,y)=>String(x.properties.status).localeCompare(String(y.properties.status))).map(f=>{const p=f.properties;return `<tr><td>${p.name||"—"}</td><td>${p.status||"—"}</td><td>${p.cadastral_article||"—"}</td><td>${p.areas_doc_m2||"—"}</td></tr>`;}).join("");
+  document.getElementById("tc").innerHTML=`<tr>${t.ccols.map(c=>`<th>${c}</th>`).join("")}</tr>`+cad.map(f=>{const p=f.properties;return `<tr><td>${p.ref}</td><td class="num">${p.area_oficial_m2?Number(p.area_oficial_m2).toLocaleString():"—"}</td><td class="num">${p.pct_dentro}%</td></tr>`;}).join("");
+  const inv=[["water_sources_pt",LANG==="en"?"Boreholes & wells":"Furos e poços"],["water_storage_pt",LANG==="en"?"Tanks, ponds, dams":"Tanques, charcas, barragens"],["wastewater_pt",LANG==="en"?"Septic tanks":"Fossas"],["water_network_ln",LANG==="en"?"Water pipes (m)":"Condutas de água (m)"],["power_ln",LANG==="en"?"Power lines (m)":"Linhas elétricas (m)"],["telecom_pt",LANG==="en"?"Telecom points":"Pontos telecom"],["grazing_parks_pg",LANG==="en"?"Grazing parks (ha)":"Parques de pastoreio (ha)"],["agri_features_pg",LANG==="en"?"Crop zones (ha)":"Zonas de produção (ha)"]];
+  document.getElementById("ti").innerHTML=`<tr>${t.icols.map(c=>`<th>${c}</th>`).join("")}</tr>`+inv.map(([k,l])=>{const fs=DATA[k]?DATA[k].features:[];let v=fs.length;if(k.endsWith("_ln"))v=Math.round(fs.reduce((a,f)=>a+(f.properties.m||0),0)).toLocaleString();if(k.endsWith("_pg"))v=(fs.reduce((a,f)=>a+(f.properties.m2||0),0)/1e4).toFixed(1);return `<tr><td>${l}</td><td class="num">${v}</td></tr>`;}).join("");
+  const tot=H?Object.values(H.cos2025_classes_ha).reduce((a,b)=>a+b,0):1;
+  document.getElementById("th").innerHTML=`<tr>${t.hcols.map(c=>`<th>${c}</th>`).join("")}</tr>`+(H?Object.entries(H.cos2025_classes_ha).map(([k,v])=>`<tr><td>${k}</td><td class="num">${v}</td><td class="num">${(100*v/tot).toFixed(1)}%</td></tr>`).join(""):"");
+  const stressed=TR.filter(f=>f.properties.vigour==="stressado").length, oaks=TR.filter(f=>f.properties.oak_candidate).length;
+  document.getElementById("lidar").innerHTML=LANG==="en"
+    ?`<p>Mean slope 16°, a tenth of the land above 29°. ${TR.length.toLocaleString()} individual trees (mean height 6.7 m); ${oaks} cork/holm-oak candidates by crown shape; ${stressed} crowns read as stressed in the 2025 dry-season imagery (relative ranking). Tree carbon stock proxy: ${H?H.tree_co2e_stock_t_proxy:"—"} t CO₂e.</p>`
+    :`<p>Declive médio 16°, um décimo do terreno acima de 29°. ${TR.length.toLocaleString()} árvores individuais (altura média 6,7 m); ${oaks} candidatas a sobreiro/azinheira pela forma da copa; ${stressed} copas com sinais de stress na ortofoto 2025 (época seca — ranking relativo). Aproximação do stock de carbono arbóreo: ${H?H.tree_co2e_stock_t_proxy:"—"} t CO₂e.</p>`;
+}
+render();
+</script>
+</body></html>

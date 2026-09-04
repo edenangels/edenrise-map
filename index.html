@@ -68,6 +68,9 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,sans-serif;background:
 <script src="buildings-data.js"></script>
 <script src="suitability-data.js"></script>
 <script src="work-data.js"></script>
+<script src="defensible-data.js"></script>
+<script src="water-data.js"></script>
+<script src="habitat-data.js"></script>
 <script>
 const GROUPS = [
  ["10 · Cadastro & Legal", true, [
@@ -137,7 +140,16 @@ const GROUPS = [
  ["🏗️ Edifícios & planeamento", false, [
    ["building_footprints","Implantações de edifícios (LiDAR)","pg","#ffcc80",{cat:"status",colors:{registado:"#66bb6a",nao_registado_licenciado:"#ef5350",por_classificar:"#ffca28"},fill:"rgba(255,204,128,.55)",w:1.4}],
    ["suitability_zones","Zonas aptas para construir (score ≥65)","pg","#ff8f00",{fill:"rgba(255,213,79,.45)",w:1.8}]]],
+ ["🔥💧🌿 Análises", false, [
+   ["defensible_space","Espaço defensável (30 m) — fraca/moderada/boa","pg","#ff7043",{cat:"classe",colors:{fraca:"#e53935",moderada:"#ffb300",boa:"#43a047"},fill:"rgba(255,112,67,.25)",w:1.4}],
+   ["wet_zones","Zonas de acumulação de água (TWI)","pg","#29b6f6",{fill:"rgba(41,182,246,.35)",w:1.2}],
+   ["track_crossings","Travessias caminho×linha de água (risco)","pt","#ff5252",{cat:"risco",colors:{alto:"#e53935",medio:"#ffb300",baixo:"#8bc34a"},r:6}],
+   ["catchments_runoff","Bacias — escoamento a 50 mm","pg","#80deea",{fill:"rgba(128,222,234,.12)",w:1.2}],
+   ["habitat_cos2025","Ocupação do solo COS 2025","pg","#a1887f",{fill:"rgba(161,136,127,.30)",w:.8}]]],
 ];
+Object.assign(DATA, typeof DEFDATA !== "undefined" ? DEFDATA : {});
+Object.assign(DATA, typeof WATERDATA !== "undefined" ? WATERDATA : {});
+if (typeof HABDATA !== "undefined") DATA.habitat_cos2025 = HABDATA.habitat_cos2025;
 Object.assign(DATA, typeof OPSDATA !== "undefined" ? OPSDATA : {});
 Object.assign(DATA, typeof HYDRODATA !== "undefined" ? HYDRODATA : {});
 Object.assign(DATA, typeof TREEDATA !== "undefined" ? TREEDATA : {});
@@ -150,7 +162,8 @@ const G_EN = {"10 · Cadastro & Legal":"10 · Cadastre & Legal","20 · Edifício
  "70 · Propostas":"70 · Proposals","00 · Notas":"00 · Notes",
  "OPS · Conformidade & Ativos":"OPS · Compliance & Assets",
  "LiDAR 2024 · Terreno & árvores":"LiDAR 2024 · Terrain & trees",
- "🏗️ Edifícios & planeamento":"🏗️ Buildings & planning"};
+ "🏗️ Edifícios & planeamento":"🏗️ Buildings & planning",
+ "🔥💧🌿 Análises":"🔥💧🌿 Analyses"};
 const T_EN = {cadastre_parcels:"Land parcels",cadastre_boundaries_ln:"Boundary lines (partilha)",
  subsidy_parcels:"Subsidy parcels",buildings_pt:"Buildings (licensing status)",
  water_sources_pt:"Boreholes & wells",water_storage_pt:"Tanks, ponds & dams",
@@ -174,7 +187,8 @@ const T_EN = {cadastre_parcels:"Land parcels",cadastre_boundaries_ln:"Boundary l
  asset_registry:"Assets (EDR-…)",fire_fuel_strips:"Fuel-management strips (DL 82/2021)",
  boundary_deviations:"Boundary deviations (vs cadastre)",tree_permits:"Cuts needing ICNF permit",
  hydro_streams:"Modelled streams (2 m LiDAR)",hydro_catchments:"Catchments",tree_tops:"Individual trees",tree_crowns:"Tree crowns — 2025 vigour",
- building_footprints:"Building footprints (LiDAR)",suitability_zones:"Build-suitable zones (score ≥65)"};
+ building_footprints:"Building footprints (LiDAR)",suitability_zones:"Build-suitable zones (score ≥65)",
+ defensible_space:"Defensible space (30 m) — poor/moderate/good",wet_zones:"Water pooling zones (TWI)",track_crossings:"Track × stream crossings (risk)",catchments_runoff:"Catchments — runoff at 50 mm",habitat_cos2025:"Land cover COS 2025"};
 const FIELD_EN = {asset_id:"Asset ID",status:"Status",category:"Category",system:"System",year:"Year",
  alternative:"Alternative",cadastral_article:"Cadastral article",areas_doc_m2:"Areas (docs) m²",
  spec:"Specification",site:"Site",m2:"Measured area",m:"Length",kind:"Type",radius_m:"Radius (m)",
@@ -183,7 +197,9 @@ const FIELD_EN = {asset_id:"Asset ID",status:"Status",category:"Category",system
  pct_dentro:"% inside boundary",tree_name:"Tree",note:"Note",
  tree_id:"Tree ID",height_m:"Height (m)",crown_m2:"Crown (m²)",crown_diam_m:"Crown diam. (m)",area_ha:"Area (ha)",
  ndvi_2025:"NDVI 2025",vigour:"Vigour",oak_candidate:"Cork/holm-oak candidate",roof_elev_m:"Roof elev. (m)",footprint_m2:"Footprint (m²)",
- score:"Suitability score",rank:"Rank",slope_pct_mean:"Mean slope (%)",dist_path_m:"Dist. to track (m)",dist_water_m:"Dist. to water net (m)",dist_building_m:"Dist. to building (m)",aspect:"Aspect"};
+ score:"Suitability score",rank:"Rank",slope_pct_mean:"Mean slope (%)",dist_path_m:"Dist. to track (m)",dist_water_m:"Dist. to water net (m)",dist_building_m:"Dist. to building (m)",aspect:"Aspect",
+ classe:"Class",rank_risk:"Rank (1 = most exposed)",canopy_cover_30m_pct:"Canopy within 30 m (%)",tall_trees_20m:"Trees ≥8 m within 20 m",stressed_trees_30m:"Stressed crowns within 30 m",slope_mean_deg:"Slope (°)",fuel_strip_status:"Fuel strip",actions:"Actions",
+ twi_mean:"Wetness index (TWI)",upstream_ha:"Upstream area (ha)",risco:"Risk",canopy_cover_pct:"Canopy (%)",runoff_coef:"Runoff coef.",runoff_m3_50mm:"Runoff at 50 mm (m³)",area_ha:"Area (ha)"};
 const UI = {pt:{ttl:"EdenRise — Herdade",sub:"Mapa vivo da propriedade · dados 2026-09"},
             en:{ttl:"EdenRise — Estate",sub:"Living map of the property · data 2026-09"}};
 let LANG = "pt";
@@ -201,7 +217,9 @@ const FIELD_PT = {asset_id:"ID do ativo",status:"Estado",category:"Categoria",sy
   pct_dentro:"% dentro do limite",tree_name:"Árvore",note:"Nota",
  tree_id:"ID árvore",height_m:"Altura (m)",crown_m2:"Copa (m²)",crown_diam_m:"Diâm. copa (m)",area_ha:"Área (ha)",
  ndvi_2025:"NDVI 2025",vigour:"Vigor",oak_candidate:"Candidata sobro/azinho",roof_elev_m:"Cota telhado (m)",footprint_m2:"Implantação (m²)",
- score:"Score aptidão",rank:"Posição",slope_pct_mean:"Declive médio (%)",dist_path_m:"Dist. caminho (m)",dist_water_m:"Dist. rede água (m)",dist_building_m:"Dist. edifício (m)",aspect:"Exposição"};
+ score:"Score aptidão",rank:"Posição",slope_pct_mean:"Declive médio (%)",dist_path_m:"Dist. caminho (m)",dist_water_m:"Dist. rede água (m)",dist_building_m:"Dist. edifício (m)",aspect:"Exposição",
+ classe:"Classe",rank_risk:"Posição (1 = mais exposto)",canopy_cover_30m_pct:"Copado a 30 m (%)",tall_trees_20m:"Árvores ≥8 m a 20 m",stressed_trees_30m:"Copas stressadas a 30 m",slope_mean_deg:"Declive (°)",fuel_strip_status:"Faixa de combustível",actions:"Ações",
+ twi_mean:"Índice humidade (TWI)",upstream_ha:"Área a montante (ha)",risco:"Risco",canopy_cover_pct:"Copado (%)",runoff_coef:"Coef. escoamento",runoff_m3_50mm:"Escoamento a 50 mm (m³)",area_ha:"Área (ha)"};
 const map = L.map("map",{zoomControl:true});
 const bases = {
  "Esri": L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
