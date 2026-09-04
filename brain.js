@@ -27,7 +27,7 @@ document.head.appendChild(css);
 const btn = document.createElement("button"); btn.id="brainbtn"; btn.innerHTML=`<span class="orb"></span>${T.title}`; document.getElementById("map").appendChild(btn);
 const box = document.createElement("div"); box.id="brain"; box.hidden=true; box.innerHTML=`<div class="hd"><span class="orb" style="width:12px;height:12px;border-radius:50%;background:var(--oak)"></span><div style="flex:1"><h3>${T.title}</h3><div class="sub">${T.sub}</div></div><span class="role ${ROLE}" id="brole">${T.viewer}</span><button id="bclose" style="background:transparent;border:0;color:var(--muted);font-size:16px;cursor:pointer">✕</button></div>
 <div class="log" id="blog"></div><div class="chips" id="bchips"></div><div class="in"><input id="bq" placeholder="${T.ph}" autocomplete="off"><button class="mic" id="bmic" title="${T.mic}">🎤</button><button id="bsend">${T.send}</button></div>`;
-document.getElementById("map").appendChild(box);
+document.getElementById("map").appendChild(box); L.DomEvent.disableClickPropagation(box); L.DomEvent.disableScrollPropagation(box); L.DomEvent.disableClickPropagation(btn);
 const log = document.getElementById("blog"), q = document.getElementById("bq");
 btn.onclick = ()=>{ box.hidden=false; btn.hidden=true; q.focus(); if(!log.children.length) hello(); };
 document.getElementById("bclose").onclick = ()=>{ box.hidden=true; btn.hidden=false; };
