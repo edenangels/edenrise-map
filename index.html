@@ -42,8 +42,9 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,sans-serif;background:
 <button id="burger" aria-label="Camadas">☰</button>
 <div id="app">
   <nav id="side">
-    <h1>EdenRise — Herdade</h1>
-    <div class="sub">Mapa vivo da propriedade · dados 2026-09</div>
+    <h1 id="ttl">EdenRise — Herdade</h1>
+    <div class="sub" id="sub">Mapa vivo da propriedade · dados 2026-09</div>
+    <div class="basemaps" id="langs"></div>
     <div class="basemaps" id="basemaps"></div>
     <div id="tree"></div>
   </nav>
@@ -115,6 +116,48 @@ const GROUPS = [
    ["tree_permits","Cortes a licenciar (ICNF)","pt","#f44336",{r:6}]]],
 ];
 Object.assign(DATA, typeof OPSDATA !== "undefined" ? OPSDATA : {});
+// ── bilingual UI ──────────────────────────────────────────────
+const G_EN = {"10 · Cadastro & Legal":"10 · Cadastre & Legal","20 · Edifícios":"20 · Buildings",
+ "30 · Água":"30 · Water","40 · Energia & Telecom":"40 · Energy & Telecom",
+ "50 · Agricultura":"50 · Agriculture","60 · Floresta & Ecologia":"60 · Forestry & Ecology",
+ "70 · Propostas":"70 · Proposals","00 · Notas":"00 · Notes",
+ "OPS · Conformidade & Ativos":"OPS · Compliance & Assets"};
+const T_EN = {cadastre_parcels:"Land parcels",cadastre_boundaries_ln:"Boundary lines (partilha)",
+ subsidy_parcels:"Subsidy parcels",buildings_pt:"Buildings (licensing status)",
+ water_sources_pt:"Boreholes & wells",water_storage_pt:"Tanks, ponds & dams",
+ water_network_pt:"Water network — points",water_network_ln:"Water pipes",
+ wastewater_pt:"Septic tanks",power_pt:"Electricity — points",power_ln:"Electricity — lines",
+ power_pg:"Electricity — areas",telecom_pt:"Telecom — points",telecom_ln:"Telecom — lines",
+ agri_features_pt:"Crops — points",agri_features_ln:"Crops — lines",agri_features_pg:"Crops — zones",
+ orchards_ln:"Orchards — lines",orchards_pg:"Orchards — zones",
+ irrigation_pt:"Irrigation — points",irrigation_ln:"Irrigation — lines",irrigation_pg:"Irrigation — zones",
+ grazing_parks_pg:"Grazing parks",tree_actions_pt:"Tree cuts (by year)",tree_actions_ln:"Tree cuts — lines",
+ hedges_pt:"Hedges — points",hedges_ln:"Hedges — lines",hedges_pg:"Hedges — zones",
+ species_inventory_pt:"Species inventory — points",species_inventory_ln:"Species inventory — lines",
+ species_inventory_pg:"Species inventory — zones",beekeeping_pt:"Beekeeping — points",
+ beekeeping_ln:"Beekeeping — lines",beekeeping_pg:"Beekeeping — zones",
+ fire_mgmt_pt:"Fire & compost mgmt — points",fire_mgmt_pg:"Fire & compost mgmt — zones",
+ paths_ln:"Paths",notes_pt:"Notes / information",
+ prop_etar_pt:"WWTP & showers — points",prop_etar_ln:"WWTP & showers — lines",
+ prop_etar_pg:"WWTP & showers — zones",prop_water_deposits_pt:"Future water deposits — points",
+ prop_water_deposits_ln:"Future water deposits — lines",prop_water_deposits_pg:"Future water deposits — zones",
+ prop_reforestation_ln:"Reforestation infra — lines",prop_reforestation_pg:"Reforestation infra — zones",
+ asset_registry:"Assets (EDR-…)",fire_fuel_strips:"Fuel-management strips (DL 82/2021)",
+ boundary_deviations:"Boundary deviations (vs cadastre)",tree_permits:"Cuts needing ICNF permit"};
+const FIELD_EN = {asset_id:"Asset ID",status:"Status",category:"Category",system:"System",year:"Year",
+ alternative:"Alternative",cadastral_article:"Cadastral article",areas_doc_m2:"Areas (docs) m²",
+ spec:"Specification",site:"Site",m2:"Measured area",m:"Length",kind:"Type",radius_m:"Radius (m)",
+ legal_ref:"Legal basis",source_name:"Source",permit_status:"Permit",authority:"Authority",
+ core_status:"Status (core)",core_category:"Category (core)",area_m2:"Area m²",ref:"Cadastral ref.",
+ pct_dentro:"% inside boundary",tree_name:"Tree",note:"Note"};
+const UI = {pt:{ttl:"EdenRise — Herdade",sub:"Mapa vivo da propriedade · dados 2026-09"},
+            en:{ttl:"EdenRise — Estate",sub:"Living map of the property · data 2026-09"}};
+let LANG = "pt";
+try{ LANG = localStorage.getItem("edr_lang") || ((navigator.language||"pt").toLowerCase().startsWith("pt") ? "pt" : "en"); }catch(e){}
+const gname_i18n = g => LANG === "en" ? (G_EN[g] || g) : g;
+const title_i18n = (t, ptTitle) => LANG === "en" ? (T_EN[t] || ptTitle) : ptTitle;
+const fields_i18n = () => LANG === "en" ? FIELD_EN : FIELD_PT;
+const locale = () => LANG === "en" ? "en-GB" : "pt-PT";
 const FIELD_PT = {asset_id:"ID do ativo",status:"Estado",category:"Categoria",system:"Sistema",year:"Ano",
   alternative:"Alternativa",cadastral_article:"Art.º matricial",areas_doc_m2:"Áreas (docs) m²",
   spec:"Especificação",site:"Local",m2:"Área medida",m:"Comprimento",
@@ -141,13 +184,14 @@ Object.keys(bases).forEach(k=>{
 });
 L.control.scale({imperial:false}).addTo(map);
 function popup(p){
-  let h = `<div class="pp"><h3>${p.name||"—"}</h3><table>`;
-  for(const k of Object.keys(FIELD_PT)){
+  const F = fields_i18n();
+  let h = `<div class="pp"><h3>${p.name||p.asset_id||p.tree_name||"—"}</h3><table>`;
+  for(const k of Object.keys(F)){
     if(p[k]!==undefined && p[k]!==null && p[k]!==""){
       let v = p[k];
-      if(k==="m2") v = Number(v).toLocaleString("pt-PT")+" m²";
-      if(k==="m") v = Number(v).toLocaleString("pt-PT")+" m";
-      h += `<tr><td>${FIELD_PT[k]}</td><td>${v}</td></tr>`;
+      if(k==="m2"||k==="area_m2") v = Number(v).toLocaleString(locale())+" m²";
+      if(k==="m") v = Number(v).toLocaleString(locale())+" m";
+      h += `<tr><td>${F[k]}</td><td>${v}</td></tr>`;
     }
   }
   h += "</table>";
@@ -166,7 +210,7 @@ for(const [gname, gOn, layers] of GROUPS){
       style:f=>({color:colOf(f.properties), weight:opt.w||2, dashArray:opt.dash||null,
         fillColor:(opt.fill&&opt.fill.startsWith("rgba"))?colOf(f.properties):(opt.fill||color),
         fillOpacity:opt.fill?parseFloat(opt.fill.match(/[\d.]+(?=\))/)?.[0] ?? .2):0}),
-      onEachFeature:(f,l)=>{ l.bindPopup(popup(f.properties),{maxWidth:290});
+      onEachFeature:(f,l)=>{ l.bindPopup(()=>popup(f.properties),{maxWidth:290});
         if(f.properties.name) l.bindTooltip(String(f.properties.name)); }
     });
     layerObjs[t] = {lyr, on:gOn};
@@ -183,31 +227,51 @@ let fitTries = 0;
 const fitTimer = setInterval(()=>{ fitTries++;
   if(map.getZoom() >= 5 || fitTries > 20) return clearInterval(fitTimer);
   fitAll(); }, 150);
-// sidebar tree
+// sidebar tree (rebuildable — bilingual)
 const tree = document.getElementById("tree");
-for(const [gname, gOn, layers] of GROUPS){
-  const g = document.createElement("div"); g.className="grp";
-  const gl = document.createElement("label"); gl.className="gl";
-  const gc = document.createElement("input"); gc.type="checkbox"; gc.checked=gOn;
-  gl.appendChild(gc); gl.appendChild(document.createTextNode(gname));
-  g.appendChild(gl);
-  const boxes=[];
-  for(const [t,title,kind,color,opt] of layers){
-    if(!layerObjs[t]) continue;
-    const row=document.createElement("label"); row.className="lyr";
-    const c=document.createElement("input"); c.type="checkbox"; c.checked=gOn;
-    const sw=document.createElement("span"); sw.className="sw "+kind;
-    sw.style.background = opt.cat ? Object.values(opt.colors)[0] : color;
-    if(kind==="pg"){ sw.style.background=opt.fill||"transparent"; sw.style.borderColor=color; }
-    row.appendChild(c); row.appendChild(sw); row.appendChild(document.createTextNode(title));
-    g.appendChild(row); boxes.push([c,t]);
-    c.onchange=()=>{ const o=layerObjs[t];
-      if(c.checked){ o.lyr.addTo(map); } else { map.removeLayer(o.lyr); } };
-    layerObjs[t].box = c;
+function buildSidebar(){
+  document.getElementById("ttl").textContent = UI[LANG].ttl;
+  document.getElementById("sub").textContent = UI[LANG].sub;
+  tree.innerHTML = "";
+  for(const [gname, gOn, layers] of GROUPS){
+    const g = document.createElement("div"); g.className="grp";
+    const gl = document.createElement("label"); gl.className="gl";
+    const gc = document.createElement("input"); gc.type="checkbox";
+    gl.appendChild(gc); gl.appendChild(document.createTextNode(gname_i18n(gname)));
+    g.appendChild(gl);
+    const boxes=[];
+    let anyOn = false;
+    for(const [t,title,kind,color,opt] of layers){
+      if(!layerObjs[t]) continue;
+      const on = map.hasLayer(layerObjs[t].lyr);
+      anyOn = anyOn || on;
+      const row=document.createElement("label"); row.className="lyr";
+      const c=document.createElement("input"); c.type="checkbox"; c.checked=on;
+      const sw=document.createElement("span"); sw.className="sw "+kind;
+      sw.style.background = opt.cat ? Object.values(opt.colors)[0] : color;
+      if(kind==="pg"){ sw.style.background=opt.fill||"transparent"; sw.style.borderColor=color; }
+      row.appendChild(c); row.appendChild(sw); row.appendChild(document.createTextNode(title_i18n(t, title)));
+      g.appendChild(row); boxes.push([c,t]);
+      c.onchange=()=>{ const o=layerObjs[t];
+        if(c.checked){ o.lyr.addTo(map); } else { map.removeLayer(o.lyr); } };
+      layerObjs[t].box = c;
+    }
+    gc.checked = anyOn;
+    gc.onchange=()=>boxes.forEach(([c])=>{ if(c.checked!==gc.checked){ c.checked=gc.checked; c.onchange(); }});
+    tree.appendChild(g);
   }
-  gc.onchange=()=>boxes.forEach(([c])=>{ if(c.checked!==gc.checked){ c.checked=gc.checked; c.onchange(); }});
-  tree.appendChild(g);
 }
+buildSidebar();
+// language switch
+const langsEl = document.getElementById("langs");
+[["pt","Português"],["en","English"]].forEach(([code,label])=>{
+  const b=document.createElement("button"); b.textContent=label; b.dataset.lang=code;
+  if(code===LANG) b.classList.add("on");
+  b.onclick=()=>{ LANG=code; try{localStorage.setItem("edr_lang",code);}catch(e){}
+    langsEl.querySelectorAll("button").forEach(x=>x.classList.toggle("on", x.dataset.lang===code));
+    buildSidebar(); map.closePopup(); };
+  langsEl.appendChild(b);
+});
 document.getElementById("burger").onclick=()=>document.getElementById("side").classList.toggle("open");
 // deep link: #asset=EDR-WTR-001 → zoom + open popup (for ClickUp task links)
 function openAsset(){
