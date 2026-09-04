@@ -32,6 +32,7 @@ a{color:var(--accent)}
   <div class="row" id="langs"></div>
   <div class="row" id="bases"></div>
   <div class="row"><button id="tilt">⟲ 3D / 2D</button><button id="fly">✈ Voo</button></div>
+  <div class="row" id="views"></div>
   <div id="tree"></div>
   <div class="hint" id="hint"></div>
 </div>
@@ -92,19 +93,19 @@ const map = new maplibregl.Map({container:"map", zoom:14.3, center:[-8.645,37.51
   style:{version:8, sources:{
     terrain:{type:"raster-dem", tiles:[location.href.replace(/[^/]*$/,"") + "terrain/{z}/{x}/{y}.png"], encoding:"mapbox", tileSize:256, minzoom:8, maxzoom:16,
              bounds:[-9.55,36.6,-7.75,38.45], attribution:"Terreno: LiDAR 2024 © DGT (50 cm) + Terrarium"},
-    base:{type:"raster", tiles:BASES[curBase].tiles, tileSize:256, attribution:BASES[curBase].attr, maxzoom:18},
+    base:{type:"raster", tiles:BASES[curBase].tiles, tileSize:256, attribution:BASES[curBase].attr, maxzoom:19},
     fallback:{type:"raster", tiles:[ogcMap("ortos-rgb")], tileSize:256, attribution:"OrtoSat2023 © DGT"},
     fwi:{type:"raster", tiles:["https://maps.effis.emergency.copernicus.eu/effis?service=WMS&version=1.3.0&request=GetMap&layers=mf010.fwi&styles=&crs=EPSG:3857&bbox={bbox-epsg-3857}&width=256&height=256&format=image/png&time="+new Date().toISOString().slice(0,10)], tileSize:256, attribution:"EFFIS © Copernicus"},
   }, layers:[
-    {id:"fallback", type:"raster", source:"fallback"},
-    {id:"base", type:"raster", source:"base"},
-    {id:"hill", type:"hillshade", source:"terrain", paint:{"hillshade-exaggeration":.35,"hillshade-shadow-color":"#1b2418"}},
+    {id:"fallback", type:"raster", source:"fallback", paint:{"raster-saturation":.12,"raster-contrast":.08,"raster-brightness-min":.02}},
+    {id:"base", type:"raster", source:"base", paint:{"raster-saturation":.18,"raster-contrast":.12,"raster-resampling":"linear","raster-fade-duration":200}},
+    {id:"hill", type:"hillshade", source:"terrain", paint:{"hillshade-exaggeration":.12,"hillshade-shadow-color":"#2a2117","hillshade-highlight-color":"#fff6e0","hillshade-accent-color":"#3b3126"}},
     {id:"fwi", type:"raster", source:"fwi", paint:{"raster-opacity":.45}, layout:{visibility:"none"}},
   ]}});   // terrain is enabled after style.load — declaring it in the initial style blocks the first render
 window.__errs = []; map.on("error", e => window.__errs.push(String(e && e.error && e.error.message || e)));
 map.addControl(new maplibregl.NavigationControl({visualizePitch:true}), "top-right");
 map.addControl(new maplibregl.ScaleControl({unit:"metric"}));
-map.addControl(new maplibregl.TerrainControl({source:"terrain", exaggeration:1.4}), "top-right");
+map.addControl(new maplibregl.TerrainControl({source:"terrain", exaggeration:1.25}), "top-right");
 const FIELDS = {pt:{asset_id:"ID",tree_id:"ID árvore",height_m:"Altura (m)",crown_m2:"Copa (m²)",crown_diam_m:"Diâm. copa (m)",ndvi_2025:"NDVI 2025",vigour:"Vigor",oak_candidate:"Candidata sobro/azinho",
                     roof_elev_m:"Cota telhado (m)",footprint_m2:"Implantação (m²)",score:"Score aptidão",rank:"Posição",area_m2:"Área (m²)",slope_pct_mean:"Declive médio (%)",dist_path_m:"Dist. caminho (m)",dist_water_m:"Dist. rede água (m)",dist_building_m:"Dist. edifício (m)",aspect:"Exposição",status:"Estado",category:"Categoria",system:"Sistema",year:"Ano",cadastral_article:"Art.º",areas_doc_m2:"Áreas (docs) m²",m2:"Área",m:"Comprimento",kind:"Tipo",area_ha:"Área (ha)",source:"Fonte"},
                 en:{asset_id:"ID",tree_id:"Tree ID",height_m:"Height (m)",crown_m2:"Crown (m²)",crown_diam_m:"Crown diam. (m)",ndvi_2025:"NDVI 2025",vigour:"Vigour",oak_candidate:"Cork/holm-oak candidate",
@@ -152,8 +153,11 @@ map.on("style.load", ()=>{            // fires once the style is parsed — does
     map.on("click", t, e=>{ new maplibregl.Popup().setLngLat(e.lngLat).setHTML(popupHtml(e.features[0].properties)).addTo(map); });
     map.on("mouseenter", t, ()=>map.getCanvas().style.cursor="pointer"); map.on("mouseleave", t, ()=>map.getCanvas().style.cursor="");
   }
-  buildPanel();
-  setTimeout(()=>map.setTerrain({source:"terrain", exaggeration:1.4}), 300);
+  buildPanel(); buildViews();
+  setTimeout(()=>{ map.setTerrain({source:"terrain", exaggeration:1.25});
+    try{ map.setSky({"sky-color":"#8fb3d9","horizon-color":"#e9dcc4","fog-color":"#d9ccb3","sky-horizon-blend":.6,"horizon-fog-blend":.55,"fog-ground-blend":.72,"atmosphere-blend":["interpolate",["linear"],["zoom"],0,1,12,.55,16,.15]}); }catch(e){}
+    try{ map.setLight({anchor:"map", position:[1.4,105,42], color:"#fff4e2", intensity:.42}); }catch(e){}
+  }, 300);
 });
 function setVis(t, on){ state[t]=on; const v = on?"visible":"none"; if(map.getLayer(t)) map.setLayoutProperty(t,"visibility",v); if(map.getLayer(t+"_o")) map.setLayoutProperty(t+"_o","visibility",v); }
 function buildPanel(){
@@ -170,7 +174,7 @@ function buildPanel(){
   let cur = null;
   for(const [grp, t, title, kind, color] of LAYERS){
     if(!src(t)) continue;
-    if(grp!==cur){ cur=grp; const g=document.createElement("div"); g.className="gl"; g.textContent=tx.groups[grp]; tree.appendChild(g); }
+    if(grp!==cur){ cur=grp; const g=document.createElement("div"); g.className="gl"; const n=LAYERS.filter(x=>x[0]===grp&&src(x[1])).length, on=LAYERS.filter(x=>x[0]===grp&&state[x[1]]).length; g.innerHTML=`<span>${tx.groups[grp]}</span><span style="float:right;font-weight:400;color:var(--dim)">${on}/${n}</span>`; tree.appendChild(g); }
     const row=document.createElement("label"); row.className="lyr";
     const c=document.createElement("input"); c.type="checkbox"; c.checked=!!state[t]; c.onchange=()=>setVis(t,c.checked);
     const sw=document.createElement("span"); sw.className="sw"; sw.style.background=color;
@@ -183,6 +187,9 @@ function buildPanel(){
   const sw=document.createElement("span"); sw.className="sw"; sw.style.background="#ff7043";
   row.appendChild(c); row.appendChild(sw); row.appendChild(document.createTextNode(LANG==="en"?"Fire danger today (EFFIS)":"Perigo de incêndio hoje (EFFIS)")); tree.appendChild(row);
 }
+const VIEWS = [["Casa","Main house",[-8.6412,37.5148],17.2,64,-30],["Moinhos","Mills",[-8.6455,37.5165],17,60,25],["Norte","North",[-8.6485,37.5205],16,58,-10],["Sul","South",[-8.6440,37.5040],16,58,160],["Vale","Valley",[-8.6395,37.5100],16.4,66,-70]];
+function buildViews(){ const v=document.getElementById("views"); v.innerHTML=""; VIEWS.forEach(([pt,en,c,z,p,b])=>{ const bt=document.createElement("button"); bt.textContent=LANG==="en"?en:pt; bt.onclick=()=>map.flyTo({center:c,zoom:z,pitch:p,bearing:b,duration:2200,essential:true}); v.appendChild(bt); }); }
+buildViews();
 document.getElementById("tilt").onclick = ()=> map.easeTo({pitch: map.getPitch()>10 ? 0 : 60, duration:800});
 document.getElementById("fly").onclick = ()=> {
   map.easeTo({center:[-8.652,37.508], zoom:15.2, pitch:65, bearing:-60, duration:2500});

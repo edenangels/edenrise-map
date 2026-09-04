@@ -32,7 +32,6 @@
 .cat .ch{display:flex;align-items:center;gap:8px;padding:9px 10px;cursor:pointer;user-select:none} .cat .ch:hover{background:var(--night-2)}
 .cat .chev{width:14px;height:14px;transition:transform .18s;color:var(--muted);flex:none} .cat.open .chev{transform:rotate(90deg)}
 .cat .cn{flex:1;font-weight:600;font-size:12.5px;letter-spacing:.01em} .cat .cc{font-family:var(--mono);font-size:10.5px;color:var(--muted);padding:1px 6px;border:1px solid var(--line);border-radius:999px} .cat .cc.on{color:var(--oak);border-color:rgba(127,154,106,.5)}
-.cat .cb{display:none;padding:2px 6px 8px;border-top:1px solid var(--line)} .cat.open .cb{display:block}
 .lyr{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:6px 6px;cursor:pointer;border-radius:6px} .lyr:hover{background:var(--night-2)} .lyr .nm{flex:1}
 .sw{width:12px;height:12px;border-radius:3px;flex:none;border:1.5px solid transparent} .sw.ln{height:4px;border-radius:2px} .sw.pt{border-radius:50%}
 .tg{position:relative;width:30px;height:18px;flex:none} .tg input{opacity:0;width:0;height:0;position:absolute} .tg i{position:absolute;inset:0;background:var(--line-2);border-radius:999px;transition:background .15s} .tg i::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--linen-2);transition:transform .15s}
@@ -344,7 +343,7 @@ for(const [gname, gOn, layers] of GROUPS){
     const fc = DATA[t];
     if(!fc && LAZY[t]){                       // heavy layer: placeholder group, data loads on first toggle
       const group = L.layerGroup(); const o = layerObjs[t] = {lyr:group, on:false, lazy:LAZY[t], loaded:false, t, title, kind, color, opt};
-      group.on("add", async ()=>{ if(o.loaded) return; o.loaded = true; if(typeof TREEDATA==="undefined") await loadScript(o.lazy); Object.assign(DATA, TREEDATA);
+      group.on("add", async ()=>{ if(o.loaded) return; o.loaded = true; if(window.showLoading) showLoading(LANG==="en"?"Loading 7,531 trees…":"A carregar 7 531 árvores…"); if(typeof TREEDATA==="undefined") await loadScript(o.lazy); Object.assign(DATA, TREEDATA); if(window.showLoading) showLoading(null);
         o.geo = buildLayer(t, title, kind, color, opt, DATA[t]); group.addLayer(o.geo); });
       continue;
     }
@@ -366,6 +365,20 @@ const fitTimer = setInterval(()=>{ fitTries++;
   fitAll(); }, 150);
 // sidebar tree (rebuildable — bilingual)
 const tree = document.getElementById("tree");
+const CAT_ICON = {
+ "10":'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>',
+ "20":'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11.5 12 4l9 7.5V20H3z"/></svg>',
+ "30":'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3s6 7 6 12a6 6 0 0 1-12 0c0-5 6-12 6-12z"/></svg>',
+ "40":'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>',
+ "50":'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20c0-8 5-13 13-13-1 8-6 13-13 13z"/><path d="M4 20c3-4 6-7 10-9"/></svg>',
+ "60":'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2 6 11h3l-4 6h6v5h2v-5h6l-4-6h3z"/></svg>',
+ "70":'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="3 2"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>',
+ "00":'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>',
+ "OPS":'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l9 4.5v9L12 21l-9-4.5v-9z"/><path d="M12 12l9-4.5M12 12 3 7.5M12 12v9"/></svg>',
+ "LiDAR":'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 17l6-8 4 5 3-3 5 6z"/></svg>',
+ "🏗️":'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 21V10l8-6 8 6v11"/><path d="M9 21v-7h6v7"/></svg>',
+ "🔥💧🌿":'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19h16M4 15l4-4 4 3 4-6 4 4"/></svg>'};
+function catIcon(name){ const k=Object.keys(CAT_ICON).find(k=>name.startsWith(k)); return CAT_ICON[k]||CAT_ICON["00"]; }
 const OPEN_KEY = "edr_open_cats"; let openCats = new Set(); try{ openCats = new Set(JSON.parse(localStorage.getItem(OPEN_KEY)||"[]")); }catch(e){}
 function saveOpen(){ try{ localStorage.setItem(OPEN_KEY, JSON.stringify([...openCats])); }catch(e){} }
 function buildSidebar(){
@@ -379,7 +392,7 @@ function buildSidebar(){
     const present = layers.filter(([t])=>layerObjs[t]); if(!present.length) continue;
     const cat = document.createElement("div"); cat.className = "cat" + (openCats.has(gname) ? " open" : "");
     const onCount = present.filter(([t])=>map.hasLayer(layerObjs[t].lyr)).length;
-    cat.innerHTML = `<div class="ch"><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 6 6 6-6 6"/></svg><span class="cn">${gname_i18n(gname)}</span><span class="cc ${onCount?"on":""}">${onCount}/${present.length}</span><label class="tg" title="${LANG==="en"?"all":"todas"}"><input type="checkbox" class="gc" ${onCount===present.length?"checked":""}><i></i></label></div><div class="cb"></div>`;
+    cat.innerHTML = `<div class="ch"><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 6 6 6-6 6"/></svg><span class="ico">${catIcon(gname)}</span><span class="cn">${gname_i18n(gname).replace(/^[\d]+ · |^[^\w]+ /,"")}</span><span class="cc ${onCount?"on":""}">${onCount}/${present.length}</span><label class="tg" title="${LANG==="en"?"all":"todas"}"><input type="checkbox" class="gc" ${onCount===present.length?"checked":""}><i></i></label></div><div class="cb"></div>`;
     const body = cat.querySelector(".cb"); const cc = cat.querySelector(".cc"); const boxes = [];
     const refresh = ()=>{ const n = present.filter(([t])=>map.hasLayer(layerObjs[t].lyr)).length; cc.textContent = `${n}/${present.length}`; cc.classList.toggle("on", n>0); cat.querySelector(".gc").checked = n===present.length; };
     for(const [t,title,kind,color,opt] of present){
@@ -454,6 +467,20 @@ const langsEl = document.getElementById("langs");
   langsEl.appendChild(b);
 });
 document.getElementById("burger").onclick=()=>document.getElementById("side").classList.toggle("open");
+// ── legend: explains colours of the categorised layers that are on ──
+const LEG = {buildings_pt:{pt:"Edifícios",en:"Buildings",vals:{registado:["#4caf50","Registado","Registered"],nao_registado_licenciado:["#ff3d3d","Não registado","Not registered"],por_classificar:["#ffc107","Por classificar","To classify"]}},
+  tree_actions_pt:{pt:"Cortes",en:"Tree cuts",vals:{2024:["#bdbdbd","2024","2024"],2025:["#ff9800","2025","2025"],2026:["#ffeb3b","2026","2026"]}},
+  tree_crowns:{pt:"Vigor 2025",en:"Vigour 2025",vals:{vigoroso:["#43a047","Vigoroso","Vigorous"],moderado:["#fdd835","Moderado","Moderate"],stressado:["#e53935","Stressado","Stressed"]}},
+  defensible_space:{pt:"Espaço defensável",en:"Defensible space",vals:{boa:["#43a047","Boa","Good"],moderada:["#ffb300","Moderada","Moderate"],fraca:["#e53935","Fraca","Poor"]}},
+  track_crossings:{pt:"Travessias",en:"Crossings",vals:{alto:["#e53935","Risco alto","High risk"],medio:["#ffb300","Médio","Medium"],baixo:["#8bc34a","Baixo","Low"]}},
+  building_footprints:{pt:"Implantações",en:"Footprints",vals:{registado:["#66bb6a","Registado","Registered"],nao_registado_licenciado:["#ef5350","Não registado","Not registered"]}}};
+const legendEl = document.createElement("div"); legendEl.className="legend"; legendEl.hidden=true; document.getElementById("map").appendChild(legendEl);
+function renderLegend(){ const on = Object.keys(LEG).filter(t=>layerObjs[t] && map.hasLayer(layerObjs[t].lyr)); if(!on.length){ legendEl.hidden=true; return; }
+  legendEl.hidden=false; legendEl.innerHTML = `<div class="lt">${LANG==="en"?"Legend":"Legenda"}</div>` + on.map(t=>`<div class="grpn">${LEG[t][LANG]}</div>` + Object.values(LEG[t].vals).map(([c,pt,en])=>`<div class="li"><span class="sw" style="background:${c}"></span>${LANG==="en"?en:pt}</div>`).join("")).join(""); }
+map.on("layeradd layerremove", ()=>setTimeout(renderLegend, 50)); renderLegend();
+// ── loading indicator for heavy layers ──
+const loadEl = document.createElement("div"); loadEl.className="loading"; loadEl.hidden=true; loadEl.innerHTML=`<i></i><span></span>`; document.getElementById("map").appendChild(loadEl);
+window.showLoading = (msg)=>{ loadEl.querySelector("span").textContent = msg; loadEl.hidden = !msg; };
 // deep link: #asset=EDR-WTR-001 → zoom + open popup (for ClickUp task links)
 function openAsset(){
   const m = location.hash.match(/#asset=([A-Z0-9-]+)/i);
