@@ -1,0 +1,1 @@
+{"zmin": 13, "zmax": 19, "bounds": [[37.49686184566153, -8.660999027493517], [37.526142860566566, -8.628007911688798]], "classes": {"index": "5 m", "inter": "1 m", "half": "0.5 m", "quarter": "0.25 m"}, "source": "DGT LiDAR 2025 DTM 0.5 m, smoothed sigma 0.5 m, Douglas-Peucker 8 cm", "built": "2026-09-07", "lines": 21834, "labels": 37740}
