@@ -215,7 +215,7 @@ function buildSunUI(){ const host=document.getElementById("views"); if(!host||do
 setTimeout(buildSunUI,1200);
 (function boot3d(n){ let ok=false; try{ if(map.getSource("terrain")){ setSun(sunDate||new Date()); loadTeam(); ok=true; } }catch(e){} if(!ok&&n<40) setTimeout(()=>boot3d(n+1),500); })(0);
 /* ---------- photoreal step 1: surface model terrain (DSM), LiDAR point cloud as 3D Tiles (deck.gl), ortho-coloured roofs ---------- */
-const PC_URL="https://edenangels.github.io/edenrise-3d/tileset.json"; let deckOverlay=null, pcOn=false, pcSize=2;
+const PC_URL="https://edenangels.github.io/edenrise-3d/tiles/tileset.json"; let deckOverlay=null, pcOn=false, pcSize=2;
 function pcLayer(){ return new deck.Tile3DLayer({id:"lidar",data:PC_URL,pointSize:pcSize,opacity:1,pickable:false,loadOptions:{"3d-tiles":{loadGLTF:false}},onTilesetLoad:(ts)=>{ const el=document.getElementById("pcinfo"); if(el) el.textContent=`LiDAR 2024 · ${LANG==="en"?"loaded":"carregada"}`; },_subLayerProps:{pointcloud:{pointSize:pcSize}}}); }
 function togglePC(on){ pcOn=on; if(!window.deck){ alert("deck.gl"); return; } if(!deckOverlay){ deckOverlay=new deck.MapboxOverlay({interleaved:true,layers:[]}); map.addControl(deckOverlay); } deckOverlay.setProps({layers:on?[pcLayer()]:[]}); }
 let surfaceOn=false;
