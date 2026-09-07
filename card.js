@@ -15,10 +15,11 @@
     @media(max-width:700px){ #card{left:8px;right:8px;top:auto;bottom:8px;width:auto;max-height:55vh;border-radius:12px} }`;
   document.head.appendChild(css);
   document.getElementById("cclose").onclick = ()=>{ el.hidden = true; };
-  window.showCard = function(props, latlng, layerTitle){
+  window.showCard = function(props, latlng, layerTitle, layerKey){
     const L = (typeof LANG!=="undefined" && LANG==="en");
     document.getElementById("cbadge").textContent = layerTitle || "";
     document.getElementById("cbody").innerHTML = popup(props);
+    { const ref = props.asset_id ? ("asset:"+props.asset_id) : ((layerKey||layerTitle||"item")+":"+(props.name||props.tree_name||props.key||"?")); const holder=document.createElement("div"); document.getElementById("cbody").appendChild(holder); let tries=0; const go=()=>{ if(window.edrItem) edrItem(ref, holder, {latlng}); else if(tries++<25) setTimeout(go,200); }; go(); }
     const lat = latlng ? latlng.lat.toFixed(6) : null, lon = latlng ? latlng.lng.toFixed(6) : null;
     const key = props.asset_id ? `#asset=${props.asset_id}` : (props.key ? `#work=${props.key}` : (lat ? `#at=${lat},${lon}` : ""));
     const link = `${location.origin}${location.pathname}${key}`;

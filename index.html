@@ -336,7 +336,7 @@ function buildLayer(t, title, kind, color, opt, fc){
     style:f=>({color:colOf(f.properties), weight:opt.w||2, dashArray:opt.dash||null,
       fillColor:(opt.fill&&opt.fill.startsWith("rgba"))?colOf(f.properties):(opt.fill||color),
       fillOpacity:opt.fill?parseFloat(opt.fill.match(/[\d.]+(?=\))/)?.[0] ?? .2):0}),
-    onEachFeature:(f,l)=>{ l.on("click", e=>{ if(window.showCard) showCard(f.properties, e.latlng, title_i18n(t, title)); else L.popup().setLatLng(e.latlng).setContent(popup(f.properties)).openOn(map); });
+    onEachFeature:(f,l)=>{ l.on("click", e=>{ if(window.showCard) showCard(f.properties, e.latlng, title_i18n(t, title), t); else L.popup().setLatLng(e.latlng).setContent(popup(f.properties)).openOn(map); });
       if(f.properties.name) l.bindTooltip(String(f.properties.name)); }
   });
 }
@@ -513,13 +513,14 @@ window.addEventListener("hashchange", ()=>{ openAsset(); openWork(); });
 setTimeout(()=>{ openAsset(); openWork(); }, 400);
 </script>
 <script src="modes.js?v=3017256b"></script>
-<script src="card.js?v=7f569cfc"></script>
+<script src="card.js?v=7dd316cf"></script>
 <script src="view.js?v=2b45a96b"></script>
 <script src="nav.js?v=6b356f39"></script>
 <script src="brain.js?v=0c638b2a"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@geoman-io/leaflet-geoman-free@2.17.0/dist/leaflet-geoman.css">
 <script src="https://cdn.jsdelivr.net/npm/@geoman-io/leaflet-geoman-free@2.17.0/dist/leaflet-geoman.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7.1.0/turf.min.js"></script>
-<script src="edit.js?v=3933f9fa"></script>
+<script src="media.js?v=2fd4f650"></script>
+<script src="edit.js?v=98c720d7"></script>
 </body>
 </html>
