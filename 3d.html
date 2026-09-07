@@ -55,11 +55,11 @@ a{color:var(--accent)}
 <script src="https://cdn.jsdelivr.net/npm/deck.gl@9/dist.min.js"></script>
 <script src="data.js?v=0737499e"></script>
 <script src="ops-data.js?v=2751505a"></script>
-<script src="hydro-data.js?v=8395b210"></script>
+<script src="hydro-data.js?v=91ef64a3"></script>
 <script src="trees-data.js?v=87638c70"></script>
 <script src="buildings-data.js?v=0fc788f4"></script>
 <script src="suitability-data.js?v=4e99bc9f"></script>
-<script src="registry.js?v=63024951"></script>
+<script src="registry.js?v=88225275"></script>
 <script src="defensible-data.js?v=f90a6c7b"></script>
 <script src="work-data.js?v=ad554e35"></script>
 <script>
@@ -145,8 +145,9 @@ function addLayerFor(t){
   map.on("mouseenter", t, ()=>map.getCanvas().style.cursor="pointer"); map.on("mouseleave", t, ()=>map.getCanvas().style.cursor="");
 }
 const globalOf = g => { try{ return new Function("return (typeof "+g+"!==\"undefined\")?"+g+":null")(); }catch(e){ return null; } };
-function lazyLoad(t){ const z = (typeof LAZY!=="undefined") && LAZY[t]; if(!z) return Promise.resolve(false); if(globalOf(z.g)){ Object.assign(DATA, globalOf(z.g)); return Promise.resolve(true); }
-  return new Promise((res)=>{ const s=document.createElement("script"); s.src=z.f+"?d="+new Date().toISOString().slice(0,10); s.onload=()=>{ Object.assign(DATA, globalOf(z.g)||{}); res(true); }; s.onerror=()=>res(false); document.head.appendChild(s); }); }
+const lazyInflight={};
+function lazyLoad(t){ const z = (typeof LAZY!=="undefined") && LAZY[t]; if(!z) return Promise.resolve(false); if(globalOf(z.g)){ Object.assign(DATA, globalOf(z.g)); return Promise.resolve(true); } if(lazyInflight[z.f]) return lazyInflight[z.f];
+  return lazyInflight[z.f]=new Promise((res)=>{ const s=document.createElement("script"); s.src=z.f+"?d="+(location.hostname==="localhost"?Date.now():new Date().toISOString().slice(0,10)); s.onload=()=>{ Object.assign(DATA, globalOf(z.g)||{}); res(true); }; s.onerror=()=>res(false); document.head.appendChild(s); }); }
 let layersAdded = false;
 map.on("style.load", ()=>{            // fires once the style is parsed — does not wait on slow remote sources
   if(layersAdded) return; layersAdded = true;

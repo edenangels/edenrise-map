@@ -74,7 +74,7 @@ body.field .lyr{padding:9px 6px;font-size:14px} body.field .tg{transform:scale(1
 <script src="suitability-data.js?v=4e99bc9f"></script>
 <script src="work-data.js?v=ad554e35"></script>
 <script src="defensible-data.js?v=f90a6c7b"></script>
-<script src="registry.js?v=63024951"></script>
+<script src="registry.js?v=88225275"></script>
 <script>
 const FIELD_EN = {asset_id:"Asset ID",status:"Status",category:"Category",system:"System",year:"Year",
  alternative:"Alternative",cadastral_article:"Cadastral article",areas_doc_m2:"Areas (docs) m²",
@@ -220,13 +220,13 @@ function buildLayer(t, title, kind, color, opt, fc){
       if(f.properties.name) l.bindTooltip(String(f.properties.name)); }
   });
 }
-function loadScript(src){ return new Promise((res,rej)=>{ const sc=document.createElement("script"); sc.src=src; sc.onload=res; sc.onerror=rej; document.head.appendChild(sc); }); }
+function loadScript(src){ return new Promise((res,rej)=>{ const sc=document.createElement("script"); sc.src=src+(src.includes("?")?"&":"?")+"d="+(location.hostname==="localhost"?Date.now():new Date().toISOString().slice(0,10)); sc.onload=res; sc.onerror=rej; document.head.appendChild(sc); }); }
 for(const [gname, gOn, layers] of GROUPS){
   for(const [t, title, kind, color, opt] of layers){
     const fc = DATA[t];
     if(!fc && LAZY[t]){                       // heavy layer: placeholder group, data loads on first toggle
       const group = L.layerGroup(); const o = layerObjs[t] = {lyr:group, on:false, lazy:LAZY[t], loaded:false, t, title, kind, color, opt};
-      group.on("add", async ()=>{ if(o.loaded) return; o.loaded = true; const lz=o.lazy; if(window.showLoading) showLoading(lz.msg?(LANG==="en"?lz.msg[0]:lz.msg[1]):(LANG==="en"?"Loading…":"A carregar…")); if(typeof window[lz.g]==="undefined"&&!globalThis[lz.g]){ try{ await loadScript(lz.f); }catch(e){} } const src=(typeof window[lz.g]!=="undefined")?window[lz.g]:(function(){ try{ return eval(lz.g); }catch(e){ return {}; } })(); Object.assign(DATA, src||{}); if(window.showLoading) showLoading(null);
+      group.on("add", async ()=>{ if(o.loaded) return; o.loaded = true; const lz=o.lazy; if(window.showLoading) showLoading(lz.msg?(LANG==="en"?lz.msg[0]:lz.msg[1]):(LANG==="en"?"Loading…":"A carregar…")); const have=(function(){ try{ return typeof eval(lz.g)!=="undefined"; }catch(e){ return false; } })(); if(!have){ try{ window.__lazyLoads=window.__lazyLoads||{}; if(!window.__lazyLoads[lz.f]) window.__lazyLoads[lz.f]=loadScript(lz.f); await window.__lazyLoads[lz.f]; }catch(e){} } const src=(typeof window[lz.g]!=="undefined")?window[lz.g]:(function(){ try{ return eval(lz.g); }catch(e){ return {}; } })(); Object.assign(DATA, src||{}); if(window.showLoading) showLoading(null);
         o.geo = buildLayer(t, title, kind, color, opt, DATA[t]); group.addLayer(o.geo); });
       continue;
     }
