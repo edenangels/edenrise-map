@@ -108,7 +108,7 @@ render();
 fetch("https://api.ipma.pt/open-data/forecast/meteorology/rcm/rcm-d0.json").then(r=>r.json()).then(d=>{rcm=d.local&&d.local["0211"]?d.local["0211"].data.rcm:null;render();}).catch(()=>{});
 fetch("https://api.open-meteo.com/v1/forecast?latitude=37.512&longitude=-8.645&current=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m,relative_humidity_2m&timezone=Europe%2FLisbon").then(r=>r.json()).then(w=>{const c=w.current; const dirs=LANG==="en"?["N","NE","E","SE","S","SW","W","NW"]:["N","NE","E","SE","S","SO","O","NO"]; wind={spd:c.wind_speed_10m,gust:c.wind_gusts_10m,rh:c.relative_humidity_2m,temp:c.temperature_2m,card:dirs[Math.round(c.wind_direction_10m/45)%8]}; render();}).catch(()=>{});
 </script>
-<script src="nav.js?v=6b356f39"></script>
+<script src="nav.js?v=926f28a6"></script>
 <script>
 (function(){ const EN=(typeof LANG!=="undefined"&&LANG==="en"); const API="https://edenrise-brain.edenrise.workers.dev";
  document.getElementById("h_upd").textContent=EN?"Map edits & updates":"Edições e atualizações do mapa"; document.getElementById("editlink").textContent=EN?"Open edit mode →":"Abrir modo edição →";

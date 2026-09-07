@@ -42,4 +42,4 @@ const rows=[]; const lay=L.geoJSON({type:"FeatureCollection",features:strips},{s
   document.getElementById("ft").textContent=`${EN?"Generated":"Gerado"} ${new Date().toLocaleString(EN?"en-GB":"pt-PT")} · ${EN?"deadline":"prazo"} ${deadline} · edenangels.github.io/edenrise-map/compliance.html`;
   document.getElementById("csv").onclick=()=>{ const h=["key","name","kind","area_m2","last_clearing","by","records","state"]; const csv=[h.join(",")].concat(rows.map(r=>[r.key,`"${(r.name||"").replace(/"/g,'""')}"`,r.kind,r.area,r.last,`"${(r.by||"").replace(/"/g,'""')}"`,r.n,r.state].join(","))).join("\n"); const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"})); a.download=`faixas-combustivel-${yr}.csv`; a.click(); };
 })();
-</script><script src="nav.js?v=6b356f39"></script></body></html>
+</script><script src="nav.js?v=926f28a6"></script></body></html>
