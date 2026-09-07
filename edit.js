@@ -123,7 +123,7 @@ function render(f){ const p=f.properties, g=f.geometry; let l;
 let lastFeats=[];
 async function loadFeatures(){ try{ const d=await fetch(API+"/features").then(r=>r.json()); drawn.clearLayers(); lastFeats=d.features||[]; lastFeats.forEach(f=>{ try{ render(f); }catch(e){ console.error("render",f.properties&&f.properties.id,e); } }); try{ applyOverrides(lastFeats); }catch(e){ console.error("overrides",e); } try{ renderTeamCat(); }catch(e){ console.error("teamcat",e); } }catch(e){ console.error("loadFeatures",e); } }
 window.renderFeatures=loadFeatures;
-function coreRef(t,f){ const p=f.properties||{}; return p.asset_id ? ("asset:"+p.asset_id) : `${t}:${p.name||p.tree_name||p.key||"?"}`; }
+function coreRef(t,f){ const p=f.properties||{}; return p.asset_id ? ("asset:"+p.asset_id) : `${t}:${p.key||p.name||p.tree_name||"?"}`; }
 function applyOverrides(feats){ for(const l of Object.values(dim)){ try{ l.setStyle&&l.setStyle(l.__orig); l.setOpacity&&l.setOpacity(1); }catch(e){} } for(const k in dim) delete dim[k];
   const refs=new Map(feats.filter(f=>f.properties.ref_id&&f.properties.status!=="rejeitado").map(f=>[f.properties.ref_id,f.properties.op]));
   if(!refs.size||typeof layerObjs==="undefined") return;

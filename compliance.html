@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="pt"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>EdenRise — Faixas de gestão de combustível</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="ui.css?v=16286725"><script src="ops-data.js?v=2751505a"></script>
+<style>
+body{background:var(--night);color:var(--linen);font:13px/1.45 var(--ui);margin:0} .pg{max-width:1100px;margin:0 auto;padding:22px 18px 60px}
+h1{font:600 26px var(--display);margin:8px 0 2px;letter-spacing:-.01em} .eyebrow{font:600 10.5px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)} .sub{color:var(--linen-2);max-width:760px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0} .k{background:var(--bark);border:1px solid var(--line);border-radius:12px;padding:12px 14px} .k .v{font:600 26px var(--display)} .k .l{font:600 10px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+#cmap{display:block;width:100%;min-width:100%;box-sizing:border-box;height:360px;border-radius:12px;border:1px solid var(--line);margin:10px 0 16px}
+table{width:100%;border-collapse:collapse;font-size:12.5px} th{font:600 10px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 8px;border-bottom:1px solid var(--line-2)} td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top} tr:hover td{background:var(--night-2)}
+.st{display:inline-block;padding:2px 8px;border-radius:999px;font:600 10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--bark)} .ok{background:var(--oak)} .no{background:var(--ember);color:#fff} .pv{background:var(--straw)}
+.th{display:inline-block;width:44px;height:33px;border-radius:4px;object-fit:cover;margin-right:3px;border:1px solid var(--line-2)} a{color:var(--straw)}
+.btn{display:inline-block;padding:9px 14px;border-radius:999px;border:1px solid var(--line-2);background:var(--night-2);color:var(--linen);font:700 12px var(--ui);cursor:pointer;text-decoration:none;margin-right:6px}
+@media print{ body{background:#fff;color:#111} .nav,.btn{display:none} .k,.st{border:1px solid #999;color:#111} #cmap{height:300px} .pg{padding:0} }
+</style></head><body>
+<div class="pg">
+<div class="eyebrow">EdenRise · DL 82/2021 · Despacho 3440/2026 · prazo anual 31 de maio</div>
+<h1 id="h1">Faixas de gestão de combustível — prova de limpeza</h1>
+<div class="sub" id="sub">50 m à volta de edifícios, 10 m ao longo de vias. Cada faixa mostra a última limpeza registada (data, quem, fotos antes/depois). Registe limpezas no mapa: toque na faixa → Registar limpeza.</div>
+<div style="margin:12px 0"><a class="btn" href="index.html">← Mapa</a><button class="btn" onclick="window.print()">🖨 Imprimir / PDF</button><button class="btn" id="csv">⤓ CSV</button></div>
+<div class="kpis" id="kpis"></div>
+<div id="cmap"></div>
+<table><thead><tr><th>#</th><th>Faixa</th><th>Tipo</th><th>Área</th><th>Última limpeza</th><th>Por</th><th>Fotos</th><th>Estado</th></tr></thead><tbody id="tb"></tbody></table>
+<div class="eyebrow" style="margin-top:18px" id="ft"></div>
+</div>
+<script>
+const API="https://edenrise-brain.edenrise.workers.dev"; const EN=(localStorage.getItem("edr_lang")||"pt")==="en";
+if(EN){ document.getElementById("h1").textContent="Fuel-management strips — clearing proof"; document.getElementById("sub").textContent="50 m around buildings, 10 m along roads. Each strip shows its last recorded clearing (date, who, before/after photos). Record clearings on the map: tap a strip → Register clearing."; }
+const strips=(OPSDATA.fire_fuel_strips||{features:[]}).features; const yr=new Date().getFullYear(); const deadline=`${yr}-05-31`;
+const map=L.map("cmap",{zoomControl:false}); L.tileLayer("ortho2025/{z}/{x}/{y}.jpg",{minZoom:12,maxNativeZoom:20,maxZoom:21}).addTo(map); L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19}).addTo(map).bringToBack();
+const rows=[]; const lay=L.geoJSON({type:"FeatureCollection",features:strips},{style:{color:"#ff5722",weight:1.5,fillOpacity:.15}}).addTo(map); const fit=()=>{ map.invalidateSize(); if(map.getSize().x>0){ map.fitBounds(lay.getBounds().pad(.05)); return true; } return false; }; (function tryFit(n){ if(!fit()&&n<40) setTimeout(()=>tryFit(n+1),250); })(0); window.addEventListener("load",()=>setTimeout(fit,50)); window.addEventListener("resize",fit);
+(async()=>{ const tb=document.getElementById("tb"); let i=0, ok=0, pend=0, no=0;
+  for(const f of strips){ const p=f.properties; const ref=`fire_fuel_strips:${p.key}`; let it={notes:[],media:[]}; try{ it=await fetch(API+"/item/"+encodeURIComponent(ref)).then(r=>r.json()); }catch(e){}
+    const limp=(it.notes||[]).filter(n=>n.kind==="limpeza"); const last=limp[0]; const lastDate=last?String(last.at).slice(0,10):null; const yearOk=lastDate&&lastDate>=`${yr}-01-01`; const state=yearOk?"ok":(lastDate?"pv":"no"); if(state==="ok") ok++; else if(state==="pv") pend++; else no++;
+    const photos=(it.media||[]).filter(m=>m.kind==="foto").slice(0,4);
+    rows.push({key:p.key,name:p.source_name,kind:p.kind,area:p.area_m2,last:lastDate||"",by:last?last.by:"",n:limp.length,state});
+    const tr=document.createElement("tr"); tr.innerHTML=`<td>${++i}</td><td><b>${p.key}</b><br><small>${p.source_name||""}</small></td><td>${p.kind==="edificio_50m"?"edifício 50 m":"via 10 m"}</td><td>${(p.area_m2||0).toLocaleString("pt-PT")} m²</td><td>${lastDate?`${lastDate}${last.text?`<br><small>${last.text.replace(/</g,"&lt;").slice(0,80)}</small>`:""}`:"—"}</td><td>${last?last.by:"—"}</td><td>${photos.map(m=>`<a href="${API}/media/${m.id}" target="_blank"><img class="th" src="${API}/media/${m.id}" alt=""></a>`).join("")||"—"}</td><td><span class="st ${state}">${state==="ok"?(EN?"cleared "+yr:"limpa "+yr):state==="pv"?(EN?"previous year":"ano anterior"):(EN?"no record":"sem registo")}</span></td>`;
+    tr.onclick=()=>{ map.fitBounds(L.geoJSON(f).getBounds().pad(.5)); }; tb.appendChild(tr);
+    lay.eachLayer(l=>{ if(l.feature===f) l.setStyle({color:state==="ok"?"#7f9a6a":state==="pv"?"#c9a227":"#e07b39",fillColor:state==="ok"?"#7f9a6a":state==="pv"?"#c9a227":"#e07b39"}); l.bindTooltip(`${p.key} · ${p.source_name||""}`); });
+  }
+  const k=(v,l)=>`<div class="k"><div class="v">${v}</div><div class="l">${l}</div></div>`; document.getElementById("kpis").innerHTML=k(strips.length,EN?"strips":"faixas")+k(ok,EN?"cleared this year":"limpas este ano")+k(pend,EN?"only previous years":"só anos anteriores")+k(no,EN?"no record":"sem registo");
+  document.getElementById("ft").textContent=`${EN?"Generated":"Gerado"} ${new Date().toLocaleString(EN?"en-GB":"pt-PT")} · ${EN?"deadline":"prazo"} ${deadline} · edenangels.github.io/edenrise-map/compliance.html`;
+  document.getElementById("csv").onclick=()=>{ const h=["key","name","kind","area_m2","last_clearing","by","records","state"]; const csv=[h.join(",")].concat(rows.map(r=>[r.key,`"${(r.name||"").replace(/"/g,'""')}"`,r.kind,r.area,r.last,`"${(r.by||"").replace(/"/g,'""')}"`,r.n,r.state].join(","))).join("\n"); const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"})); a.download=`faixas-combustivel-${yr}.csv`; a.click(); };
+})();
+</script><script src="nav.js?v=6b356f39"></script></body></html>
