@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="pt"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>EdenRise — Ficha</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<link rel="stylesheet" href="ui.css?v=16286725">
+<style>
+body{background:#fff;color:#1c1813;font:13px/1.45 "Archivo","Helvetica Neue",Arial,sans-serif;margin:0} .pg{max-width:820px;margin:0 auto;padding:18mm 14mm}
+h1{font:600 26px "Bricolage Grotesque","Archivo",sans-serif;margin:0 0 2px;letter-spacing:-.01em} .eyebrow{font:600 10.5px "IBM Plex Mono",monospace;letter-spacing:.14em;text-transform:uppercase;color:#7a6f60}
+.hd{display:grid;grid-template-columns:1fr 110px;gap:16px;align-items:start;border-bottom:2px solid #1c1813;padding-bottom:12px;margin-bottom:14px}
+#map{height:320px;border:1px solid #ccc;border-radius:6px;margin:12px 0} .grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px} .grid div{display:flex;justify-content:space-between;border-bottom:1px solid #e6e1d8;padding:4px 0} .grid span{color:#7a6f60} .grid b{font-family:"IBM Plex Mono",monospace;font-weight:600}
+h2{font:600 11px "IBM Plex Mono",monospace;letter-spacing:.14em;text-transform:uppercase;color:#7a6f60;margin:16px 0 6px;border-bottom:1px solid #e6e1d8;padding-bottom:4px}
+.gal{display:grid;grid-template-columns:repeat(4,1fr);gap:6px} .gal img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:4px;border:1px solid #ddd} .tl div{padding:5px 0;border-bottom:1px solid #eee} .tl i{font-style:normal;color:#7a6f60;font-family:"IBM Plex Mono",monospace;font-size:11px}
+.st{display:inline-block;padding:2px 8px;border-radius:999px;font:600 10px "IBM Plex Mono",monospace;letter-spacing:.08em;text-transform:uppercase;background:#c9a227;color:#1c1813}
+.ft{margin-top:18px;font-size:10.5px;color:#7a6f60;display:flex;justify-content:space-between} .btn{position:fixed;right:14px;top:14px;padding:9px 14px;border-radius:999px;border:0;background:#1c1813;color:#f1e9d8;font:700 12px "Archivo",sans-serif;cursor:pointer}
+@media print{ .btn{display:none} body{margin:0} .pg{padding:0} }
+</style></head><body>
+<button class="btn" onclick="window.print()">🖨 Imprimir / PDF</button>
+<div class="pg" id="pg">A carregar…</div>
+<script>
+const API="https://edenrise-brain.edenrise.workers.dev"; const id=new URLSearchParams(location.search).get("id"); const EN=(new URLSearchParams(location.search).get("lang")||localStorage.getItem("edr_lang")||"pt")==="en";
+(async()=>{ const d=await fetch(API+"/features").then(r=>r.json()); const f=(d.features||[]).find(x=>x.properties.id===id); const it=await fetch(API+"/item/"+encodeURIComponent(id)).then(r=>r.json()).catch(()=>({media:[],notes:[],history:[],events:[]}));
+  const pg=document.getElementById("pg"); if(!f){ pg.textContent=EN?"Item not found":"Item não encontrado"; return; } const p=f.properties, m=p.measures||{}; const link=`https://edenangels.github.io/edenrise-map/index.html#v=${(p.lat||m.cota_m?m.centre?.lat:null)||""}`;
+  const c=f.geometry.type==="Point"?[f.geometry.coordinates[1],f.geometry.coordinates[0]]:L.geoJSON(f).getBounds().getCenter(); const url=`https://edenangels.github.io/edenrise-map/index.html#v=${(+c.lat||c[0]).toFixed(6)},${(+c.lng||c[1]).toFixed(6)},19`;
+  const row=(k,v,u="")=>v==null||v===""?"":`<div><span>${k}</span><b>${typeof v==="number"?v.toLocaleString(EN?"en-GB":"pt-PT",{maximumFractionDigits:2}):v}${u}</b></div>`;
+  pg.innerHTML=`<div class="hd"><div><div class="eyebrow">EdenRise · ${EN?"item sheet":"ficha de item"} · ${p.id}</div><h1>${p.name||p.kind||p.id}</h1><div>${p.category?`📁 ${p.category.replace(/^\\d+ · /,"")}${p.layer_title?" › "+p.layer_title:""} · `:""}<span class="st">${p.status}</span> · v${p.version} · ${EN?"by":"por"} ${p.created_by||"—"} · ${String(p.updated_at||p.created_at).slice(0,10)}</div></div><div id="qr"></div></div>
+  <div id="map"></div>
+  <div class="grid">${row(EN?"Type":"Tipo",p.preset)}${row(EN?"Length":"Comprimento",m.comprimento_m," m")}${row(EN?"Width":"Largura",m.largura_m," m")}${row(EN?"Area":"Área",m.area_m2," m²")}${row(EN?"Perimeter":"Perímetro",m.perimetro_m," m")}${row(EN?"Radius":"Raio",m.raio_m," m")}${row(EN?"Orientation":"Orientação",m.orientacao_deg,"°")}${row(EN?"Elevation":"Cota",m.cota_m??m.cota_inicio_m," m")}${row(EN?"Slope":"Declive",m.declive_pct??m.declive_medio_pct," %")}${row(EN?"Aspect":"Exposição",m.exposicao)}${row("Centro",`${(+c.lat||c[0]).toFixed(6)}, ${(+c.lng||c[1]).toFixed(6)}`)}${Object.entries(p).filter(([k,v])=>/_m$|_m3$|_mm$|_cm$|^uso$|^piso$|^tipo$|^material$|^estado$|^urgencia$|^especie$|^pisos$|^enterrada$/.test(k)&&v!=null&&v!=="").map(([k,v])=>row(k.replace(/_/g," "),v)).join("")}</div>
+  ${p.note?`<h2>${EN?"Note":"Nota"}</h2><div>${p.note.replace(/</g,"&lt;")}</div>`:""}
+  ${(it.media||[]).filter(x=>x.kind==="foto").length?`<h2>${EN?"Photos":"Fotos"}</h2><div class="gal">${(it.media||[]).filter(x=>x.kind==="foto").slice(0,8).map(x=>`<img src="${API}/media/${x.id}" alt="">`).join("")}</div>`:""}
+  ${(it.notes||[]).length?`<h2>${EN?"Notes & updates":"Notas e atualizações"}</h2><div class="tl">${(it.notes||[]).slice(0,12).map(n=>`<div><i>${String(n.at).slice(0,16).replace("T"," ")} · ${n.by||"—"} · ${n.kind||""}</i><br>${(n.text||"").replace(/</g,"&lt;")}</div>`).join("")}</div>`:""}
+  ${(it.history||[]).length?`<h2>${EN?"History":"Histórico"}</h2><div class="tl">${(it.history||[]).slice(0,8).map(h=>`<div><i>v${h.version} · ${h.action} · ${h.actor||"—"} · ${String(h.at).slice(0,16).replace("T"," ")}${h.status?" · "+h.status:""}</i></div>`).join("")}</div>`:""}
+  <div class="ft"><span>${url}</span><span>${new Date().toLocaleString(EN?"en-GB":"pt-PT")}</span></div>`;
+  new QRCode(document.getElementById("qr"),{text:url,width:104,height:104,colorDark:"#1c1813",colorLight:"#ffffff"});
+  const map=L.map("map",{zoomControl:false,attributionControl:false}); L.tileLayer("ortho2025/{z}/{x}/{y}.jpg",{minZoom:12,maxNativeZoom:20,maxZoom:21}).addTo(map); L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,opacity:.6}).addTo(map).bringToBack();
+  const gl=L.geoJSON(f,{style:{color:"#c9a227",weight:3,fillOpacity:.2},pointToLayer:(ft,ll)=>L.circleMarker(ll,{radius:8,color:"#c9a227",fillColor:"#c9a227",fillOpacity:.6})}).addTo(map); window.imap=map; const fit=()=>{ map.invalidateSize(); const b=gl.getBounds(); if(b.isValid()){ if(map.distance(b.getSouthWest(),b.getNorthEast())<40) map.setView(b.getCenter(),19); else map.fitBounds(b.pad(.6),{maxZoom:19}); } }; fit(); setTimeout(fit,300); L.control.scale({imperial:false}).addTo(map);
+})();
+</script></body></html>
