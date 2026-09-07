@@ -37,6 +37,7 @@ a{color:var(--accent)}
   <div class="hint" id="hint"></div>
 </div>
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
 <script src="data.js?v=0737499e"></script>
 <script src="ops-data.js?v=2751505a"></script>
 <script src="hydro-data.js?v=8395b210"></script>
@@ -99,7 +100,7 @@ const map = new maplibregl.Map({container:"map", zoom:14.3, center:[-8.645,37.51
   }, layers:[
     {id:"fallback", type:"raster", source:"fallback", paint:{"raster-saturation":.12,"raster-contrast":.08,"raster-brightness-min":.02}},
     {id:"base", type:"raster", source:"base", paint:{"raster-saturation":.18,"raster-contrast":.12,"raster-resampling":"linear","raster-fade-duration":200}},
-    {id:"hill", type:"hillshade", source:"terrain", paint:{"hillshade-exaggeration":.12,"hillshade-shadow-color":"#2a2117","hillshade-highlight-color":"#fff6e0","hillshade-accent-color":"#3b3126"}},
+    {id:"hill", type:"hillshade", source:"terrain", paint:{"hillshade-exaggeration":.22,"hillshade-shadow-color":"#2a2117","hillshade-highlight-color":"#fff6e0","hillshade-accent-color":"#3b3126"}},
     {id:"fwi", type:"raster", source:"fwi", paint:{"raster-opacity":.45}, layout:{visibility:"none"}},
   ]}});   // terrain is enabled after style.load — declaring it in the initial style blocks the first render
 window.__errs = []; map.on("error", e => window.__errs.push(String(e && e.error && e.error.message || e)));
@@ -156,7 +157,7 @@ map.on("style.load", ()=>{            // fires once the style is parsed — does
   buildPanel(); buildViews();
   setTimeout(()=>{ map.setTerrain({source:"terrain", exaggeration:1.25});
     try{ map.setSky({"sky-color":"#8fb3d9","horizon-color":"#e9dcc4","fog-color":"#d9ccb3","sky-horizon-blend":.6,"horizon-fog-blend":.55,"fog-ground-blend":.72,"atmosphere-blend":["interpolate",["linear"],["zoom"],0,1,12,.55,16,.15]}); }catch(e){}
-    try{ map.setLight({anchor:"map", position:[1.4,105,42], color:"#fff4e2", intensity:.42}); }catch(e){}
+    try{ map.setLight({anchor:"map", position:[1.4,105,42], color:"#fff4e2", intensity:.42}); }catch(e){} setSun(new Date()); loadTeam();
   }, 300);
 });
 function setVis(t, on){ state[t]=on; const v = on?"visible":"none"; if(map.getLayer(t)) map.setLayoutProperty(t,"visibility",v); if(map.getLayer(t+"_o")) map.setLayoutProperty(t+"_o","visibility",v); }
@@ -187,6 +188,32 @@ function buildPanel(){
   const sw=document.createElement("span"); sw.className="sw"; sw.style.background="#ff7043";
   row.appendChild(c); row.appendChild(sw); row.appendChild(document.createTextNode(LANG==="en"?"Fire danger today (EFFIS)":"Perigo de incêndio hoje (EFFIS)")); tree.appendChild(row);
 }
+/* ---------- 3D upgrades: sun by date/time, exaggeration, team proposals in 3D, placing proposals from the twin ---------- */
+const API="https://edenrise-brain.edenrise.workers.dev"; const CENTRE=[37.5125,-8.6445]; let sunDate=new Date();
+function setSun(d){ sunDate=d; try{ const p=SunCalc.getPosition(d,CENTRE[0],CENTRE[1]); const alt=p.altitude*180/Math.PI, az=(p.azimuth*180/Math.PI+180)%360; const up=alt>0; const polar=Math.max(5,Math.min(88,90-alt)); map.setLight({anchor:"map",position:[1.5,az,polar],color:up?(alt<12?"#ffd0a0":"#fff4e2"):"#6a7a95",intensity:up?Math.min(.75,.25+alt/90):.12}); const el=document.getElementById("sunlbl"); if(el) el.textContent=`${d.toLocaleDateString(LANG==="en"?"en-GB":"pt-PT",{day:"2-digit",month:"short"})} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")} · ${up?`☀ ${Math.round(alt)}°`:"🌙"}`; }catch(e){} }
+let teamData={type:"FeatureCollection",features:[]};
+async function loadTeam(){ try{ const d=await fetch(API+"/features").then(r=>r.json()); teamData={type:"FeatureCollection",features:(d.features||[]).map(f=>{ const p=f.properties; p.h=+p.altura_m||(p.preset==="edificio"?3.2:p.preset==="tanque"?2.5:p.preset==="ponte"?1.2:0.6); p.col=p.status==="aprovado"?"#7f9a6a":p.status==="reportado"?"#e07b39":"#c9a227"; return f; })}; }catch(e){}
+  if(map.getSource("team")) map.getSource("team").setData(teamData); else { map.addSource("team",{type:"geojson",data:teamData});
+    map.addLayer({id:"team_pg",type:"fill-extrusion",source:"team",filter:["==",["geometry-type"],"Polygon"],paint:{"fill-extrusion-color":["get","col"],"fill-extrusion-height":["get","h"],"fill-extrusion-opacity":.82}});
+    map.addLayer({id:"team_ln",type:"line",source:"team",filter:["==",["geometry-type"],"LineString"],paint:{"line-color":["get","col"],"line-width":3.5,"line-dasharray":[2,1.2]},layout:{"line-cap":"round","line-join":"round"}});
+    map.addLayer({id:"team_pt",type:"circle",source:"team",filter:["==",["geometry-type"],"Point"],paint:{"circle-radius":7,"circle-color":["get","col"],"circle-stroke-color":"#fff","circle-stroke-width":1.5}});
+    for(const id of ["team_pg","team_ln","team_pt"]){ map.on("click",id,e=>{ const p=e.features[0].properties; new maplibregl.Popup({closeButton:true,maxWidth:"300px"}).setLngLat(e.lngLat).setHTML(`<div style="font:13px Archivo,sans-serif;color:#1c1813"><b style="font:600 15px 'Bricolage Grotesque',sans-serif">${p.name||p.kind||p.id}</b><br><span style="color:#7a6f60">${p.status} · ${p.preset||""} · ${p.created_by||""}</span>${p.h?`<br>${LANG==="en"?"height":"altura"} ${p.h} m`:""}<br><a href="index.html#v=${e.lngLat.lat.toFixed(6)},${e.lngLat.lng.toFixed(6)},19" style="color:#3e7ea3">${LANG==="en"?"open in 2D · edit":"abrir em 2D · editar"}</a></div>`).addTo(map); }); map.on("mouseenter",id,()=>map.getCanvas().style.cursor="pointer"); map.on("mouseleave",id,()=>map.getCanvas().style.cursor=""); } } }
+let placing=null;
+function placeMode(kind){ placing=kind; map.getCanvas().style.cursor="crosshair"; const el=document.getElementById("placehint"); if(el){ el.hidden=false; el.textContent=LANG==="en"?`Tap the ground where the ${kind} goes · Esc cancels`:`Toque no terreno onde fica ${kind} · Esc cancela`; } }
+map.on("click",async e=>{ if(!placing) return; const kind=placing; placing=null; map.getCanvas().style.cursor=""; const el=document.getElementById("placehint"); if(el) el.hidden=true; const key=localStorage.getItem("edr_role_key")||""; if(!key){ alert(LANG==="en"?"Sign in on the 2D map first (EDIT → team key).":"Entre primeiro no mapa 2D (EDITAR → chave da equipa)."); return; }
+  const name=prompt(LANG==="en"?"Name:":"Nome:",kind); if(name===null) return; const h=+(prompt(LANG==="en"?"Height (m):":"Altura (m):",kind==="edificio"?"3.2":"2.5")||0); const size=+(prompt(LANG==="en"?"Footprint side (m):":"Lado da implantação (m):","8")||8);
+  const kx=111320*Math.cos(e.lngLat.lat*Math.PI/180), ky=110540, d=size/2; const ring=[[-d,-d],[d,-d],[d,d],[-d,d],[-d,-d]].map(([x,y])=>[e.lngLat.lng+x/kx,e.lngLat.lat+y/ky]);
+  const r=await fetch(API+"/features",{method:"POST",headers:{"Content-Type":"application/json","X-Role-Key":key},body:JSON.stringify({layer:"propostas",name,kind,geometry:{type:"Polygon",coordinates:[ring]},props:{preset:kind,altura_m:h},note:LANG==="en"?"placed from the 3D twin":"colocado a partir do 3D",actor:localStorage.getItem("edr_actor")||"",measures:{kind:"polygon",area_m2:size*size,comprimento_m:size,largura_m:size}})}).then(r=>r.json()).catch(()=>({}));
+  if(r.ok){ loadTeam(); } else alert(r.need||r.error||"—"); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&placing){ placing=null; map.getCanvas().style.cursor=""; const el=document.getElementById("placehint"); if(el) el.hidden=true; } });
+function buildSunUI(){ const host=document.getElementById("views"); if(!host||document.getElementById("sunbar")) return; const bar=document.createElement("div"); bar.id="sunbar"; bar.style.cssText="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px;font:12px Archivo,sans-serif";
+  bar.innerHTML=`<span id="sunlbl" style="font:600 11px 'IBM Plex Mono',monospace;color:var(--straw,#c9a227)"></span><input type="range" id="sunh" min="0" max="1439" step="10" style="flex:1;min-width:120px" aria-label="hour"><input type="date" id="sund" style="background:#2a241d;color:#f1e9d8;border:1px solid #4a4033;border-radius:6px;padding:4px 6px;font:12px Archivo,sans-serif" aria-label="date"><span style="color:#9a8f80">·</span><label style="display:flex;gap:6px;align-items:center;color:#9a8f80">${LANG==="en"?"relief":"relevo"} <input type="range" id="exag" min="1" max="2.5" step=".05" value="1.25" style="width:80px" aria-label="exaggeration"></label><button id="pl-edificio" style="padding:6px 10px;border-radius:999px;border:1px solid #4a4033;background:#2a241d;color:#f1e9d8;font:700 11px Archivo,sans-serif;cursor:pointer">＋ ${LANG==="en"?"building":"edifício"}</button><button id="pl-tanque" style="padding:6px 10px;border-radius:999px;border:1px solid #4a4033;background:#2a241d;color:#f1e9d8;font:700 11px Archivo,sans-serif;cursor:pointer">＋ ${LANG==="en"?"tank":"tanque"}</button><div id="placehint" hidden style="width:100%;color:#c9a227;font:600 12px Archivo,sans-serif"></div>`;
+  host.parentNode.insertBefore(bar,host.nextSibling); const now=new Date(); bar.querySelector("#sunh").value=now.getHours()*60+now.getMinutes(); bar.querySelector("#sund").value=now.toISOString().slice(0,10);
+  const upd=()=>{ const d=new Date(bar.querySelector("#sund").value+"T00:00:00"); const m=+bar.querySelector("#sunh").value; d.setHours(Math.floor(m/60),m%60); setSun(d); }; bar.querySelector("#sunh").oninput=upd; bar.querySelector("#sund").onchange=upd;
+  bar.querySelector("#exag").oninput=e=>{ try{ map.setTerrain({source:"terrain",exaggeration:+e.target.value}); }catch(err){} }; bar.querySelector("#pl-edificio").onclick=()=>placeMode("edificio"); bar.querySelector("#pl-tanque").onclick=()=>placeMode("tanque"); }
+setTimeout(buildSunUI,1200);
+(function boot3d(n){ let ok=false; try{ if(map.getSource("terrain")){ setSun(sunDate||new Date()); loadTeam(); ok=true; } }catch(e){} if(!ok&&n<40) setTimeout(()=>boot3d(n+1),500); })(0);
+/* views */
 const VIEWS = [["Casa","Main house",[-8.6412,37.5148],17.2,64,-30],["Moinhos","Mills",[-8.6455,37.5165],17,60,25],["Norte","North",[-8.6485,37.5205],16,58,-10],["Sul","South",[-8.6440,37.5040],16,58,160],["Vale","Valley",[-8.6395,37.5100],16.4,66,-70]];
 function buildViews(){ const v=document.getElementById("views"); v.innerHTML=""; VIEWS.forEach(([pt,en,c,z,p,b])=>{ const bt=document.createElement("button"); bt.textContent=LANG==="en"?en:pt; bt.onclick=()=>map.flyTo({center:c,zoom:z,pitch:p,bearing:b,duration:2200,essential:true}); v.appendChild(bt); }); }
 buildViews();
@@ -196,6 +223,6 @@ document.getElementById("fly").onclick = ()=> {
   setTimeout(()=>map.easeTo({center:[-8.641,37.516], zoom:15.4, pitch:62, bearing:40, duration:5000}), 2600);
 };
 </script>
-<script src="nav.js?v=6b356f39"></script>
+<script src="nav.js?v=926f28a6"></script>
 </body>
 </html>

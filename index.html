@@ -51,7 +51,7 @@ body.field .lyr{padding:9px 6px;font-size:14px} body.field .tg{transform:scale(1
 .spark{margin-top:8px;border-top:1px solid var(--line);padding-top:6px} .spark .lbl{font-size:11px;color:var(--muted)} .spark svg{display:block;width:100%;height:46px;margin-top:2px}
 </style>
 </head>
-<body>
+<body><a class="skip" href="#map" style="position:absolute;left:-9999px;top:8px;z-index:9999" onfocus="this.style.left='8px'" onblur="this.style.left='-9999px'">Saltar para o mapa / Skip to map</a>
 <button id="burger" aria-label="Camadas">☰</button>
 <div id="app">
   <nav id="side">
@@ -513,8 +513,8 @@ setTimeout(()=>{ openAsset(); openWork(); }, 400);
 <script src="modes.js?v=2ba29989"></script>
 <script src="card.js?v=c8deb725"></script>
 <script src="view.js?v=2b45a96b"></script>
-<script src="nav.js?v=6b356f39"></script>
-<script src="brain.js?v=0c638b2a"></script>
+<script src="nav.js?v=926f28a6"></script>
+<script src="brain.js?v=b1db1e89"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@geoman-io/leaflet-geoman-free@2.17.0/dist/leaflet-geoman.css">
 <script src="https://cdn.jsdelivr.net/npm/@geoman-io/leaflet-geoman-free@2.17.0/dist/leaflet-geoman.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7.1.0/turf.min.js"></script>
@@ -522,9 +522,11 @@ setTimeout(()=>{ openAsset(); openWork(); }, 400);
 <script src="tasks.js?v=2b0e85ab"></script>
 <script src="presence.js?v=5d25105d"></script>
 <script src="sensors.js?v=20758379"></script>
+<script src="live.js?v=6950d6bf"></script>
+<script src="tour.js?v=2c665f07"></script>
 <script src="media.js?v=5903c275"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.11.0/proj4.js"></script>
 <script>if(window.proj4) proj4.defs("EPSG:3763","+proj=tmerc +lat_0=39.66825833333333 +lon_0=-8.133108333333334 +k=1 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");</script>
-<script src="edit.js?v=20d324ba"></script>
+<script src="edit.js?v=bd930f51"></script>
 </body>
 </html>
