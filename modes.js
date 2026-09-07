@@ -147,12 +147,13 @@ function buildIndex(){
 }
 const q = document.getElementById("q"), qres = document.getElementById("qres");
 q.oninput = ()=>{ const v=q.value.trim().toLowerCase(); if(v.length<2){ qres.innerHTML=""; return; } if(!IDX.length) buildIndex();
-  const hits = IDX.filter(x=>x.hay.includes(v)).slice(0,12);
-  qres.innerHTML = hits.length ? hits.map((h,i)=>`<div class="qhit" data-i="${i}">${h.label} <span style="color:var(--muted)">· ${(LANG==="en"&&typeof T_EN!=="undefined"&&T_EN[h.t])||h.t}</span></div>`).join("") : `<div class="qhit" style="color:var(--muted)">${tx().noresults}</div>`;
+  const team=(window.edrEdit&&window.edrEdit.feats?window.edrEdit.feats():[]).map(f=>({t:"__team",f,label:String(f.properties.name||f.properties.kind||f.properties.id),hay:[f.properties.name,f.properties.kind,f.properties.id,f.properties.created_by,f.properties.note,f.properties.category].filter(Boolean).join(" ").toLowerCase()}));
+  const hits = IDX.filter(x=>x.hay.includes(v)).concat(team.filter(x=>x.hay.includes(v))).slice(0,14);
+  qres.innerHTML = hits.length ? hits.map((h,i)=>`<div class="qhit" data-i="${i}">${h.label} <span style="color:var(--muted)">· ${h.t==="__team"?(LANG==="en"?"team":"equipa")+" · "+(h.f.properties.status||""):((LANG==="en"&&typeof T_EN!=="undefined"&&T_EN[h.t])||h.t)}</span></div>`).join("") : `<div class="qhit" style="color:var(--muted)">${tx().noresults}</div>`;
   qres.querySelectorAll(".qhit[data-i]").forEach(el=>el.onclick=()=>{ const h=hits[+el.dataset.i]; goTo(h); qres.innerHTML=""; q.value=h.label; });
 };
 q.onkeydown = e=>{ if(e.key==="Enter"){ const first=qres.querySelector(".qhit[data-i]"); if(first) first.click(); } };
-function goTo(h){ const o=layerObjs[h.t]; setLayer(h.t,true); let target=null; (o.geo||o.lyr).eachLayer(l=>{ if(!target && l.feature===h.f) target=l; });
+function goTo(h){ if(h.t==="__team"){ const g=h.f.geometry; const ll=g.type==="Point"?L.latLng(g.coordinates[1],g.coordinates[0]):L.geoJSON(h.f).getBounds().getCenter(); map.setView(ll,Math.max(map.getZoom(),18)); map.eachLayer(l=>{ if(l.feature&&l.__ed&&l.feature.properties.id===h.f.properties.id) l.fire("click",{latlng:ll}); }); return; } const o=layerObjs[h.t]; setLayer(h.t,true); let target=null; (o.geo||o.lyr).eachLayer(l=>{ if(!target && l.feature===h.f) target=l; });
   if(!target) return; const ll = typeof target.getLatLng==="function" ? target.getLatLng() : target.getBounds().getCenter();
   map.setView(ll, typeof target.getLatLng==="function"?18:17); if(window.showCard) showCard(h.f.properties, ll, h.t); else target.openPopup(ll); }
 

@@ -1,0 +1,14 @@
+// Offline: registers the service worker and offers "Guardar mapa para offline" (estate tiles z14–19 + terrain + hillshade).
+(function(){
+const L_=(typeof LANG!=="undefined")?LANG:"pt"; const EN=L_==="en";
+if(!("serviceWorker" in navigator)) return;
+navigator.serviceWorker.register("sw.js").catch(()=>{});
+const BB=[-8.65749,37.50061,-8.63173,37.52273];   // parcels bbox
+function tiles(z){ const n=2**z; const t=(lon,lat)=>[Math.floor((lon+180)/360*n), Math.floor((1-Math.log(Math.tan(lat*Math.PI/180)+1/Math.cos(lat*Math.PI/180))/Math.PI)/2*n)]; const [x0,y0]=t(BB[0],BB[3]),[x1,y1]=t(BB[2],BB[1]); const out=[]; for(let x=x0;x<=x1;x++) for(let y=y0;y<=y1;y++) out.push([z,x,y]); return out; }
+function urls(){ const u=[]; for(let z=14;z<=19;z++) for(const [zz,x,y] of tiles(z)) u.push(`ortho2025/${zz}/${x}/${y}.jpg`); for(let z=12;z<=16;z++) for(const [zz,x,y] of tiles(z)) u.push(`terrain/${zz}/${x}/${y}.png`); for(let z=12;z<=17;z++) for(const [zz,x,y] of tiles(z)) u.push(`hillshade/${zz}/${x}/${y}.png`); return u; }
+window.edrOffline={ save(){ const list=urls(); const sw=navigator.serviceWorker.controller; if(!sw){ toast&&toast(EN?"Reload the page once, then try again":"Recarregue a página uma vez e tente de novo"); return; } toast&&toast((EN?"Saving map for offline: ":"A guardar o mapa para offline: ")+list.length+" tiles"); sw.postMessage({type:"precache",urls:list}); },
+  clear(){ const sw=navigator.serviceWorker.controller; if(sw) sw.postMessage({type:"precache-clear"}); }, count(){ return urls().length; } };
+navigator.serviceWorker.addEventListener("message",e=>{ const d=e.data||{}; if(d.type==="precache-progress"&&d.n%200===0) toast&&toast(`${Math.round(d.n/d.total*100)}%`); if(d.type==="precache-done") toast&&toast(EN?"Map saved for offline ✓":"Mapa guardado para offline ✓"); if(d.type==="precache-cleared") toast&&toast(EN?"Offline map removed":"Mapa offline removido"); });
+// entry in the share sheet / nav: a small pill under the layer tools
+document.addEventListener("DOMContentLoaded",()=>{ const t=document.querySelector(".tree-tools"); if(!t) return; const b=document.createElement("button"); b.textContent=EN?"save offline":"guardar offline"; b.title=EN?"Cache the estate imagery and terrain on this device (~90 MB)":"Guardar as imagens e o terreno da herdade neste aparelho (~90 MB)"; b.onclick=()=>window.edrOffline.save(); t.querySelector("span:last-child")?.appendChild(b); });
+})();

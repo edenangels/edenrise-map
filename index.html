@@ -70,13 +70,10 @@ body.field .lyr{padding:9px 6px;font-size:14px} body.field .tg{transform:scale(1
 <script src="data.js?v=0737499e"></script>
 <script src="ops-data.js?v=2751505a"></script>
 <script src="sat-data.js?v=98dc79f4"></script>
-<script src="hydro-data.js?v=8395b210"></script>
 <script src="buildings-data.js?v=0fc788f4"></script>
 <script src="suitability-data.js?v=4e99bc9f"></script>
 <script src="work-data.js?v=ad554e35"></script>
 <script src="defensible-data.js?v=f90a6c7b"></script>
-<script src="water-data.js?v=4ce94f9b"></script>
-<script src="habitat-data.js?v=ee3f5cf1"></script>
 <script>
 const GROUPS = [
  ["10 · Cadastro & Legal", true, [
@@ -326,7 +323,8 @@ const SYMBOL = {buildings_pt:"house", water_sources_pt:"well", water_storage_pt:
   asset_registry:p=>({BLD:"house",WTR:"well",STO:"tank",WWT:"fossa",PWR:"bolt",TLC:"antenna",IRR:"drop"}[p.category]||"pin")};
 function symIcon(kind, color, size){ return L.divIcon({className:"", iconSize:[size,size], iconAnchor:[size/2,size/2],
   html:`<svg viewBox="0 0 24 24" width="${size}" height="${size}" style="filter:drop-shadow(0 1px 2px rgba(0,0,0,.8))"><circle cx="12" cy="12" r="11" fill="${color}" stroke="#111" stroke-width="1.5"/><g fill="#111" transform="translate(4.8 4.8) scale(.6)">${SVG[kind]}</g></svg>`}); }
-const LAZY = {tree_tops:"trees-data.js", tree_crowns:"trees-data.js"};
+const LAZY = {tree_tops:{f:"trees-data.js",g:"TREEDATA",msg:["Loading 7,531 trees…","A carregar 7 531 árvores…"]}, tree_crowns:{f:"trees-data.js",g:"TREEDATA",msg:["Loading 7,531 trees…","A carregar 7 531 árvores…"]},
+  hydro_streams:{f:"hydro-data.js",g:"HYDRODATA"}, hydro_catchments:{f:"hydro-data.js",g:"HYDRODATA"}, wet_zones:{f:"water-data.js",g:"WATERDATA"}, track_crossings:{f:"water-data.js",g:"WATERDATA"}, catchments_runoff:{f:"water-data.js",g:"WATERDATA"}, habitat_cos2025:{f:"habitat-data.js",g:"HABDATA"}};
 function buildLayer(t, title, kind, color, opt, fc){
   const colOf = p => opt.cat ? (opt.colors[p[opt.cat]] || opt.other || color) : color;
   const sym = SYMBOL[t]; const size = Math.max(16, (opt.r||5)*3.4);
@@ -346,7 +344,7 @@ for(const [gname, gOn, layers] of GROUPS){
     const fc = DATA[t];
     if(!fc && LAZY[t]){                       // heavy layer: placeholder group, data loads on first toggle
       const group = L.layerGroup(); const o = layerObjs[t] = {lyr:group, on:false, lazy:LAZY[t], loaded:false, t, title, kind, color, opt};
-      group.on("add", async ()=>{ if(o.loaded) return; o.loaded = true; if(window.showLoading) showLoading(LANG==="en"?"Loading 7,531 trees…":"A carregar 7 531 árvores…"); if(typeof TREEDATA==="undefined") await loadScript(o.lazy); Object.assign(DATA, TREEDATA); if(window.showLoading) showLoading(null);
+      group.on("add", async ()=>{ if(o.loaded) return; o.loaded = true; const lz=o.lazy; if(window.showLoading) showLoading(lz.msg?(LANG==="en"?lz.msg[0]:lz.msg[1]):(LANG==="en"?"Loading…":"A carregar…")); if(typeof window[lz.g]==="undefined"&&!globalThis[lz.g]){ try{ await loadScript(lz.f); }catch(e){} } const src=(typeof window[lz.g]!=="undefined")?window[lz.g]:(function(){ try{ return eval(lz.g); }catch(e){ return {}; } })(); Object.assign(DATA, src||{}); if(window.showLoading) showLoading(null);
         o.geo = buildLayer(t, title, kind, color, opt, DATA[t]); group.addLayer(o.geo); });
       continue;
     }
@@ -512,7 +510,7 @@ function openWork(){
 window.addEventListener("hashchange", ()=>{ openAsset(); openWork(); });
 setTimeout(()=>{ openAsset(); openWork(); }, 400);
 </script>
-<script src="modes.js?v=3017256b"></script>
+<script src="modes.js?v=2ba29989"></script>
 <script src="card.js?v=7dd316cf"></script>
 <script src="view.js?v=2b45a96b"></script>
 <script src="nav.js?v=6b356f39"></script>
@@ -520,9 +518,10 @@ setTimeout(()=>{ openAsset(); openWork(); }, 400);
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@geoman-io/leaflet-geoman-free@2.17.0/dist/leaflet-geoman.css">
 <script src="https://cdn.jsdelivr.net/npm/@geoman-io/leaflet-geoman-free@2.17.0/dist/leaflet-geoman.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7.1.0/turf.min.js"></script>
+<script src="offline.js?v=97dddcd3"></script>
 <script src="media.js?v=2fd4f650"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.11.0/proj4.js"></script>
 <script>if(window.proj4) proj4.defs("EPSG:3763","+proj=tmerc +lat_0=39.66825833333333 +lon_0=-8.133108333333334 +k=1 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");</script>
-<script src="edit.js?v=16bc7ff1"></script>
+<script src="edit.js?v=b1b04944"></script>
 </body>
 </html>
