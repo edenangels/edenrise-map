@@ -26,7 +26,7 @@ const SITES = {
     centre:[37.5939,-8.7019], zoom:16, zoom3d:15.6, pitch:55, bearing:-15,
     bbox:[-8.7069,37.5873,-8.6978,37.5951], tileBounds:[-8.7129,37.5813,-8.6918,37.6011],
     data:{core:"sites/malhao/data.js?v=23c6392b", files:{                 // this property's own products (open-data engines in malhao-pardo-gis/scripts); small → eager
-      "sat-data.js":"sites/malhao/sat-data.js", "alerts-data.js":"sites/malhao/alerts-data.js", "habitat-data.js":"sites/malhao/habitat-data.js?v=85f9934f",
+      "sat-data.js":"sites/malhao/sat-data.js?v=107c40b0", "alerts-data.js":"sites/malhao/alerts-data.js?v=0d18897f", "habitat-data.js":"sites/malhao/habitat-data.js?v=85f9934f",
       "ops-data.js":"sites/malhao/ops-data.js?v=8056c087"}},
     lazy:{                                                                 // heavy products load on first toggle (file → global), like EdenRise's LAZY table
       topo_contours:{f:"sites/malhao/hydro-data.js?v=b51d38a6",g:"HYDRODATA"}, topo_streams:{f:"sites/malhao/hydro-data.js?v=b51d38a6",g:"HYDRODATA"}, topo_catchments:{f:"sites/malhao/hydro-data.js?v=b51d38a6",g:"HYDRODATA"},

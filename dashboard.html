@@ -32,7 +32,7 @@
 </div>
 <div class="foot" id="foot"></div>
 </div>
-<script src="sites.js?v=39b9c807"></script>
+<script src="sites.js?v=5c3e6fdd"></script>
 <script>edrLoadData(["sat-data.js?v=98dc79f4", "alerts-data.js?v=be6d89d5", "work-data.js?v=ad554e35", "defensible-data.js?v=f90a6c7b", "water-data.js?v=4ce94f9b", "habitat-data.js?v=ee3f5cf1", "suitability-data.js?v=4e99bc9f", "trees-data.js?v=bb99e5d4"])</script>
 <script>
 let LANG="pt"; try{LANG=localStorage.getItem("edr_lang")||((navigator.language||"pt").toLowerCase().startsWith("pt")?"pt":"en");}catch(e){}
@@ -54,7 +54,7 @@ const D=typeof DEFDATA!=="undefined"?DEFDATA.defensible_space.features:[], W=typ
       SU=typeof SUITDATA!=="undefined"?SUITDATA.suitability_zones.features:[], TR=typeof TREEDATA!=="undefined"?TREEDATA.tree_tops.features:[];
 let rcm=null, wind=null;
 const loc=()=>LANG==="en"?"en-GB":"pt-PT"; const fmt=n=>Number(n).toLocaleString(loc());
-function pasture(){ if(!S) return null; const by={}; for(const s of Object.values(S.series)){ if(s.kind!=="pastagem") continue; for(const [d,n,m] of s.pts){ const b=by[d]=by[d]||[0,0,0]; b[0]+=n;b[1]+=m;b[2]++; } } return Object.entries(by).sort().map(([d,b])=>[d,b[0]/b[2],b[1]/b[2]]); }
+function pasture(){ if(!S) return null; const by={}; const all=Object.values(S.series); const hasPast=all.some(s=>s.kind==="pastagem"); for(const s of all){ if(hasPast ? s.kind!=="pastagem" : (s.kind!=="herdade" && !/^herdade$/i.test(s.name||""))) continue; for(const [d,n,m] of s.pts){ const b=by[d]=by[d]||[0,0,0]; b[0]+=n;b[1]+=m;b[2]++; } } return Object.entries(by).sort().map(([d,b])=>[d,b[0]/b[2],b[1]/b[2]]); }
 function spark(vals,color){ const Wd=260,Hh=44,p=3,lo=Math.min(...vals),hi=Math.max(...vals); const x=i=>p+i*(Wd-2*p)/(vals.length-1),y=v=>Hh-p-((v-lo)/Math.max(hi-lo,.05))*(Hh-2*p); const d=vals.map((v,i)=>(i?"L":"M")+x(i).toFixed(1)+","+y(v).toFixed(1)).join(" ");
   return `<svg class="spark" viewBox="0 0 ${Wd} ${Hh}" preserveAspectRatio="none"><path d="${d} L${Wd-p},${Hh} L${p},${Hh} Z" fill="${color}" opacity=".12"/><path d="${d}" fill="none" stroke="${color}" stroke-width="1.8"/><circle cx="${x(vals.length-1).toFixed(1)}" cy="${y(vals[vals.length-1]).toFixed(1)}" r="2.6" fill="${color}"/></svg>`; }
 function tile(k,v,d,{extra="",cls=""}={}){ return `<div class="tile ${cls}"><div class="k">${k}</div><div class="v">${v}</div>${extra}<div class="d">${d}</div></div>`; }
