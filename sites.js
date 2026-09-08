@@ -25,10 +25,17 @@ const SITES = {
     ttl3d:{pt:"Malhão Pardo — Herdade 3D",en:"Malhão Pardo — Estate 3D"},
     centre:[37.5939,-8.7019], zoom:16, zoom3d:15.6, pitch:55, bearing:-15,
     bbox:[-8.7069,37.5873,-8.6978,37.5951], tileBounds:[-8.7129,37.5813,-8.6918,37.6011],
-    data:{core:"sites/malhao/data.js?v=23c6392b", files:{}},             // files: maps an EdenRise analysis file name to this property's own copy, when that product exists here
-    tiles:{ortho:"sites/malhao/ortho2023", terrain:"sites/malhao/terrain"}, ortho:{label:"DGT 2023", year:"2023", attr:"OrtoSat2023 © DGT (30 cm)", maxNative:19}, terrainEncoding:"terrarium", terrainMaxzoom:15, pointcloud:null, roofs:null,   // cached DGT 2023 ortho + Terrarium DEM tiles (scripts/fetch_tiles.py); no LiDAR / 2025 ortho yet
+    data:{core:"sites/malhao/data.js?v=23c6392b", files:{                 // this property's own products (open-data engines in malhao-pardo-gis/scripts); small → eager
+      "sat-data.js":"sites/malhao/sat-data.js", "alerts-data.js":"sites/malhao/alerts-data.js", "habitat-data.js":"sites/malhao/habitat-data.js?v=85f9934f",
+      "ops-data.js":"sites/malhao/ops-data.js?v=8056c087"}},
+    lazy:{                                                                 // heavy products load on first toggle (file → global), like EdenRise's LAZY table
+      topo_contours:{f:"sites/malhao/hydro-data.js?v=b51d38a6",g:"HYDRODATA"}, topo_streams:{f:"sites/malhao/hydro-data.js?v=b51d38a6",g:"HYDRODATA"}, topo_catchments:{f:"sites/malhao/hydro-data.js?v=b51d38a6",g:"HYDRODATA"},
+      topo_wet:{f:"sites/malhao/hydro-data.js?v=b51d38a6",g:"HYDRODATA"}, topo_aspect:{f:"sites/malhao/hydro-data.js?v=b51d38a6",g:"HYDRODATA"}, topo_slope:{f:"sites/malhao/hydro-data.js?v=b51d38a6",g:"HYDRODATA"},
+      biodiversity:{f:"sites/malhao/bio-data.js?v=e7a7c7ec",g:"BIODATA",msg:["Loading 4,132 biodiversity records…","A carregar 4 132 registos de biodiversidade…"]}},
+    climate:"sites/malhao/climate.json",
+    tiles:{ortho:"sites/malhao/ortho2023", terrain:"sites/malhao/terrain", hillshade:"sites/malhao/hillshade"}, ortho:{label:"DGT 2023", year:"2023", attr:"OrtoSat2023 © DGT (30 cm)", maxNative:19}, terrainEncoding:"terrarium", terrainMaxzoom:15, pointcloud:null, roofs:null,   // cached DGT 2023 ortho + Terrarium DEM tiles (scripts/fetch_tiles.py); no LiDAR / 2025 ortho yet
     ipma:"0211", concelho:"Odemira",
-    flags:{},
+    flags:{climate:true},
     views3d:[["Casa","Main house",[-8.7019,37.5939],17.2,62,-25],["Norte","North",[-8.7030,37.5960],16.4,58,10],["Sul","South",[-8.7010,37.5900],16.4,60,170]],
     fly3d:[[[-8.7060,37.5900],15.4,65,-60],[[-8.7005,37.5950],16,62,40]],
     gridOrigin:[37.5873,-8.7069]
@@ -50,9 +57,12 @@ window.edrLoadData = function(list){
     const CORE = "data" + ".js";
     if(id === "edenrise") src = f;
     else if(base === CORE) src = own.core;
-    else if(own.files && own.files[base]) src = own.files[base];
     if(src) document.write('<script src="' + src + '"><\/script>');
   }
+  // another property: its own product files are few and small → load them all, whatever the page asked for
+  if(id !== "edenrise" && own.files) for(const src of new Set(Object.values(own.files))) document.write('<script src="' + src + '"><\/script>');
 };
+// lazy table for the current property: its own map, or EdenRise's LAZY (LiDAR products) where those exist
+window.edrLazy = (t) => (SITE.lazy ? SITE.lazy[t] : ((SITE.flags && SITE.flags.lidar && typeof LAZY !== "undefined") ? LAZY[t] : undefined));
 document.documentElement.dataset.site = id;
 })();

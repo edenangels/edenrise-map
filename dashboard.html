@@ -32,7 +32,7 @@
 </div>
 <div class="foot" id="foot"></div>
 </div>
-<script src="sites.js?v=f6bf9f1a"></script>
+<script src="sites.js?v=39b9c807"></script>
 <script>edrLoadData(["sat-data.js?v=98dc79f4", "alerts-data.js?v=be6d89d5", "work-data.js?v=ad554e35", "defensible-data.js?v=f90a6c7b", "water-data.js?v=4ce94f9b", "habitat-data.js?v=ee3f5cf1", "suitability-data.js?v=4e99bc9f", "trees-data.js?v=bb99e5d4"])</script>
 <script>
 let LANG="pt"; try{LANG=localStorage.getItem("edr_lang")||((navigator.language||"pt").toLowerCase().startsWith("pt")?"pt":"en");}catch(e){}
@@ -73,19 +73,23 @@ function render(){
     `<span class="p"><span class="dot ${A.length?"ember":""}"></span><span class="k">${t.pulse.alerts}</span><b>${A.length}</b></span>`,
     `<span class="p"><span class="k">${t.pulse.sync}</span><b class="mono">${S?S.updated:"—"}</b></span>`].join("");
   document.getElementById("kpis").innerHTML=[
-    tile(t.risk, r?`<span class="pill ${r[2]}">${LANG==="en"?r[1]:r[0]}</span>`:"—", "IPMA · Odemira · "+today, {cls:r?(r[2]==="oak"?"accent":r[2]==="straw"?"warn":"danger"):""}),
+    tile(t.risk, r?`<span class="pill ${r[2]}">${LANG==="en"?r[1]:r[0]}</span>`:"—", "IPMA · "+SITE.concelho+" · "+today, {cls:r?(r[2]==="oak"?"accent":r[2]==="straw"?"warn":"danger"):""}),
     tile(t.wind, wind?`${Math.round(wind.spd)}<small>km/h ${wind.card}</small>`:"—", wind?`${LANG==="en"?"gusts":"rajadas"} ${Math.round(wind.gust)} · ${wind.rh}% · ${Math.round(wind.temp)}°`:t.nodata, {cls:"info"}),
     tile(t.veg, last?`${last[1].toFixed(2)}<small>NDVI</small>`:"—", last?`${t.latest} ${last[0]} · ${chip(dNdvi)} ${t.vs}`:t.nodata, {extra:ps?spark(ps.map(x=>x[1]),"#7f9a6a"):"",cls:"accent"}),
     tile(t.moist, last?`${last[2].toFixed(2)}<small>NDMI</small>`:"—", last?`${t.latest} ${last[0]}`:t.nodata, {extra:ps?spark(ps.map(x=>x[2]),"#6f9fc0"):"",cls:"info"}),
     tile(t.alerts, A.length, A.length?A.slice(0,2).map(a=>`${a.zone_name} ${a.metric.toUpperCase()} −${Math.abs(a.change_pct).toFixed(0)}%`).join(" · "):t.stable, {cls:A.length?"danger":"accent"}),
+    ...(SITE.flags.lidar ? [
     tile(t.trees, fmt(TR.length), "LiDAR DGT 2024 · 50 cm"),
     tile(t.stressed, fmt(stressed), `${(100*stressed/Math.max(TR.length,1)).toFixed(0)}% · NDVI 2025 · ${LANG==="en"?"dry season, relative":"época seca, relativo"}`, {cls:"warn"}),
     tile(t.oaks, fmt(oaks), LANG==="en"?"crown shape — confirm in field":"forma da copa — confirmar no terreno"),
     tile(t.canopy, H?`${H.summary.canopy_pct_of_parcel}<small>%</small>`:"—", H?`${H.summary.canopy_ha} ha · ≈${H.summary.tree_co2e_stock_t_proxy} t CO₂e`:t.nodata, {cls:"accent"}),
     tile(t.suit, SU.length?`${(SU.reduce((a,f)=>a+f.properties.area_m2,0)/1e4).toFixed(1)}<small>ha</small>`:"—", SU.length?`${SU.length} ${LANG==="en"?"zones · best":"zonas · melhor"}: ${SU[0].properties.name} (${SU[0].properties.score})`:t.nodata),
     tile(t.runoff, W?`${fmt(W.catchments_runoff.features.reduce((a,f)=>a+f.properties.runoff_m3_50mm,0))}<small>m³</small>`:"—", W?`${W.catchments_runoff.features.length} ${LANG==="en"?"catchments":"bacias"}`:t.nodata, {cls:"info"}),
-    tile(t.cross, W?W.track_crossings.features.filter(f=>f.properties.risco==="alto").length:"—", W?`${LANG==="en"?"of":"de"} ${W.track_crossings.features.length} · ${LANG==="en"?"inspect before autumn rain":"inspecionar antes das chuvas"}`:t.nodata, {cls:"warn"}),
+    tile(t.cross, W?W.track_crossings.features.filter(f=>f.properties.risco==="alto").length:"—", W?`${LANG==="en"?"of":"de"} ${W.track_crossings.features.length} · ${LANG==="en"?"inspect before autumn rain":"inspecionar antes das chuvas"}`:t.nodata, {cls:"warn"})
+    ] : []),
   ].join("");
+  for(const id of ["h_fire","n_fire","t_fire"]){ const el=document.getElementById(id); if(el) el.hidden=!SITE.flags.lidar&&!D.length; }
+  for(const id of ["h_water","t_water"]){ const el=document.getElementById(id); if(el) el.hidden=!SITE.flags.lidar&&!W; }
   document.getElementById("h_fire").textContent=t.fire; document.getElementById("n_fire").textContent=`${D.length} ${LANG==="en"?"buildings":"edifícios"}`;
   const cl=c=>c==="fraca"?"ember":(c==="moderada"?"straw":"oak");
   document.getElementById("t_fire").innerHTML=`<tr>${t.cols.map((c,i)=>`<th class="${[2,4,5,6,7].includes(i)?"num":""}">${c}</th>`).join("")}</tr>`+D.map(f=>{const p=f.properties;return `<tr><td class="num">${p.rank_risk}</td><td><b>${p.name}</b></td><td class="num"><span class="pill ${cl(p.classe)}">${p.score}</span></td><td>${p.classe}</td><td class="num">${p.canopy_cover_30m_pct}%</td><td class="num">${p.tall_trees_20m}</td><td class="num">${p.slope_mean_deg}°</td><td class="num">${p.dist_water_m} m</td><td><div class="actions">${p.actions.split("; ").map(a=>`<span class="pill ghost">${a}</span>`).join("")}</div></td></tr>`;}).join("");
@@ -107,7 +111,7 @@ render();
 fetch("https://api.ipma.pt/open-data/forecast/meteorology/rcm/rcm-d0.json").then(r=>r.json()).then(d=>{rcm=d.local&&d.local[SITE.ipma]?d.local[SITE.ipma].data.rcm:null;render();}).catch(()=>{});
 fetch("https://api.open-meteo.com/v1/forecast?latitude="+SITE.centre[0]+"&longitude="+SITE.centre[1]+"&current=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m,relative_humidity_2m&timezone=Europe%2FLisbon").then(r=>r.json()).then(w=>{const c=w.current; const dirs=LANG==="en"?["N","NE","E","SE","S","SW","W","NW"]:["N","NE","E","SE","S","SO","O","NO"]; wind={spd:c.wind_speed_10m,gust:c.wind_gusts_10m,rh:c.relative_humidity_2m,temp:c.temperature_2m,card:dirs[Math.round(c.wind_direction_10m/45)%8]}; render();}).catch(()=>{});
 </script>
-<script src="nav.js?v=ad3ab3ba"></script>
+<script src="nav.js?v=9495da2c"></script>
 <script>
 (function(){ const EN=(typeof LANG!=="undefined"&&LANG==="en"); const API="https://edenrise-brain.edenrise.workers.dev";
  document.getElementById("h_upd").textContent=EN?"Map edits & updates":"Edições e atualizações do mapa"; document.getElementById("editlink").textContent=EN?"Open edit mode →":"Abrir modo edição →";

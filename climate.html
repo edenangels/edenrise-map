@@ -29,7 +29,7 @@ svg text{font:600 10px var(--mono);fill:var(--muted)} .note{font-size:11px;color
   <div class="card" style="grid-column:1/-1" id="budget"><h2 id="h-bud"></h2><div id="bud"></div><div class="note" id="n-bud"></div></div>
 </div>
 </div>
-<script src="sites.js?v=f6bf9f1a"></script><script src="nav.js?v=ad3ab3ba"></script>
+<script src="sites.js?v=39b9c807"></script><script src="nav.js?v=9495da2c"></script>
 <script>
 let LANG="pt"; try{ LANG=localStorage.getItem("edr_lang")||((navigator.language||"pt").toLowerCase().startsWith("pt")?"pt":"en"); }catch(e){}
 const EN=LANG==="en"; const T=EN?{eb:"Estate · Odemira",ttl:"Climate & water balance",sub:"30-year normals at the estate, the summer deficit, and what the candidate dams could hold",
@@ -49,7 +49,7 @@ const EN=LANG==="en"; const T=EN?{eb:"Estate · Odemira",ttl:"Climate & water ba
 const MON=EN?["J","F","M","A","M","J","J","A","S","O","N","D"]:["J","F","M","A","M","J","J","A","S","O","N","D"];
 ["eb","ttl","sub"].forEach(k=>document.getElementById(k).textContent=T[k]); document.getElementById("h-bal").textContent=T.bal; document.getElementById("h-temp").textContent=T.temp; document.getElementById("h-frost").textContent=T.frost; document.getElementById("h-rose").textContent=T.rose; document.getElementById("h-years").textContent=T.years; document.getElementById("h-bud").textContent=T.bud; document.getElementById("n-bal").textContent=T.nbal; document.getElementById("n-rose").textContent=T.nrose;
 const fmt=n=>Number(n).toLocaleString(EN?"en-GB":"pt-PT");
-fetch("climate.json").then(r=>r.json()).then(C=>{
+fetch((window.SITE&&SITE.climate)||"climate.json").then(r=>r.json()).then(C=>{
   const a=C.annual; document.getElementById("top").innerHTML=[[T.p,a.p_mm,"mm"],[T.et,a.et0_mm,"mm"],[T.def,Math.abs(a.deficit_mm),"mm"],[T.dry,a.longest_dry_spell_days,T.days]].map(([k,v,u])=>`<div class="card"><div class="k">${k}</div><div class="big">${fmt(v)}<small>${u}</small></div></div>`).join("");
   // balance chart
   const narrow=window.innerWidth<640; const W=narrow?460:900,H=narrow?300:260,L=narrow?34:40,B=30,w=(W-L-20)/12; const mx=Math.max(...C.months.map(m=>Math.max(m.p_mm,m.et0_mm)))*1.1; const y=v=>H-B-(v/mx)*(H-B-20); let s="";

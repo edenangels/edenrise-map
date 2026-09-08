@@ -67,9 +67,9 @@ body.field .lyr{padding:9px 6px;font-size:14px} body.field .tg{transform:scale(1
   <div id="map"></div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="sites.js?v=eb39f8e5"></script>
+<script src="sites.js?v=39b9c807"></script>
 <script>edrLoadData(["data.js?v=0737499e", "ops-data.js?v=2751505a", "sat-data.js?v=98dc79f4", "buildings-data.js?v=0fc788f4", "suitability-data.js?v=4e99bc9f", "work-data.js?v=ad554e35", "defensible-data.js?v=f90a6c7b"])</script>
-<script src="registry.js?v=ba3c7a82"></script>
+<script src="registry.js?v=09db97c4"></script>
 <script>
 const FIELD_EN = {asset_id:"Asset ID",status:"Status",category:"Category",system:"System",year:"Year",
  alternative:"Alternative",cadastral_article:"Cadastral article",areas_doc_m2:"Areas (docs) m²",
@@ -218,8 +218,8 @@ function loadScript(src){ return new Promise((res,rej)=>{ const sc=document.crea
 for(const [gname, gOn, layers] of GROUPS){
   for(const [t, title, kind, color, opt] of layers){
     const fc = DATA[t];
-    if(!fc && LAZY[t] && SITE.flags.lidar){                       // heavy layer: placeholder group, data loads on first toggle
-      const group = L.layerGroup(); const o = layerObjs[t] = {lyr:group, on:false, lazy:LAZY[t], loaded:false, t, title, kind, color, opt};
+    if(!fc && edrLazy(t)){                       // heavy layer: placeholder group, data loads on first toggle
+      const group = L.layerGroup(); const o = layerObjs[t] = {lyr:group, on:false, lazy:edrLazy(t), loaded:false, t, title, kind, color, opt};
       group.on("add", async ()=>{ if(o.loaded) return; o.loaded = true; const lz=o.lazy; if(window.showLoading) showLoading(lz.msg?(LANG==="en"?lz.msg[0]:lz.msg[1]):(LANG==="en"?"Loading…":"A carregar…")); const have=(function(){ try{ return typeof eval(lz.g)!=="undefined"; }catch(e){ return false; } })(); if(!have){ try{ window.__lazyLoads=window.__lazyLoads||{}; if(!window.__lazyLoads[lz.f]) window.__lazyLoads[lz.f]=loadScript(lz.f); await window.__lazyLoads[lz.f]; }catch(e){} } const src=(typeof window[lz.g]!=="undefined")?window[lz.g]:(function(){ try{ return eval(lz.g); }catch(e){ return {}; } })(); Object.assign(DATA, (window.edrAlias?edrAlias(src||{}):src)||{}); if(window.showLoading) showLoading(null);
         o.geo = buildLayer(t, title, kind, color, opt, DATA[t]); group.addLayer(o.geo); });
       continue;
@@ -376,7 +376,7 @@ setTimeout(()=>{ openAsset(); openWork(); }, 400);
 <script src="modes.js?v=1f989309"></script>
 <script src="card.js?v=c8deb725"></script>
 <script src="view.js?v=ba2d39b5"></script>
-<script src="nav.js?v=ad3ab3ba"></script>
+<script src="nav.js?v=9495da2c"></script>
 <script src="brain.js?v=0b2ff852"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@geoman-io/leaflet-geoman-free@2.17.0/dist/leaflet-geoman.css">
 <script src="https://cdn.jsdelivr.net/npm/@geoman-io/leaflet-geoman-free@2.17.0/dist/leaflet-geoman.min.js"></script>

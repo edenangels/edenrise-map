@@ -78,13 +78,22 @@ const GROUPS = [
    ["wet_zones","Zonas de acumulação de água (TWI)","pg","#29b6f6",{fill:"rgba(41,182,246,.35)",w:1.2}],
    ["track_crossings","Travessias caminho×linha de água (risco)","pt","#ff5252",{cat:"risco",colors:{alto:"#e53935",medio:"#ffb300",baixo:"#8bc34a"},r:6}],
    ["catchments_runoff","Bacias — escoamento a 50 mm","pg","#80deea",{fill:"rgba(128,222,234,.12)",w:1.2}],
-   ["habitat_cos2025","Ocupação do solo COS 2025","pg","#a1887f",{fill:"rgba(161,136,127,.30)",w:.8}]]],
+   ["habitat_cos2025","Ocupação do solo COS 2025","pg","#a1887f",{fill:"rgba(161,136,127,.30)",w:.8}],
+   ["biodiversity","Observações de biodiversidade (iNaturalist + GBIF, 5 km)","pt","#7f9a6a",{cat:"group",colors:{Aves:"#ffd166",Insecta:"#e07b39",Mammalia:"#b3413a",Reptilia:"#8fd3ff",Amphibia:"#5bc0de",Fungi:"#c9a227",Arachnida:"#ba68c8",Plantae:"#7f9a6a"},other:"#9e9e9e",r:4}]]],
+ ["Terreno · Copernicus 30 m", false, [          // properties without LiDAR: indicative terrain products from the free 30 m DEM
+   ["topo_contours","Curvas de nível 5 m (indicativas)","ln","#f1e9d8",{cat:"cls",colors:{index:"#fff1c9",inter:"#d9cfbc"},other:"#d9cfbc",w:1}],
+   ["topo_streams","Linhas de água (modelo 30 m, por ordem)","ln","#40c4ff",{cat:"order",colors:{1:"#80deea",2:"#40c4ff",3:"#2196f3",4:"#1565c0",5:"#0d47a1"},other:"#40c4ff",w:2}],
+   ["topo_catchments","Sub-bacias (modelo 30 m)","pg","#80deea",{fill:"rgba(128,222,234,.10)",w:1.2}],
+   ["topo_wet","Zonas húmidas (TWI 30 m)","pg","#29b6f6",{fill:"rgba(41,182,246,.35)",w:.8}],
+   ["topo_aspect","Exposição (N · E · S · W)","pg","#e0a83a",{cat:"cls",colors:{N:"#5b8fb9",E:"#9fb789",S:"#e0a83a",W:"#e07b39"},other:"#9e9e9e",fill:"rgba(224,168,58,.35)",w:.4}],
+   ["topo_slope","Declive (0–4 · 4–10 · 10–20 · >20°)","pg","#c9a227",{cat:"cls",colors:{"0-4":"#7f9a6a","4-10":"#c9a227","10-20":"#e07b39",">20":"#b3413a"},other:"#9e9e9e",fill:"rgba(201,162,39,.35)",w:.4}]]],
 ];
 Object.assign(DATA, typeof DEFDATA !== "undefined" ? DEFDATA : {});
 Object.assign(DATA, typeof WATERDATA !== "undefined" ? WATERDATA : {});
 if (typeof HABDATA !== "undefined") DATA.habitat_cos2025 = HABDATA.habitat_cos2025;
 Object.assign(DATA, typeof OPSDATA !== "undefined" ? OPSDATA : {});
 Object.assign(DATA, typeof HYDRODATA !== "undefined" ? HYDRODATA : {});
+Object.assign(DATA, typeof BIODATA !== "undefined" ? BIODATA : {});
 Object.assign(DATA, typeof DAMDATA !== "undefined" ? DAMDATA : {});
 Object.assign(DATA, typeof TREEDATA !== "undefined" ? TREEDATA : {});
 window.edrAlias = d => { if(d && d.tree_crowns && !d.tree_health) d.tree_health = d.tree_crowns; return d; }; edrAlias(DATA);
@@ -98,7 +107,8 @@ const G_EN = {"10 · Cadastro & Legal":"10 · Cadastre & Legal","20 · Edifício
  "OPS · Conformidade & Ativos":"OPS · Compliance & Assets",
  "LiDAR 2024 · Terreno & árvores":"LiDAR 2024 · Terrain & trees",
  "🏗️ Edifícios & planeamento":"🏗️ Buildings & planning",
- "🔥💧🌿 Análises":"🔥💧🌿 Analyses"};
+ "🔥💧🌿 Análises":"🔥💧🌿 Analyses",
+ "Terreno · Copernicus 30 m":"Terrain · Copernicus 30 m"};
 const T_EN = {cadastre_parcels:"Land parcels",cadastre_boundaries_ln:"Boundary lines (partilha)",
  subsidy_parcels:"Subsidy parcels",buildings_pt:"Buildings (licensing status)",
  water_sources_pt:"Boreholes & wells",water_storage_pt:"Tanks, ponds & dams",
@@ -123,7 +133,8 @@ const T_EN = {cadastre_parcels:"Land parcels",cadastre_boundaries_ln:"Boundary l
  boundary_deviations:"Boundary deviations (vs cadastre)",tree_permits:"Cuts needing ICNF permit",
  hydro_streams:"Streams (LiDAR 0.5 m, by order)",hydro_catchments:"Sub-basins (LiDAR 0.5 m) — runoff",wet_zones_50cm:"Wet zones (TWI 0.5 m)",dam_sites:"Candidate dams / ponds (model)",dam_walls:"Candidate dam walls",dam_pools:"Candidate pools (recommended crest)",tree_tops:"Individual trees",tree_crowns:"Tree crowns — 2025 vigour",tree_health:"Tree crowns — NDVI trend 2018–26 (decline)",
  building_footprints:"Building footprints (LiDAR)",suitability_zones:"Build-suitable zones (score ≥65)",
- defensible_space:"Defensible space (30 m) — poor/moderate/good",wet_zones:"Water pooling zones (TWI)",track_crossings:"Track × stream crossings (risk)",catchments_runoff:"Catchments — runoff at 50 mm",habitat_cos2025:"Land cover COS 2025"};
+ defensible_space:"Defensible space (30 m) — poor/moderate/good",wet_zones:"Water pooling zones (TWI)",track_crossings:"Track × stream crossings (risk)",catchments_runoff:"Catchments — runoff at 50 mm",habitat_cos2025:"Land cover COS 2025",biodiversity:"Biodiversity observations (iNaturalist + GBIF, 5 km)",
+ topo_contours:"Contours 5 m (indicative)",topo_streams:"Streams (30 m model, by order)",topo_catchments:"Sub-basins (30 m model)",topo_wet:"Wet zones (TWI 30 m)",topo_aspect:"Aspect (N · E · S · W)",topo_slope:"Slope (0–4 · 4–10 · 10–20 · >20°)"};
 const CAT_ICON = {
  "10":'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>',
  "20":'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11.5 12 4l9 7.5V20H3z"/></svg>',
@@ -136,7 +147,8 @@ const CAT_ICON = {
  "OPS":'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l9 4.5v9L12 21l-9-4.5v-9z"/><path d="M12 12l9-4.5M12 12 3 7.5M12 12v9"/></svg>',
  "LiDAR":'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 17l6-8 4 5 3-3 5 6z"/></svg>',
  "🏗️":'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 21V10l8-6 8 6v11"/><path d="M9 21v-7h6v7"/></svg>',
- "🔥💧🌿":'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19h16M4 15l4-4 4 3 4-6 4 4"/></svg>'};
+ "🔥💧🌿":'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19h16M4 15l4-4 4 3 4-6 4 4"/></svg>',
+ "Terreno":'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 17l6-8 4 5 3-3 5 6z"/><path d="M3 21h18"/></svg>'};
 function catIcon(name){ const k=Object.keys(CAT_ICON).find(k=>name.startsWith(k)); return CAT_ICON[k]||CAT_ICON["00"]; }
 const LAZY = {tree_tops:{f:"trees-data.js",g:"TREEDATA",msg:["Loading 7,531 trees…","A carregar 7 531 árvores…"]}, tree_crowns:{f:"trees-data.js",g:"TREEDATA",msg:["Loading 7,531 trees…","A carregar 7 531 árvores…"]}, tree_health:{f:"trees-data.js",g:"TREEDATA",msg:["Loading 7,531 trees…","A carregar 7 531 árvores…"]},
   hydro_streams:{f:"hydro-data.js",g:"HYDRODATA"}, hydro_catchments:{f:"hydro-data.js",g:"HYDRODATA"}, wet_zones_50cm:{f:"hydro-data.js",g:"HYDRODATA"}, dam_sites:{f:"dam-data.js",g:"DAMDATA"}, dam_walls:{f:"dam-data.js",g:"DAMDATA"}, dam_pools:{f:"dam-data.js",g:"DAMDATA"}, wet_zones:{f:"water-data.js",g:"WATERDATA"}, track_crossings:{f:"water-data.js",g:"WATERDATA"}, catchments_runoff:{f:"water-data.js",g:"WATERDATA"}, habitat_cos2025:{f:"habitat-data.js",g:"HABDATA"}};

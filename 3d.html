@@ -58,9 +58,9 @@ a{color:var(--accent)}
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/deck.gl@9/dist.min.js"></script>
-<script src="sites.js?v=eb39f8e5"></script>
+<script src="sites.js?v=39b9c807"></script>
 <script>edrLoadData(["data.js?v=0737499e", "ops-data.js?v=2751505a", "hydro-data.js?v=91ef64a3", "trees-data.js?v=bb99e5d4", "buildings-data.js?v=0fc788f4", "suitability-data.js?v=4e99bc9f", "defensible-data.js?v=f90a6c7b", "work-data.js?v=ad554e35"])</script>
-<script src="registry.js?v=ba3c7a82"></script>
+<script src="registry.js?v=09db97c4"></script>
 <script>
 const OGC = "https://ogcapi.dgterritorio.gov.pt/collections/";
 const ogcMap = c => `${OGC}${c}/map?bbox={bbox-epsg-3857}&bbox-crs=http://www.opengis.net/def/crs/EPSG/0/3857&width=256&height=256&f=png`;
@@ -146,7 +146,7 @@ function addLayerFor(t){
 }
 const globalOf = g => { try{ return new Function("return (typeof "+g+"!==\"undefined\")?"+g+":null")(); }catch(e){ return null; } };
 const lazyInflight={};
-function lazyLoad(t){ const z = (typeof LAZY!=="undefined") && SITE.flags.lidar && LAZY[t]; if(!z) return Promise.resolve(false); if(globalOf(z.g)){ Object.assign(DATA, edrAlias(Object.assign({},globalOf(z.g)))); return Promise.resolve(true); } if(lazyInflight[z.f]) return lazyInflight[z.f];
+function lazyLoad(t){ const z = edrLazy(t); if(!z) return Promise.resolve(false); if(globalOf(z.g)){ Object.assign(DATA, edrAlias(Object.assign({},globalOf(z.g)))); return Promise.resolve(true); } if(lazyInflight[z.f]) return lazyInflight[z.f];
   return lazyInflight[z.f]=new Promise((res)=>{ const s=document.createElement("script"); s.src=z.f+"?d="+(location.hostname==="localhost"?Date.now():new Date().toISOString().slice(0,10)); s.onload=()=>{ Object.assign(DATA, edrAlias(Object.assign({},globalOf(z.g)||{}))); res(true); }; s.onerror=()=>res(false); document.head.appendChild(s); }); }
 let layersAdded = false;
 map.on("style.load", ()=>{            // fires once the style is parsed — does not wait on slow remote sources
@@ -180,7 +180,7 @@ function buildPanel(){
   const openCats=(()=>{ try{ return new Set(JSON.parse(localStorage.getItem("edr_open_cats")||"[]")); }catch(e){ return new Set(); } })();
   const saveOpen=()=>{ try{ localStorage.setItem("edr_open_cats", JSON.stringify([...openCats])); }catch(e){} };
   for(const [gname, gOn, layers] of GROUPS){
-    const present = layers.filter(([t])=>src(t) || (typeof LAZY!=="undefined" && LAZY[t] && SITE.flags.lidar)); if(!present.length) continue;
+    const present = layers.filter(([t])=>src(t) || edrLazy(t)); if(!present.length) continue;
     const cat=document.createElement("div"); cat.className="cat"+(openCats.has(gname)?" open":"");
     const onCount=present.filter(([t])=>state[t]).length;
     cat.innerHTML=`<div class="ch"><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 6 6 6-6 6"/></svg><span class="ico">${catIcon(gname)}</span><span class="cn">${gname_i18n(gname).replace(/^[\d]+ · |^[^\w]+ /,"")}</span><span class="cc ${onCount?"on":""}">${onCount}/${present.length}</span><label class="tg"><input type="checkbox" class="gc" ${onCount===present.length?"checked":""}><i></i></label></div><div class="cb"></div>`;
@@ -326,6 +326,6 @@ document.getElementById("fly").onclick = ()=> {
 <script>(function(){ const b=document.getElementById("pburger"), p=document.getElementById("panel"); if(!b||!p) return; const tx=()=>{ const s=document.getElementById("pburger-t"); if(s) s.textContent=p.classList.contains("open")?(LANG==="en"?"Close":"Fechar"):(LANG==="en"?"Layers & views":"Camadas & vistas"); }; b.onclick=()=>{ p.classList.toggle("open"); document.body.classList.toggle("sheet-open",p.classList.contains("open")); tx(); }; tx();
   map.on("click",()=>{ if(window.innerWidth<=700&&p.classList.contains("open")){ p.classList.remove("open"); document.body.classList.remove("sheet-open"); tx(); } }); })();
 </script>
-<script src="nav.js?v=ad3ab3ba"></script>
+<script src="nav.js?v=9495da2c"></script>
 </body>
 </html>

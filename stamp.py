@@ -13,7 +13,10 @@ def stamp_list(text):
         f=m.group(1); fp=os.path.join(os.path.dirname(os.path.abspath(__file__)),f)
         if not os.path.exists(fp): return m.group(0)
         return f'"{f}?v={hashlib.md5(open(fp,"rb").read()).hexdigest()[:8]}"'
-    return re.sub(r'"([A-Za-z0-9_\-/]+\.js)(?:\?v=[0-9a-f]+)?"', rep, text)
+    return re.sub(r'"((?:sites/[A-Za-z0-9_\-/]+|[A-Za-z0-9_\-]+)\.js)(?:\?v=[0-9a-f]+)?"', rep, text)
+def stamp_sites(text):
+    # sites.js: stamp only path VALUES (sites/…/x.js and core:"data.js"); the file-name keys of data.files must stay bare
+    return re.sub(r'(core:|f:|:)"((?:sites/[A-Za-z0-9_\-/]+\.js)|data\.js)(?:\?v=[0-9a-f]+)?"', lambda m: m.group(1)+stamp_list('"'+m.group(2)+'"'), text)
 HERE=os.path.dirname(os.path.abspath(__file__))
 for page in glob.glob(os.path.join(HERE,"*.html")):
     h=open(page).read(); n=stamp(h)
@@ -21,5 +24,5 @@ for page in glob.glob(os.path.join(HERE,"*.html")):
     if n!=h: open(page,"w").write(n); print("stamped", os.path.basename(page))
 sj=os.path.join(HERE,"sites.js")
 if os.path.exists(sj):
-    h=open(sj).read(); n=stamp_list(h)
+    h=open(sj).read(); n=stamp_sites(h)
     if n!=h: open(sj,"w").write(n); print("stamped sites.js")
