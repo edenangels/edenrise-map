@@ -67,7 +67,7 @@ body.field .lyr{padding:9px 6px;font-size:14px} body.field .tg{transform:scale(1
   <div id="map"></div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="sites.js?v=f6bf9f1a"></script>
+<script src="sites.js?v=eb39f8e5"></script>
 <script>edrLoadData(["data.js?v=0737499e", "ops-data.js?v=2751505a", "sat-data.js?v=98dc79f4", "buildings-data.js?v=0fc788f4", "suitability-data.js?v=4e99bc9f", "work-data.js?v=ad554e35", "defensible-data.js?v=f90a6c7b"])</script>
 <script src="registry.js?v=ba3c7a82"></script>
 <script>
@@ -105,15 +105,15 @@ const map = L.map("map",{zoomControl:true, maxZoom:22, zoomSnap:0.5, zoomDelta:0
 const bases = {
  "Esri": L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
    {maxNativeZoom:19, maxZoom:22, attribution:"Imagery © Esri & partners"}),
- ...(SITE.tiles.ortho ? {"DGT 2025": L.layerGroup([
+ ...(SITE.tiles.ortho ? {[SITE.ortho.label]: L.layerGroup([
    L.tileLayer.wms("https://ortos.dgterritorio.gov.pt/wms/ortosat2023", {layers:"ortoSat2023-CorVerdadeira", format:"image/png", maxZoom:22, attribution:"OrtoSat2023 © DGT"}),
-   L.tileLayer(SITE.tiles.ortho+"/{z}/{x}/{y}.jpg", {minZoom:12, maxNativeZoom:20, maxZoom:22, bounds:[[SITE.tileBounds[1],SITE.tileBounds[0]],[SITE.tileBounds[3],SITE.tileBounds[2]]], attribution:"Ortofotos 2025 © DGT"})])} : {}),
- "DGT 2023": L.tileLayer.wms("https://ortos.dgterritorio.gov.pt/wms/ortosat2023",
-   {layers:"ortoSat2023-CorVerdadeira", format:"image/png", maxZoom:22, attribution:"OrtoSat2023 © DGT"}),
+   L.tileLayer(SITE.tiles.ortho+"/{z}/{x}/{y}.jpg", {minZoom:12, maxNativeZoom:SITE.ortho.maxNative||20, maxZoom:22, bounds:[[SITE.tileBounds[1],SITE.tileBounds[0]],[SITE.tileBounds[3],SITE.tileBounds[2]]], attribution:SITE.ortho.attr})])} : {}),
+ ...((SITE.tiles.ortho && SITE.ortho.label==="DGT 2023") ? {} : {"DGT 2023": L.tileLayer.wms("https://ortos.dgterritorio.gov.pt/wms/ortosat2023",
+   {layers:"ortoSat2023-CorVerdadeira", format:"image/png", maxZoom:22, attribution:"OrtoSat2023 © DGT"})}),
  "OSM": L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
    {maxNativeZoom:19, maxZoom:22, attribution:"© OpenStreetMap contributors"}),
 };
-let curBase = SITE.tiles.ortho ? "DGT 2025" : "DGT 2023"; bases[curBase].addTo(map);
+let curBase = SITE.tiles.ortho ? SITE.ortho.label : "DGT 2023"; bases[curBase].addTo(map);
 const bm = document.getElementById("basemaps");
 Object.keys(bases).forEach(k=>{
   const b=document.createElement("button"); b.textContent=k; if(k===curBase)b.classList.add("on");
@@ -373,7 +373,7 @@ function openWork(){
 window.addEventListener("hashchange", ()=>{ openAsset(); openWork(); });
 setTimeout(()=>{ openAsset(); openWork(); }, 400);
 </script>
-<script src="modes.js?v=ff502f37"></script>
+<script src="modes.js?v=1f989309"></script>
 <script src="card.js?v=c8deb725"></script>
 <script src="view.js?v=ba2d39b5"></script>
 <script src="nav.js?v=ad3ab3ba"></script>

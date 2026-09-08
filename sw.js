@@ -11,7 +11,7 @@ self.addEventListener("message", async e => {
 });
 self.addEventListener("fetch", e => {
   const u = new URL(e.request.url); if (e.request.method !== "GET") return;
-  if (u.origin === location.origin && /\/(ortho2025|terrain|hillshade)\//.test(u.pathname)) {   // tiles: cache first
+  if (u.origin === location.origin && /\/(ortho2025|ortho2023|terrain|hillshade)\//.test(u.pathname)) {   // tiles: cache first
     e.respondWith((async () => { const c = await caches.open(TILES); const hit = await c.match(e.request); if (hit) return hit; try { const r = await fetch(e.request); if (r.ok) c.put(e.request, r.clone()); return r; } catch (err) { return new Response("", { status: 504 }); } })()); return; }
   if (u.origin === location.origin) {                                                         // shell + data: network first, fall back to cache
     e.respondWith((async () => { const c = await caches.open(SHELL); try { const r = await fetch(e.request); if (r.ok) c.put(e.request, r.clone()); return r; } catch (err) { const hit = await c.match(e.request, { ignoreSearch: true }); return hit || new Response("offline", { status: 503 }); } })()); }

@@ -103,7 +103,7 @@ function report(){
 (function(){ const m = location.hash.match(/#at=(-?\d+\.\d+),(-?\d+\.\d+)/); if(m){ const ll=[+m[1],+m[2]]; setTimeout(()=>{ map.setView(ll,18); L.marker(ll,{icon:L.divIcon({className:"", html:`<div class="pin rep">!</div>`, iconSize:[26,26], iconAnchor:[13,26]})}).addTo(map); }, 600); } })();
 
 // ---------- 🕰️ TIME MODE ----------
-const YEARS = [["ortos1995-irg","1995 (IR)"],["ortos2004-2006-rgb","2004–06"],["ortos2007-rgb","2007"],["ortos2010-rgb","2010"],["ortos2012-rgb","2012"],["ortos2015-rgb","2015"],["ortos2018-rgb","2018"],["ortos-rgb","2023"],["local2025","2025"]].filter(([c])=>c!=="local2025"||SITE.tiles.ortho);
+const YEARS = [["ortos1995-irg","1995 (IR)"],["ortos2004-2006-rgb","2004–06"],["ortos2007-rgb","2007"],["ortos2010-rgb","2010"],["ortos2012-rgb","2012"],["ortos2015-rgb","2015"],["ortos2018-rgb","2018"],["ortos-rgb","2023"],["local2025","2025"]].filter(([c])=>c!=="local2025"||(SITE.tiles.ortho&&SITE.ortho.year==="2025"));
 const OgcTile = L.TileLayer.extend({ getTileUrl(c){ const n=Math.pow(2,c.z), R=6378137*Math.PI, s=2*R/n; const x0=-R+c.x*s, y1=R-c.y*s; return `${OGC}${this.options.coll}/map?bbox=${x0},${y1-s},${x0+s},${y1}&bbox-crs=http://www.opengis.net/def/crs/EPSG/0/3857&width=256&height=256&f=png`; } });
 function orthoLayer(coll, pane){ return coll==="local2025" ? L.tileLayer(SITE.tiles.ortho+"/{z}/{x}/{y}.jpg",{minZoom:12,maxNativeZoom:18,maxZoom:20,pane,bounds:[[SITE.tileBounds[1],SITE.tileBounds[0]],[SITE.tileBounds[3],SITE.tileBounds[2]]]}) : new OgcTile("",{coll,pane,maxZoom:20,attribution:"© DGT"}); }
 let divider = null, dragging = false;

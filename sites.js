@@ -11,7 +11,7 @@ const SITES = {
     centre:[37.512,-8.645], zoom:14.3, zoom3d:14.3, pitch:52, bearing:-20,
     bbox:[-8.65749,37.50061,-8.63173,37.52273], tileBounds:[-8.661,37.497,-8.628,37.526],
     data:{core:"data.js?v=0737499e"},                                   // EdenRise pages list their own analysis files inline (stamped)
-    tiles:{ortho:"ortho2025", hillshade:"hillshade", terrain:"terrain", surface:"surface", contours:"contours"},
+    tiles:{ortho:"ortho2025", hillshade:"hillshade", terrain:"terrain", surface:"surface", contours:"contours"}, ortho:{label:"DGT 2025", year:"2025", attr:"Ortofotos 2025 © DGT", maxNative:20}, terrainEncoding:"mapbox", terrainMaxzoom:16,
     pointcloud:"https://edenangels.github.io/edenrise-3d/tiles/tileset.json", roofs:"roofs.json",
     ipma:"0211", concelho:"Odemira",
     flags:{perma:true, lidar:true, climate:true, labels:true},
@@ -24,9 +24,9 @@ const SITES = {
     ttl:{pt:"Malhão Pardo — Herdade",en:"Malhão Pardo — Estate"}, sub:{pt:"Mapa vivo da propriedade · dados 2026-09",en:"Living map of the property · data 2026-09"},
     ttl3d:{pt:"Malhão Pardo — Herdade 3D",en:"Malhão Pardo — Estate 3D"},
     centre:[37.5939,-8.7019], zoom:16, zoom3d:15.6, pitch:55, bearing:-15,
-    bbox:[-8.7069,37.5873,-8.6978,37.5951], tileBounds:null,
+    bbox:[-8.7069,37.5873,-8.6978,37.5951], tileBounds:[-8.7129,37.5813,-8.6918,37.6011],
     data:{core:"sites/malhao/data.js?v=23c6392b", files:{}},             // files: maps an EdenRise analysis file name to this property's own copy, when that product exists here
-    tiles:{}, pointcloud:null, roofs:null,                    // no LiDAR / 2025 ortho yet → Terrarium terrain + live DGT 2023 ortho
+    tiles:{ortho:"sites/malhao/ortho2023", terrain:"sites/malhao/terrain"}, ortho:{label:"DGT 2023", year:"2023", attr:"OrtoSat2023 © DGT (30 cm)", maxNative:19}, terrainEncoding:"terrarium", terrainMaxzoom:15, pointcloud:null, roofs:null,   // cached DGT 2023 ortho + Terrarium DEM tiles (scripts/fetch_tiles.py); no LiDAR / 2025 ortho yet
     ipma:"0211", concelho:"Odemira",
     flags:{},
     views3d:[["Casa","Main house",[-8.7019,37.5939],17.2,62,-25],["Norte","North",[-8.7030,37.5960],16.4,58,10],["Sul","South",[-8.7010,37.5900],16.4,60,170]],

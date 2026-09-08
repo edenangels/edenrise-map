@@ -58,16 +58,16 @@ a{color:var(--accent)}
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/deck.gl@9/dist.min.js"></script>
-<script src="sites.js?v=f6bf9f1a"></script>
+<script src="sites.js?v=eb39f8e5"></script>
 <script>edrLoadData(["data.js?v=0737499e", "ops-data.js?v=2751505a", "hydro-data.js?v=91ef64a3", "trees-data.js?v=bb99e5d4", "buildings-data.js?v=0fc788f4", "suitability-data.js?v=4e99bc9f", "defensible-data.js?v=f90a6c7b", "work-data.js?v=ad554e35"])</script>
 <script src="registry.js?v=ba3c7a82"></script>
 <script>
 const OGC = "https://ogcapi.dgterritorio.gov.pt/collections/";
 const ogcMap = c => `${OGC}${c}/map?bbox={bbox-epsg-3857}&bbox-crs=http://www.opengis.net/def/crs/EPSG/0/3857&width=256&height=256&f=png`;
 const BASES = {
-  ...(SITE.tiles.ortho ? {dgt25: {pt:"DGT 2025 · 25 cm", en:"DGT 2025 · 25 cm", maxzoom:20, tiles:[location.href.replace(/[^/]*$/,"") + SITE.tiles.ortho + "/{z}/{x}/{y}.jpg"], attr:"Ortofotos 2025 © DGT", bounds:SITE.tileBounds}} : {}),
+  ...(SITE.tiles.ortho ? {local: {pt:SITE.ortho.label+" · "+(SITE.ortho.year==="2025"?"25 cm":"30 cm"), en:SITE.ortho.label+" · "+(SITE.ortho.year==="2025"?"25 cm":"30 cm"), maxzoom:SITE.ortho.maxNative||20, tiles:[location.href.replace(/[^/]*$/,"") + SITE.tiles.ortho + "/{z}/{x}/{y}.jpg"], attr:SITE.ortho.attr, bounds:SITE.tileBounds}} : {}),
   dgt18: {pt:"DGT 2018 · 25 cm", en:"DGT 2018 · 25 cm", tiles:[ogcMap("ortos2018-rgb")], attr:"Ortofotos 2018 © DGT"},
-  dgt23: {pt:"DGT 2023 · 30 cm", en:"DGT 2023 · 30 cm", tiles:[ogcMap("ortos-rgb")], attr:"OrtoSat2023 © DGT"},
+  ...((SITE.tiles.ortho && SITE.ortho.year==="2023") ? {} : {dgt23: {pt:"DGT 2023 · 30 cm", en:"DGT 2023 · 30 cm", tiles:[ogcMap("ortos-rgb")], attr:"OrtoSat2023 © DGT"}}),
   esri:  {pt:"Esri", en:"Esri", tiles:["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], attr:"© Esri & partners"},
 };
 let LANG = "pt"; try{ LANG = localStorage.getItem("edr_lang") || ((navigator.language||"pt").toLowerCase().startsWith("pt")?"pt":"en"); }catch(e){}
@@ -82,11 +82,11 @@ const src = t => DATA[t];
 const LAYERS = []; for(const [g, gOn, ls] of GROUPS) for(const [t, title, kind, color, opt] of ls) LAYERS.push([g, t, title, kind, color, opt||{}]);
 const titleOf = t => { const e = LAYERS.find(x=>x[1]===t); return e ? (LANG==="en" ? (T_EN[t]||e[2]) : e[2]) : t; };
 const gname_i18n = g => LANG==="en" ? (G_EN[g]||g) : g;
-let curBase = SITE.tiles.ortho ? "dgt25" : "dgt23";
+let curBase = SITE.tiles.ortho ? "local" : "dgt23";
 const map = new maplibregl.Map({container:"map", attributionControl:{compact:true}, zoom:SITE.zoom3d, center:[SITE.centre[1],SITE.centre[0]], pitch:SITE.pitch, bearing:SITE.bearing, maxPitch:75,
   style:{version:8, glyphs:"https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf", sources:{
-    terrain: SITE.tiles.terrain ? {type:"raster-dem", tiles:[location.href.replace(/[^/]*$/,"") + SITE.tiles.terrain + "/{z}/{x}/{y}.png"], encoding:"mapbox", tileSize:256, minzoom:8, maxzoom:16,
-             bounds:[-9.55,36.6,-7.75,38.45], attribution:"Terreno: LiDAR 2024 © DGT (50 cm) + Terrarium"}
+    terrain: SITE.tiles.terrain ? {type:"raster-dem", tiles:[location.href.replace(/[^/]*$/,"") + SITE.tiles.terrain + "/{z}/{x}/{y}.png"], encoding:SITE.terrainEncoding||"mapbox", tileSize:256, minzoom:8, maxzoom:SITE.terrainMaxzoom||16,
+             bounds:[-9.55,36.6,-7.75,38.45], attribution:SITE.flags.lidar ? "Terreno: LiDAR 2024 © DGT (50 cm) + Terrarium" : "Terreno: Terrarium (Mapzen / AWS) ~30 m"}
            : {type:"raster-dem", tiles:["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"], encoding:"terrarium", tileSize:256, minzoom:0, maxzoom:15, attribution:"Terreno: Terrarium (Mapzen / AWS) ~30 m"},
     base:{type:"raster", tiles:BASES[curBase].tiles, tileSize:256, attribution:BASES[curBase].attr, maxzoom:BASES[curBase].maxzoom||19},
     fallback:{type:"raster", tiles:[ogcMap("ortos-rgb")], tileSize:256, attribution:"OrtoSat2023 © DGT"},
