@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="pt"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>EdenRise — Faixas de gestão de combustível</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<link rel="stylesheet" href="ui.css?v=16286725"><script src="ops-data.js?v=2751505a"></script>
+<link rel="stylesheet" href="ui.css?v=b9f22cc2"><script src="ops-data.js?v=2751505a"></script>
 <style>
 body{background:var(--night);color:var(--linen);font:13px/1.45 var(--ui);margin:0} .pg{display:block;width:auto;max-width:1100px;margin:0 auto;padding:22px 18px 60px}
 h1{font:600 26px var(--display);margin:8px 0 2px;letter-spacing:-.01em} .eyebrow{font:600 10.5px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)} .sub{color:var(--linen-2);max-width:760px}
@@ -12,6 +12,7 @@ table{width:100%;border-collapse:collapse;font-size:12.5px} th{font:600 10px var
 .th{display:inline-block;width:44px;height:33px;border-radius:4px;object-fit:cover;margin-right:3px;border:1px solid var(--line-2)} a{color:var(--straw)}
 .btn{display:inline-block;padding:9px 14px;border-radius:999px;border:1px solid var(--line-2);background:var(--night-2);color:var(--linen);font:700 12px var(--ui);cursor:pointer;text-decoration:none;margin-right:6px}
 @media print{ body{background:#fff;color:#111} .nav,.btn{display:none} .k,.st{border:1px solid #999;color:#111} #cmap{height:300px} .pg{padding:0} }
+@media(max-width:700px){ table{display:block;overflow-x:auto;white-space:nowrap;max-width:100%} svg{max-width:100%;height:auto} .page,.wrap{padding-left:12px;padding-right:12px} }
 </style></head><body>
 <div class="pg">
 <div class="eyebrow">EdenRise · DL 82/2021 · Despacho 3440/2026 · prazo anual 31 de maio</div>
@@ -42,4 +43,4 @@ const rows=[]; const lay=L.geoJSON({type:"FeatureCollection",features:strips},{s
   document.getElementById("ft").textContent=`${EN?"Generated":"Gerado"} ${new Date().toLocaleString(EN?"en-GB":"pt-PT")} · ${EN?"deadline":"prazo"} ${deadline} · edenangels.github.io/edenrise-map/compliance.html`;
   document.getElementById("csv").onclick=()=>{ const h=["key","name","kind","area_m2","last_clearing","by","records","state"]; const csv=[h.join(",")].concat(rows.map(r=>[r.key,`"${(r.name||"").replace(/"/g,'""')}"`,r.kind,r.area,r.last,`"${(r.by||"").replace(/"/g,'""')}"`,r.n,r.state].join(","))).join("\n"); const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"})); a.download=`faixas-combustivel-${yr}.csv`; a.click(); };
 })();
-</script><script src="nav.js?v=926f28a6"></script></body></html>
+</script><script src="nav.js?v=d1e8fea3"></script></body></html>

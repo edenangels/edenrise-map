@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>EdenRise — Herdade 3D</title>
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
-<link rel="stylesheet" href="ui.css?v=16286725">
+<link rel="stylesheet" href="ui.css?v=b9f22cc2">
 <style>
 :root{--bg:var(--bark);--panel:var(--night);--ink:var(--linen);--accent:var(--oak)}
 #map{position:absolute;inset:44px 0 0 0}
@@ -22,6 +22,10 @@
 .pp h3{margin:0 0 5px;font-size:13.5px} .pp td{padding:1px 8px 1px 0;vertical-align:top} .pp td:first-child{color:var(--muted)}
 .hint{font-size:10.5px;color:var(--muted);margin-top:8px;line-height:1.35}
 a{color:var(--accent)}
+#pburger{display:none;position:absolute;z-index:6;left:10px;bottom:52px;align-items:center;gap:8px;background:var(--night);color:var(--linen);border:1px solid var(--line-2);border-radius:999px;padding:9px 14px;font:700 12px var(--ui);box-shadow:var(--sh)}
+#pburger.hide{display:none}
+@media(max-width:700px){ body.sheet-open #pburger{bottom:calc(62vh + 22px);left:auto;right:10px} }
+@media(max-width:700px){ #panel{left:8px;right:8px;width:auto;top:auto;bottom:10px;max-height:62vh;padding:12px;transform:translateY(calc(100% + 20px));transition:transform .22s} #panel.open{transform:none} #pburger{display:flex} #panel h1{font-size:16px} .row button{font-size:10.5px;padding:6px 2px} }
 .cat{border:1px solid var(--line);border-radius:10px;margin:6px 0;background:var(--bark);overflow:hidden}
 .cat .ch{display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:pointer;user-select:none} .cat .ch:hover{background:var(--night-2)}
 .cat .chev{width:14px;height:14px;transition:transform .18s;color:var(--muted);flex:none} .cat.open .chev{transform:rotate(90deg)}
@@ -40,6 +44,7 @@ a{color:var(--accent)}
 </head>
 <body>
 <div id="map"></div>
+<button id="pburger" aria-label="Painel">☰ <span id="pburger-t"></span></button>
 <div id="panel">
   <h1 id="ttl">EdenRise — Herdade 3D</h1>
   <div class="sub" id="sub">Gémeo digital · terreno real + ortofotos DGT</div>
@@ -56,10 +61,10 @@ a{color:var(--accent)}
 <script src="data.js?v=0737499e"></script>
 <script src="ops-data.js?v=2751505a"></script>
 <script src="hydro-data.js?v=91ef64a3"></script>
-<script src="trees-data.js?v=87638c70"></script>
+<script src="trees-data.js?v=bb99e5d4"></script>
 <script src="buildings-data.js?v=0fc788f4"></script>
 <script src="suitability-data.js?v=4e99bc9f"></script>
-<script src="registry.js?v=88225275"></script>
+<script src="registry.js?v=ba3c7a82"></script>
 <script src="defensible-data.js?v=f90a6c7b"></script>
 <script src="work-data.js?v=ad554e35"></script>
 <script>
@@ -84,7 +89,7 @@ const LAYERS = []; for(const [g, gOn, ls] of GROUPS) for(const [t, title, kind, 
 const titleOf = t => { const e = LAYERS.find(x=>x[1]===t); return e ? (LANG==="en" ? (T_EN[t]||e[2]) : e[2]) : t; };
 const gname_i18n = g => LANG==="en" ? (G_EN[g]||g) : g;
 let curBase = "dgt25";
-const map = new maplibregl.Map({container:"map", zoom:14.3, center:[-8.645,37.512], pitch:52, bearing:-20, maxPitch:75,
+const map = new maplibregl.Map({container:"map", attributionControl:{compact:true}, zoom:14.3, center:[-8.645,37.512], pitch:52, bearing:-20, maxPitch:75,
   style:{version:8, glyphs:"https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf", sources:{
     terrain:{type:"raster-dem", tiles:[location.href.replace(/[^/]*$/,"") + "terrain/{z}/{x}/{y}.png"], encoding:"mapbox", tileSize:256, minzoom:8, maxzoom:16,
              bounds:[-9.55,36.6,-7.75,38.45], attribution:"Terreno: LiDAR 2024 © DGT (50 cm) + Terrarium"},
@@ -146,8 +151,8 @@ function addLayerFor(t){
 }
 const globalOf = g => { try{ return new Function("return (typeof "+g+"!==\"undefined\")?"+g+":null")(); }catch(e){ return null; } };
 const lazyInflight={};
-function lazyLoad(t){ const z = (typeof LAZY!=="undefined") && LAZY[t]; if(!z) return Promise.resolve(false); if(globalOf(z.g)){ Object.assign(DATA, globalOf(z.g)); return Promise.resolve(true); } if(lazyInflight[z.f]) return lazyInflight[z.f];
-  return lazyInflight[z.f]=new Promise((res)=>{ const s=document.createElement("script"); s.src=z.f+"?d="+(location.hostname==="localhost"?Date.now():new Date().toISOString().slice(0,10)); s.onload=()=>{ Object.assign(DATA, globalOf(z.g)||{}); res(true); }; s.onerror=()=>res(false); document.head.appendChild(s); }); }
+function lazyLoad(t){ const z = (typeof LAZY!=="undefined") && LAZY[t]; if(!z) return Promise.resolve(false); if(globalOf(z.g)){ Object.assign(DATA, edrAlias(Object.assign({},globalOf(z.g)))); return Promise.resolve(true); } if(lazyInflight[z.f]) return lazyInflight[z.f];
+  return lazyInflight[z.f]=new Promise((res)=>{ const s=document.createElement("script"); s.src=z.f+"?d="+(location.hostname==="localhost"?Date.now():new Date().toISOString().slice(0,10)); s.onload=()=>{ Object.assign(DATA, edrAlias(Object.assign({},globalOf(z.g)||{}))); res(true); }; s.onerror=()=>res(false); document.head.appendChild(s); }); }
 let layersAdded = false;
 map.on("style.load", ()=>{            // fires once the style is parsed — does not wait on slow remote sources
   if(layersAdded) return; layersAdded = true;
@@ -207,8 +212,8 @@ function buildPanel(){
 function centroid(g){ try{ const flat=(c)=>typeof c[0]==="number"?[c]:c.flatMap(flat); const pts=flat(g.coordinates); const n=pts.length; return [pts.reduce((a,p)=>a+p[0],0)/n, pts.reduce((a,p)=>a+p[1],0)/n]; }catch(e){ return null; } }
 /* ---------- Permaculture & design in 3D: LiDAR contours as vector tiles with labels along the line, aspect/slope/frost/keylines, sun hours ---------- */
 const BASEURL = location.href.replace(/[^/]*$/,"");
-const PM = {pt:{cat:"Permacultura & design",contours:"Curvas de nível LiDAR (5 m · 1 m · 0,5 m · 0,25 m)",labels:"Cotas nas curvas",aspect:"Exposição",N:"Virado a norte",E:"Virado a leste",S:"Virado a sul",W:"Virado a oeste",slope:"Declive",s1:"Plano 0–4°",s2:"Suave 4–10°",s3:"Moderado 10–20°",s4:"Íngreme >20°",frost:"Bolsas de geada",key:"Keypoints & keylines",sun:"Horas de sol",sw:"Inverno",se:"Equinócio",ss:"Verão",off:"✕"},
-            en:{cat:"Permaculture & design",contours:"LiDAR contours (5 m · 1 m · 0.5 m · 0.25 m)",labels:"Elevation labels",aspect:"Aspect",N:"North-facing",E:"East-facing",S:"South-facing",W:"West-facing",slope:"Slope",s1:"Flat 0–4°",s2:"Gentle 4–10°",s3:"Moderate 10–20°",s4:"Steep >20°",frost:"Frost pockets",key:"Keypoints & keylines",sun:"Sun hours",sw:"Winter",se:"Equinox",ss:"Summer",off:"✕"}};
+const PM = {pt:{cat:"Permacultura & design",contours:"Curvas de nível LiDAR (5 m · 1 m · 0,5 m · 0,25 m)",labels:"Cotas nas curvas",aspect:"Exposição",N:"Virado a norte",E:"Virado a leste",S:"Virado a sul",W:"Virado a oeste",slope:"Declive",s1:"Plano 0–4°",s2:"Suave 4–10°",s3:"Moderado 10–20°",s4:"Íngreme >20°",frost:"Bolsas de geada",key:"Keypoints & keylines",sun:"Horas de sol",sw:"Inverno",se:"Equinócio",ss:"Verão",off:"✕",shade:"Sombra das copas (0,5 m)",peaks:"Pontos altos e baixos",wnw:"Vento — nortada NO",wene:"Vento — levante E/NE",plant:"Aptidão para plantar"},
+            en:{cat:"Permaculture & design",contours:"LiDAR contours (5 m · 1 m · 0.5 m · 0.25 m)",labels:"Elevation labels",aspect:"Aspect",N:"North-facing",E:"East-facing",S:"South-facing",W:"West-facing",slope:"Slope",s1:"Flat 0–4°",s2:"Gentle 4–10°",s3:"Moderate 10–20°",s4:"Steep >20°",frost:"Frost pockets",key:"Keypoints & keylines",sun:"Sun hours",sw:"Winter",se:"Equinox",ss:"Summer",off:"✕",shade:"Canopy shade (0.5 m)",peaks:"High & low points",wnw:"Wind — NW nortada",wene:"Wind — E/NE levante",plant:"Planting suitability"}};
 const PCOL={N:"#5b8fb9",E:"#9fb789",S:"#e0a83a",W:"#e07b39",s1:"#7f9a6a",s2:"#c9a227",s3:"#e07b39",s4:"#b3413a",frost:"#8fd3ff",key:"#ff4fd8"};
 const pstate = (()=>{ try{ return JSON.parse(localStorage.getItem("edr3d_perma")||"{}"); }catch(e){ return {}; } })(); const psave=()=>{ try{ localStorage.setItem("edr3d_perma",JSON.stringify(pstate)); }catch(e){} };
 const pjson = {}; async function pget(name){ if(pjson[name]) return pjson[name]; pjson[name] = await fetch(`perma/${name}.json`).then(r=>r.json()); return pjson[name]; }
@@ -224,6 +229,12 @@ async function ptoggle(key,on){ pstate[key]=on; psave();
         paint:{"text-color":"#fff6dc","text-halo-color":"rgba(28,24,19,.9)","text-halo-width":1.4}}); }
     pvis("ct_line",on); pvis("ct_dep",on); pvis("ct_label",on && pstate.labels!==false); return; }
   if(key==="labels"){ pvis("ct_label",on && !!pstate.contours); return; }
+  if(key==="peaks"){ return ppeaks(on); }
+  if(key==="wnw"||key==="wene"||key==="plant"){ const id="pm_"+key; if(!map.getSource(id)){ let fc; if(key==="plant") fc=await fetch("perma/planting.json").then(r=>r.json()); else { const w=await fetch("perma/wind.json").then(r=>r.json()); fc=w[key==="wnw"?"nw":"ene"]; } map.addSource(id,{type:"geojson",data:fc});
+      const col = key==="plant" ? ["match",["get","cls"],"alta","#43a047","media","#c9a227","#b3413a"] : ["match",["get","cls"],"exposto","#ff7043","#5bc0de"];
+      map.addLayer({id,type:"fill",source:id,paint:{"fill-color":col,"fill-opacity":.35},layout:{visibility:"none"}});
+      map.on("click",id,e=>{ const p=e.features[0].properties; new maplibregl.Popup().setLngLat(e.lngLat).setHTML(`<div class="pp"><h3>${PM[LANG][key]}</h3>${p.cls} · ${(p.area_m2/1e4).toFixed(2)} ha</div>`).addTo(map); }); }
+    pvis(id,on); return; }
   const cfg = {N:["aspect_classes","N"],E:["aspect_classes","E"],S:["aspect_classes","S"],W:["aspect_classes","W"],s1:["slope_classes","0-4"],s2:["slope_classes","4-10"],s3:["slope_classes","10-20"],s4:["slope_classes",">20"],frost:["frost_pockets",null],key:["keylines",null]}[key]; if(!cfg) return;
   const [name, cls] = cfg; const id="pm_"+key;
   if(!map.getSource("pm_"+name)){ const fc=await pget(name); if(!map.getSource("pm_"+name)) map.addSource("pm_"+name,{type:"geojson",data:fc}); }
@@ -236,21 +247,27 @@ async function ptoggle(key,on){ pstate[key]=on; psave();
     map.on("click", id, e=>{ const p=e.features[0].properties; new maplibregl.Popup().setLngLat(e.lngLat).setHTML(`<div class="pp"><h3>${PM[LANG][key]||key}</h3>${p.area_m2?(p.area_m2/1e4).toFixed(2)+" ha":""} ${p.elev?p.elev+" m":""}</div>`).addTo(map); });
   }
   pvis(id,on); pvis(id+"_pt",on); }
+async function pshade(key){ pstate.shade=key; psave(); if(map.getLayer("pm_shade")){ map.removeLayer("pm_shade"); map.removeSource("pm_shade"); } if(!key) return;
+  const b=(await fetch("perma/shade_bounds.json").then(r=>r.json())).bounds; const [[s,w],[n,e]]=b; map.addSource("pm_shade",{type:"image",url:`perma/shade_${key}.png`,coordinates:[[w,n],[e,n],[e,s],[w,s]]}); const before=map.getLayer("ct_dep")?"ct_dep":map.getLayer("ct_line")?"ct_line":undefined; map.addLayer({id:"pm_shade",type:"raster",source:"pm_shade",paint:{"raster-opacity":.85,"raster-fade-duration":0}},before); }
+async function ppeaks(on){ pstate.peaks=on; psave(); if(!map.getSource("pm_peaks")){ const fc=await fetch("perma/peaks.json").then(r=>r.json()).catch(()=>null); if(!fc) return; map.addSource("pm_peaks",{type:"geojson",data:fc});
+    map.addLayer({id:"pm_peaks",type:"symbol",source:"pm_peaks",layout:{"text-field":["concat",["case",["==",["get","kind"],"peak"],"▲ ","▽ "],["to-string",["get","elev"]]],"text-font":["Open Sans Semibold"],"text-size":11,"text-anchor":"bottom","text-allow-overlap":false},paint:{"text-color":["case",["==",["get","kind"],"peak"],"#ffffff","#8fd3ff"],"text-halo-color":"rgba(0,0,0,.85)","text-halo-width":1.3}}); }
+  pvis("pm_peaks",on); }
 let sunKey=null; async function psun(key){ sunKey=key; pstate.sun=key; psave(); if(map.getLayer("pm_sun")){ map.removeLayer("pm_sun"); map.removeSource("pm_sun"); } if(!key) return;
   const b=(await fetch("perma/bounds.json").then(r=>r.json())).bounds; const [[s,w],[n,e]]=b;
   map.addSource("pm_sun",{type:"image",url:`perma/sun_${key}.png`,coordinates:[[w,n],[e,n],[e,s],[w,s]]}); const before=map.getLayer("ct_dep")?"ct_dep":map.getLayer("ct_line")?"ct_line":undefined; map.addLayer({id:"pm_sun",type:"raster",source:"pm_sun",paint:{"raster-opacity":.7,"raster-fade-duration":0}},before); }
 function buildPermaCat(tree){ const tx=PM[LANG]; const cat=document.createElement("div"); cat.className="cat"; cat.id="permacat3d"; let open=false; try{ open=JSON.parse(localStorage.getItem("edr_open_cats")||"[]").includes("perma"); }catch(e){} if(open) cat.classList.add("open");
   const row=(k,label,color,kind)=>`<label class="lyr" data-k="${k}"><span class="sw ${kind||"pg"}" style="background:${color}"></span><span class="nm">${label}</span><span class="tg"><input type="checkbox" ${pstate[k]?"checked":""}><i></i></span></label>`;
-  const keys=["contours","labels","N","E","S","W","s1","s2","s3","s4","frost","key"]; const onN=keys.filter(k=>pstate[k]).length;
+  const keys=["contours","labels","N","E","S","W","s1","s2","s3","s4","frost","key","peaks","wnw","wene","plant"]; const onN=keys.filter(k=>pstate[k]).length;
   cat.innerHTML=`<div class="ch"><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 6 6 6-6 6"/></svg><span class="ico">🌱</span><span class="cn">${tx.cat}</span><span class="cc ${onN?"on":""}">${onN}/${keys.length}</span></div><div class="cb">
     ${row("contours",tx.contours,"#f1e9d8","ln")}${row("labels",tx.labels,"#fff6dc","ln")}<div class="pm-sub">${tx.aspect}</div>${["N","E","S","W"].map(k=>row(k,tx[k],PCOL[k])).join("")}<div class="pm-sub">${tx.slope}</div>${["s1","s2","s3","s4"].map(k=>row(k,tx[k],PCOL[k])).join("")}
-    ${row("frost",tx.frost,PCOL.frost)}${row("key",tx.key,PCOL.key,"ln")}<div class="pm-sub">${tx.sun}</div><div style="display:flex;gap:5px;flex-wrap:wrap;padding:2px 4px">${[["winter",tx.sw],["equinox",tx.se],["summer",tx.ss],["",tx.off]].map(([k,l])=>`<button class="pm-btn ${(pstate.sun||"")===k?"on":""}" data-sun="${k}">${l}</button>`).join("")}</div></div>`;
+    ${row("frost",tx.frost,PCOL.frost)}${row("key",tx.key,PCOL.key,"ln")}<div class="pm-sub">${tx.sun}</div><div style="display:flex;gap:5px;flex-wrap:wrap;padding:2px 4px">${[["winter",tx.sw],["equinox",tx.se],["summer",tx.ss],["",tx.off]].map(([k,l])=>`<button class="pm-btn ${(pstate.sun||"")===k?"on":""}" data-sun="${k}">${l}</button>`).join("")}</div><div class="pm-sub">${tx.shade}</div><div style="display:flex;gap:5px;flex-wrap:wrap;padding:2px 4px">${[["winter",tx.sw],["equinox",tx.se],["summer",tx.ss],["",tx.off]].map(([k,l])=>`<button class="pm-btn ${(pstate.shade||"")===k?"on":""}" data-shade="${k}">${l}</button>`).join("")}</div>${row("peaks",tx.peaks,"#ffffff","pt")}${row("wnw",tx.wnw,"#ff7043")}${row("wene",tx.wene,"#ff7043")}${row("plant",tx.plant,"#43a047")}</div>`;
   cat.querySelectorAll("label.lyr input").forEach(c=>{ c.onchange=async()=>{ await ptoggle(c.closest("label").dataset.k, c.checked); const n=keys.filter(k=>pstate[k]).length; const cc=cat.querySelector(".cc"); cc.textContent=`${n}/${keys.length}`; cc.classList.toggle("on",n>0); }; });
   cat.querySelectorAll("button[data-sun]").forEach(b=>{ b.onclick=()=>{ psun(b.dataset.sun||null); cat.querySelectorAll("button[data-sun]").forEach(x=>x.classList.toggle("on",x===b)); }; });
+  cat.querySelectorAll("button[data-shade]").forEach(b=>{ b.onclick=()=>{ pshade(b.dataset.shade||null); cat.querySelectorAll("button[data-shade]").forEach(x=>x.classList.toggle("on",x===b)); }; });
   cat.querySelector(".ch").onclick=e=>{ if(e.target.closest(".tg")) return; cat.classList.toggle("open"); try{ const s=new Set(JSON.parse(localStorage.getItem("edr_open_cats")||"[]")); cat.classList.contains("open")?s.add("perma"):s.delete("perma"); localStorage.setItem("edr_open_cats",JSON.stringify([...s])); }catch(err){} };
   tree.appendChild(cat);
   // restore saved permaculture layers once
-  if(!buildPermaCat.restored){ buildPermaCat.restored=true; keys.forEach(k=>{ if(pstate[k]) ptoggle(k,true); }); if(pstate.sun) psun(pstate.sun); } }
+  if(!buildPermaCat.restored){ buildPermaCat.restored=true; keys.forEach(k=>{ if(pstate[k]) ptoggle(k,true); }); if(pstate.sun) psun(pstate.sun); if(pstate.shade) pshade(pstate.shade); } }
 /* ---------- 3D upgrades: sun by date/time, exaggeration, team proposals in 3D, placing proposals from the twin ---------- */
 const API="https://edenrise-brain.edenrise.workers.dev"; const CENTRE=[37.5125,-8.6445]; let sunDate=new Date();
 function setSun(d){ sunDate=d; try{ const p=SunCalc.getPosition(d,CENTRE[0],CENTRE[1]); const alt=p.altitude*180/Math.PI, az=(p.azimuth*180/Math.PI+180)%360; const up=alt>0; const polar=Math.max(5,Math.min(88,90-alt)); map.setLight({anchor:"map",position:[1.5,az,polar],color:up?(alt<12?"#ffd0a0":"#fff4e2"):"#6a7a95",intensity:up?Math.min(.75,.25+alt/90):.12}); const el=document.getElementById("sunlbl"); if(el) el.textContent=`${d.toLocaleDateString(LANG==="en"?"en-GB":"pt-PT",{day:"2-digit",month:"short"})} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")} · ${up?`☀ ${Math.round(alt)}°`:"🌙"}`; }catch(e){} }
@@ -298,6 +315,9 @@ document.getElementById("fly").onclick = ()=> {
   setTimeout(()=>map.easeTo({center:[-8.641,37.516], zoom:15.4, pitch:62, bearing:40, duration:5000}), 2600);
 };
 </script>
-<script src="nav.js?v=926f28a6"></script>
+<script>(function(){ const b=document.getElementById("pburger"), p=document.getElementById("panel"); if(!b||!p) return; const tx=()=>{ const s=document.getElementById("pburger-t"); if(s) s.textContent=p.classList.contains("open")?(LANG==="en"?"Close":"Fechar"):(LANG==="en"?"Layers & views":"Camadas & vistas"); }; b.onclick=()=>{ p.classList.toggle("open"); document.body.classList.toggle("sheet-open",p.classList.contains("open")); tx(); }; tx();
+  map.on("click",()=>{ if(window.innerWidth<=700&&p.classList.contains("open")){ p.classList.remove("open"); document.body.classList.remove("sheet-open"); tx(); } }); })();
+</script>
+<script src="nav.js?v=d1e8fea3"></script>
 </body>
 </html>

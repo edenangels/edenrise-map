@@ -8,7 +8,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>EdenRise — Mapa da Herdade</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="ui.css?v=16286725">
+<link rel="stylesheet" href="ui.css?v=b9f22cc2">
 <style>
 #app{display:flex;height:calc(100vh - 44px)}
 #side{width:300px;min-width:300px;background:var(--night);border-right:1px solid var(--line);overflow-y:auto;padding:14px 14px 40px;scrollbar-width:thin}
@@ -74,7 +74,7 @@ body.field .lyr{padding:9px 6px;font-size:14px} body.field .tg{transform:scale(1
 <script src="suitability-data.js?v=4e99bc9f"></script>
 <script src="work-data.js?v=ad554e35"></script>
 <script src="defensible-data.js?v=f90a6c7b"></script>
-<script src="registry.js?v=88225275"></script>
+<script src="registry.js?v=ba3c7a82"></script>
 <script>
 const FIELD_EN = {asset_id:"Asset ID",status:"Status",category:"Category",system:"System",year:"Year",
  alternative:"Alternative",cadastral_article:"Cadastral article",areas_doc_m2:"Areas (docs) m²",
@@ -226,7 +226,7 @@ for(const [gname, gOn, layers] of GROUPS){
     const fc = DATA[t];
     if(!fc && LAZY[t]){                       // heavy layer: placeholder group, data loads on first toggle
       const group = L.layerGroup(); const o = layerObjs[t] = {lyr:group, on:false, lazy:LAZY[t], loaded:false, t, title, kind, color, opt};
-      group.on("add", async ()=>{ if(o.loaded) return; o.loaded = true; const lz=o.lazy; if(window.showLoading) showLoading(lz.msg?(LANG==="en"?lz.msg[0]:lz.msg[1]):(LANG==="en"?"Loading…":"A carregar…")); const have=(function(){ try{ return typeof eval(lz.g)!=="undefined"; }catch(e){ return false; } })(); if(!have){ try{ window.__lazyLoads=window.__lazyLoads||{}; if(!window.__lazyLoads[lz.f]) window.__lazyLoads[lz.f]=loadScript(lz.f); await window.__lazyLoads[lz.f]; }catch(e){} } const src=(typeof window[lz.g]!=="undefined")?window[lz.g]:(function(){ try{ return eval(lz.g); }catch(e){ return {}; } })(); Object.assign(DATA, src||{}); if(window.showLoading) showLoading(null);
+      group.on("add", async ()=>{ if(o.loaded) return; o.loaded = true; const lz=o.lazy; if(window.showLoading) showLoading(lz.msg?(LANG==="en"?lz.msg[0]:lz.msg[1]):(LANG==="en"?"Loading…":"A carregar…")); const have=(function(){ try{ return typeof eval(lz.g)!=="undefined"; }catch(e){ return false; } })(); if(!have){ try{ window.__lazyLoads=window.__lazyLoads||{}; if(!window.__lazyLoads[lz.f]) window.__lazyLoads[lz.f]=loadScript(lz.f); await window.__lazyLoads[lz.f]; }catch(e){} } const src=(typeof window[lz.g]!=="undefined")?window[lz.g]:(function(){ try{ return eval(lz.g); }catch(e){ return {}; } })(); Object.assign(DATA, (window.edrAlias?edrAlias(src||{}):src)||{}); if(window.showLoading) showLoading(null);
         o.geo = buildLayer(t, title, kind, color, opt, DATA[t]); group.addLayer(o.geo); });
       continue;
     }
@@ -381,7 +381,7 @@ setTimeout(()=>{ openAsset(); openWork(); }, 400);
 <script src="modes.js?v=2ba29989"></script>
 <script src="card.js?v=c8deb725"></script>
 <script src="view.js?v=2b45a96b"></script>
-<script src="nav.js?v=926f28a6"></script>
+<script src="nav.js?v=d1e8fea3"></script>
 <script src="brain.js?v=b1db1e89"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@geoman-io/leaflet-geoman-free@2.17.0/dist/leaflet-geoman.css">
 <script src="https://cdn.jsdelivr.net/npm/@geoman-io/leaflet-geoman-free@2.17.0/dist/leaflet-geoman.min.js"></script>
@@ -393,7 +393,7 @@ setTimeout(()=>{ openAsset(); openWork(); }, 400);
 <script src="live.js?v=6950d6bf"></script>
 <script src="tour.js?v=2c665f07"></script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet.vectorgrid@1.3.0/dist/Leaflet.VectorGrid.bundled.min.js"></script>
-<script src="perma.js?v=bcbd19b7"></script>
+<script src="perma.js?v=89db5b6a"></script>
 <script src="media.js?v=5903c275"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.11.0/proj4.js"></script>
 <script>if(window.proj4) proj4.defs("EPSG:3763","+proj=tmerc +lat_0=39.66825833333333 +lon_0=-8.133108333333334 +k=1 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");</script>

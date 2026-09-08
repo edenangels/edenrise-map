@@ -15,6 +15,7 @@ body{margin:0;background:#e9e7df;color:#1e2a20;font-family:-apple-system,"Segoe 
 .lbl .brand{font-size:9px;color:#5f685c;margin-top:2px}
 h1{font-size:16px;margin:4px 0 8px} .sub{font-size:11.5px;color:#5f685c;margin-bottom:10px}
 @media print{ body{background:#fff} .tools{display:none} .sheet{margin:0;max-width:none;padding:0} .grid{gap:6px} h1,.sub{display:none} }
+@media(max-width:700px){ .grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))!important;gap:6px!important} .sheet{padding:10px!important;width:auto!important;min-width:0!important} .lbl{min-width:0} }
 </style>
 </head>
 <body>
@@ -38,5 +39,5 @@ function render(){
 }
 sel.onchange=render; render();
 </script>
-<script src="nav.js?v=926f28a6"></script>
+<script src="nav.js?v=d1e8fea3"></script>
 </body></html>

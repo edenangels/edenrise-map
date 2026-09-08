@@ -18,6 +18,7 @@ td{padding:5px 8px 5px 0;border-bottom:1px solid var(--line);vertical-align:top}
 .kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin:8px 0}
 .kv div{border:1px solid var(--line);padding:8px 10px} .kv .k{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em} .kv .v{font-size:18px;font-weight:700}
 .tools{position:fixed;top:10px;right:10px;display:flex;gap:6px} .tools button,.tools a{font-size:11px;padding:6px 10px;background:#fff;border:1px solid var(--line);border-radius:5px;cursor:pointer;text-decoration:none;color:var(--ink)}
+@media(max-width:700px){ .page{padding:16px 12px;margin:0;border:0} table{display:block;overflow-x:auto;white-space:nowrap} .grid,.stats,.kpis{grid-template-columns:1fr 1fr!important} }
 @media print{.tools{display:none} body{background:#fff} .page{margin:0;border:none;max-width:none}}
 </style>
 </head>
@@ -36,7 +37,7 @@ td{padding:5px 8px 5px 0;border-bottom:1px solid var(--line);vertical-align:top}
 <div class="cap" style="margin-top:22px" id="foot"></div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="data.js?v=0737499e"></script><script src="ops-data.js?v=2751505a"></script><script src="habitat-data.js?v=ee3f5cf1"></script><script src="trees-data.js?v=87638c70"></script><script src="buildings-data.js?v=0fc788f4"></script>
+<script src="data.js?v=0737499e"></script><script src="ops-data.js?v=2751505a"></script><script src="habitat-data.js?v=ee3f5cf1"></script><script src="trees-data.js?v=bb99e5d4"></script><script src="buildings-data.js?v=0fc788f4"></script>
 <script>
 let LANG="pt"; try{LANG=localStorage.getItem("edr_lang")||"pt";}catch(e){}
 function setLang(l){LANG=l;try{localStorage.setItem("edr_lang",l);}catch(e){}render();}
@@ -75,5 +76,5 @@ function render(){
 }
 render();
 </script>
-<script src="nav.js?v=926f28a6"></script>
+<script src="nav.js?v=d1e8fea3"></script>
 </body></html>

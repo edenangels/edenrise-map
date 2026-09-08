@@ -68,7 +68,8 @@ const GROUPS = [
    ["dam_walls","Muros candidatos","ln","#ffeb3b",{w:3}],
    ["dam_pools","Albufeiras candidatas (cota recomendada)","pg","#29b6f6",{fill:"rgba(41,182,246,.45)",w:1}],
    ["tree_tops","Árvores individuais","pt","#2e7d32",{r:2.5}],
-   ["tree_crowns","Copas — vigor 2025","pg","#43a047",{cat:"vigour",colors:{vigoroso:"#43a047",moderado:"#fdd835",stressado:"#e53935"},other:"#9e9e9e",fill:"rgba(67,160,71,.45)",w:.6}]]],
+   ["tree_crowns","Copas — vigor 2025","pg","#43a047",{cat:"vigour",colors:{vigoroso:"#43a047",moderado:"#fdd835",stressado:"#e53935"},other:"#9e9e9e",fill:"rgba(67,160,71,.45)",w:.6}],
+   ["tree_health","Copas — tendência NDVI 2018–26 (declínio)","pg","#e53935",{cat:"health",colors:{declining:"#e53935",improving:"#43a047",stable:"rgba(158,158,158,.35)"},other:"rgba(0,0,0,0)",fill:"rgba(229,57,53,.45)",w:.6}]]],
  ["🏗️ Edifícios & planeamento", false, [
    ["building_footprints","Implantações de edifícios (LiDAR)","pg","#ffcc80",{cat:"status",colors:{registado:"#66bb6a",nao_registado_licenciado:"#ef5350",por_classificar:"#ffca28"},fill:"rgba(255,204,128,.55)",w:1.4}],
    ["suitability_zones","Zonas aptas para construir (score ≥65)","pg","#ff8f00",{fill:"rgba(255,213,79,.45)",w:1.8}]]],
@@ -86,6 +87,7 @@ Object.assign(DATA, typeof OPSDATA !== "undefined" ? OPSDATA : {});
 Object.assign(DATA, typeof HYDRODATA !== "undefined" ? HYDRODATA : {});
 Object.assign(DATA, typeof DAMDATA !== "undefined" ? DAMDATA : {});
 Object.assign(DATA, typeof TREEDATA !== "undefined" ? TREEDATA : {});
+window.edrAlias = d => { if(d && d.tree_crowns && !d.tree_health) d.tree_health = d.tree_crowns; return d; }; edrAlias(DATA);
 Object.assign(DATA, typeof BUILDINGDATA !== "undefined" ? BUILDINGDATA : {});
 Object.assign(DATA, typeof SUITDATA !== "undefined" ? SUITDATA : {});
 // ── bilingual UI ──────────────────────────────────────────────
@@ -119,7 +121,7 @@ const T_EN = {cadastre_parcels:"Land parcels",cadastre_boundaries_ln:"Boundary l
  prop_reforestation_ln:"Reforestation infra — lines",prop_reforestation_pg:"Reforestation infra — zones",
  asset_registry:"Assets (EDR-…)",fire_fuel_strips:"Fuel-management strips (DL 82/2021)",
  boundary_deviations:"Boundary deviations (vs cadastre)",tree_permits:"Cuts needing ICNF permit",
- hydro_streams:"Streams (LiDAR 0.5 m, by order)",hydro_catchments:"Sub-basins (LiDAR 0.5 m) — runoff",wet_zones_50cm:"Wet zones (TWI 0.5 m)",dam_sites:"Candidate dams / ponds (model)",dam_walls:"Candidate dam walls",dam_pools:"Candidate pools (recommended crest)",tree_tops:"Individual trees",tree_crowns:"Tree crowns — 2025 vigour",
+ hydro_streams:"Streams (LiDAR 0.5 m, by order)",hydro_catchments:"Sub-basins (LiDAR 0.5 m) — runoff",wet_zones_50cm:"Wet zones (TWI 0.5 m)",dam_sites:"Candidate dams / ponds (model)",dam_walls:"Candidate dam walls",dam_pools:"Candidate pools (recommended crest)",tree_tops:"Individual trees",tree_crowns:"Tree crowns — 2025 vigour",tree_health:"Tree crowns — NDVI trend 2018–26 (decline)",
  building_footprints:"Building footprints (LiDAR)",suitability_zones:"Build-suitable zones (score ≥65)",
  defensible_space:"Defensible space (30 m) — poor/moderate/good",wet_zones:"Water pooling zones (TWI)",track_crossings:"Track × stream crossings (risk)",catchments_runoff:"Catchments — runoff at 50 mm",habitat_cos2025:"Land cover COS 2025"};
 const CAT_ICON = {
@@ -136,5 +138,5 @@ const CAT_ICON = {
  "🏗️":'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 21V10l8-6 8 6v11"/><path d="M9 21v-7h6v7"/></svg>',
  "🔥💧🌿":'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19h16M4 15l4-4 4 3 4-6 4 4"/></svg>'};
 function catIcon(name){ const k=Object.keys(CAT_ICON).find(k=>name.startsWith(k)); return CAT_ICON[k]||CAT_ICON["00"]; }
-const LAZY = {tree_tops:{f:"trees-data.js",g:"TREEDATA",msg:["Loading 7,531 trees…","A carregar 7 531 árvores…"]}, tree_crowns:{f:"trees-data.js",g:"TREEDATA",msg:["Loading 7,531 trees…","A carregar 7 531 árvores…"]},
+const LAZY = {tree_tops:{f:"trees-data.js",g:"TREEDATA",msg:["Loading 7,531 trees…","A carregar 7 531 árvores…"]}, tree_crowns:{f:"trees-data.js",g:"TREEDATA",msg:["Loading 7,531 trees…","A carregar 7 531 árvores…"]}, tree_health:{f:"trees-data.js",g:"TREEDATA",msg:["Loading 7,531 trees…","A carregar 7 531 árvores…"]},
   hydro_streams:{f:"hydro-data.js",g:"HYDRODATA"}, hydro_catchments:{f:"hydro-data.js",g:"HYDRODATA"}, wet_zones_50cm:{f:"hydro-data.js",g:"HYDRODATA"}, dam_sites:{f:"dam-data.js",g:"DAMDATA"}, dam_walls:{f:"dam-data.js",g:"DAMDATA"}, dam_pools:{f:"dam-data.js",g:"DAMDATA"}, wet_zones:{f:"water-data.js",g:"WATERDATA"}, track_crossings:{f:"water-data.js",g:"WATERDATA"}, catchments_runoff:{f:"water-data.js",g:"WATERDATA"}, habitat_cos2025:{f:"habitat-data.js",g:"HABDATA"}};

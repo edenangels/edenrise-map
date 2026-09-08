@@ -6,12 +6,13 @@
   const T = {pt:{share:"PARTILHAR",title:"Partilhar esta vista",sub:"O link abre exatamente o que está no ecrã — posição, camadas e idioma.",copy:"Copiar link",copied:"Link copiado",wa:"WhatsApp",wasub:"enviar à equipa",qr:"Mostrar QR",qrsub:"para telemóvel",print:"Imprimir / PDF",printsub:"esta página",asset:"Link do ativo",assetsub:"ficha aberta",view:"vista atual"},
              en:{share:"SHARE",title:"Share this view",sub:"The link opens exactly what's on screen — position, layers and language.",copy:"Copy link",copied:"Link copied",wa:"WhatsApp",wasub:"send to the team",qr:"Show QR",qrsub:"for a phone",print:"Print / PDF",printsub:"this page",asset:"Asset link",assetsub:"open card",view:"current view"}};
   const t = T[LANG];
-  const items = [["index.html",{pt:"Mapa",en:"Map"}],["3d.html",{pt:"3D",en:"3D"}],["dashboard.html",{pt:"Painel",en:"Dashboard"}],["report.html",{pt:"Relatório",en:"Report"}],["guest.html",{pt:"Hóspedes",en:"Guests"}],["labels.html",{pt:"Etiquetas",en:"Labels"}],["help.html",{pt:"Ajuda",en:"Help"}]];
+  const items = [["index.html",{pt:"Mapa",en:"Map"}],["3d.html",{pt:"3D",en:"3D"}],["dashboard.html",{pt:"Painel",en:"Dashboard"}],["climate.html",{pt:"Clima",en:"Climate"}],["report.html",{pt:"Relatório",en:"Report"}],["guest.html",{pt:"Hóspedes",en:"Guests"}],["labels.html",{pt:"Etiquetas",en:"Labels"}],["help.html",{pt:"Ajuda",en:"Help"}]];
   const nav = document.createElement("nav"); nav.id = "appnav";
-  nav.innerHTML = `<a class="brand" href="index.html"><span class="mark"></span><span class="t">EdenRise</span></a>` +
-    items.map(([h,l])=>`<a href="${h}" class="${h===here?"on":""}">${l[LANG]}</a>`).join("") +
+  nav.innerHTML = `<a class="brand" href="index.html"><span class="mark"></span><span class="t">EdenRise</span></a><div class="links">` +
+    items.map(([h,l])=>`<a href="${h}" class="${h===here?"on":""}">${l[LANG]}</a>`).join("") + `</div>` +
     `<span class="sp"></span><button class="edit" id="nav-edit" aria-label="${LANG==="en"?"Edit the map":"Editar o mapa"}" title="${LANG==="en"?"Add or change items on the map":"Adicionar ou alterar itens no mapa"}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span>${LANG==="en"?"EDIT":"EDITAR"}</span></button><button class="share" id="navshare" aria-label="${t.share}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v13"/></svg><span>${t.share}</span></button>`;
   document.body.prepend(nav);
+  try{ const on=nav.querySelector(".links a.on"); if(on&&window.innerWidth<=700) on.scrollIntoView({inline:"center",block:"nearest"}); }catch(e){}
   window.toast = function(msg){ const el=document.createElement("div"); el.className="toast"; el.textContent=msg; document.body.appendChild(el); setTimeout(()=>el.remove(), 1800); };
   function link(){ return window.viewLink ? window.viewLink() : location.href; }
   function openSheet(){
