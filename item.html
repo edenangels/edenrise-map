@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="pt"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>EdenRise — Ficha</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="sites.js?v=f6bf9f1a"></script><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <link rel="stylesheet" href="ui.css?v=b9f22cc2">
 <style>
@@ -18,7 +18,7 @@ h2{font:600 11px "IBM Plex Mono",monospace;letter-spacing:.14em;text-transform:u
 <div class="pg" id="pg">A carregar…</div>
 <script>
 const API="https://edenrise-brain.edenrise.workers.dev"; const id=new URLSearchParams(location.search).get("id"); const EN=(new URLSearchParams(location.search).get("lang")||localStorage.getItem("edr_lang")||"pt")==="en";
-(async()=>{ const d=await fetch(API+"/features").then(r=>r.json()); const f=(d.features||[]).find(x=>x.properties.id===id); const it=await fetch(API+"/item/"+encodeURIComponent(id)).then(r=>r.json()).catch(()=>({media:[],notes:[],history:[],events:[]}));
+(async()=>{ const d=await fetch(apiSite(API+"/features")).then(r=>r.json()); const f=(d.features||[]).find(x=>x.properties.id===id); const it=await fetch(API+"/item/"+encodeURIComponent(id)).then(r=>r.json()).catch(()=>({media:[],notes:[],history:[],events:[]}));
   const pg=document.getElementById("pg"); if(!f){ pg.textContent=EN?"Item not found":"Item não encontrado"; return; } const p=f.properties, m=p.measures||{}; const link=`https://edenangels.github.io/edenrise-map/index.html#v=${(p.lat||m.cota_m?m.centre?.lat:null)||""}`;
   const c=f.geometry.type==="Point"?[f.geometry.coordinates[1],f.geometry.coordinates[0]]:L.geoJSON(f).getBounds().getCenter(); const url=`https://edenangels.github.io/edenrise-map/index.html#v=${(+c.lat||c[0]).toFixed(6)},${(+c.lng||c[1]).toFixed(6)},19`;
   const row=(k,v,u="")=>v==null||v===""?"":`<div><span>${k}</span><b>${typeof v==="number"?v.toLocaleString(EN?"en-GB":"pt-PT",{maximumFractionDigits:2}):v}${u}</b></div>`;

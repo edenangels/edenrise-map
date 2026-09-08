@@ -2,7 +2,7 @@
 (function(){
   const enc = ()=>{ const c=map.getCenter(); const on=Object.entries(layerObjs).filter(([t,o])=>map.hasLayer(o.lyr)).map(([t])=>t);
     return `#v=${c.lat.toFixed(5)},${c.lng.toFixed(5)},${map.getZoom().toFixed(1)}&b=${encodeURIComponent(curBase)}&l=${on.join(",")}`; };
-  window.viewLink = ()=> location.origin + location.pathname + enc();
+  window.viewLink = ()=> location.origin + location.pathname + siteQ() + enc();
   let armed = false;
   function apply(){
     const m = location.hash.match(/#v=(-?[\d.]+),(-?[\d.]+),([\d.]+)(?:&b=([^&]+))?(?:&l=([^&]*))?/); if(!m) return false;

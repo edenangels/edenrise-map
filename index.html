@@ -55,7 +55,7 @@ body.field .lyr{padding:9px 6px;font-size:14px} body.field .tg{transform:scale(1
 <button id="burger" aria-label="Camadas">☰</button>
 <div id="app">
   <nav id="side">
-    <div class="eyebrow">Herdade · Odemira</div>
+    <div class="eyebrow" id="place">Herdade · Odemira</div>
     <h1 id="ttl">EdenRise — Herdade</h1>
     <div class="sub" id="sub">Mapa vivo da propriedade · dados 2026-09</div>
     <div class="seg" id="langs"></div>
@@ -67,13 +67,8 @@ body.field .lyr{padding:9px 6px;font-size:14px} body.field .tg{transform:scale(1
   <div id="map"></div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="data.js?v=0737499e"></script>
-<script src="ops-data.js?v=2751505a"></script>
-<script src="sat-data.js?v=98dc79f4"></script>
-<script src="buildings-data.js?v=0fc788f4"></script>
-<script src="suitability-data.js?v=4e99bc9f"></script>
-<script src="work-data.js?v=ad554e35"></script>
-<script src="defensible-data.js?v=f90a6c7b"></script>
+<script src="sites.js?v=f6bf9f1a"></script>
+<script>edrLoadData(["data.js?v=0737499e", "ops-data.js?v=2751505a", "sat-data.js?v=98dc79f4", "buildings-data.js?v=0fc788f4", "suitability-data.js?v=4e99bc9f", "work-data.js?v=ad554e35", "defensible-data.js?v=f90a6c7b"])</script>
 <script src="registry.js?v=ba3c7a82"></script>
 <script>
 const FIELD_EN = {asset_id:"Asset ID",status:"Status",category:"Category",system:"System",year:"Year",
@@ -87,8 +82,7 @@ const FIELD_EN = {asset_id:"Asset ID",status:"Status",category:"Category",system
  score:"Suitability score",rank:"Rank",slope_pct_mean:"Mean slope (%)",dist_path_m:"Dist. to track (m)",dist_water_m:"Dist. to water net (m)",dist_building_m:"Dist. to building (m)",aspect:"Aspect",
  classe:"Class",rank_risk:"Rank (1 = most exposed)",canopy_cover_30m_pct:"Canopy within 30 m (%)",tall_trees_20m:"Trees ≥8 m within 20 m",stressed_trees_30m:"Stressed crowns within 30 m",slope_mean_deg:"Slope (°)",fuel_strip_status:"Fuel strip",actions:"Actions",
  twi_mean:"Wetness index (TWI)",upstream_ha:"Upstream area (ha)",risco:"Risk",canopy_cover_pct:"Canopy (%)",runoff_coef:"Runoff coef.",runoff_m3_50mm:"Runoff at 50 mm (m³)",area_ha:"Area (ha)"};
-const UI = {pt:{ttl:"EdenRise — Herdade",sub:"Mapa vivo da propriedade · dados 2026-09"},
-            en:{ttl:"EdenRise — Estate",sub:"Living map of the property · data 2026-09"}};
+const UI = {pt:{ttl:SITE.ttl.pt,sub:SITE.sub.pt}, en:{ttl:SITE.ttl.en,sub:SITE.sub.en}};
 let LANG = "pt";
 try{ LANG = localStorage.getItem("edr_lang") || ((navigator.language||"pt").toLowerCase().startsWith("pt") ? "pt" : "en"); }catch(e){}
 const gname_i18n = g => LANG === "en" ? (G_EN[g] || g) : g;
@@ -111,15 +105,15 @@ const map = L.map("map",{zoomControl:true, maxZoom:22, zoomSnap:0.5, zoomDelta:0
 const bases = {
  "Esri": L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
    {maxNativeZoom:19, maxZoom:22, attribution:"Imagery © Esri & partners"}),
- "DGT 2025": L.layerGroup([
+ ...(SITE.tiles.ortho ? {"DGT 2025": L.layerGroup([
    L.tileLayer.wms("https://ortos.dgterritorio.gov.pt/wms/ortosat2023", {layers:"ortoSat2023-CorVerdadeira", format:"image/png", maxZoom:22, attribution:"OrtoSat2023 © DGT"}),
-   L.tileLayer("ortho2025/{z}/{x}/{y}.jpg", {minZoom:12, maxNativeZoom:20, maxZoom:22, bounds:[[37.497,-8.661],[37.526,-8.628]], attribution:"Ortofotos 2025 © DGT"})]),
+   L.tileLayer(SITE.tiles.ortho+"/{z}/{x}/{y}.jpg", {minZoom:12, maxNativeZoom:20, maxZoom:22, bounds:[[SITE.tileBounds[1],SITE.tileBounds[0]],[SITE.tileBounds[3],SITE.tileBounds[2]]], attribution:"Ortofotos 2025 © DGT"})])} : {}),
  "DGT 2023": L.tileLayer.wms("https://ortos.dgterritorio.gov.pt/wms/ortosat2023",
    {layers:"ortoSat2023-CorVerdadeira", format:"image/png", maxZoom:22, attribution:"OrtoSat2023 © DGT"}),
  "OSM": L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
    {maxNativeZoom:19, maxZoom:22, attribution:"© OpenStreetMap contributors"}),
 };
-let curBase = "DGT 2025"; bases[curBase].addTo(map);
+let curBase = SITE.tiles.ortho ? "DGT 2025" : "DGT 2023"; bases[curBase].addTo(map);
 const bm = document.getElementById("basemaps");
 Object.keys(bases).forEach(k=>{
   const b=document.createElement("button"); b.textContent=k; if(k===curBase)b.classList.add("on");
@@ -129,8 +123,8 @@ Object.keys(bases).forEach(k=>{
 });
 L.control.scale({imperial:false}).addTo(map);
 map.createPane("relief"); map.getPane("relief").style.mixBlendMode="multiply"; map.getPane("relief").style.zIndex=250;
-const relief = L.tileLayer("hillshade/{z}/{x}/{y}.png",{minZoom:12,maxNativeZoom:17,maxZoom:22,opacity:.6,pane:"relief",bounds:[[37.497,-8.661],[37.526,-8.628]]});
-(()=>{ const b=document.createElement("button"); b.textContent="⛰"; b.title="Relevo LiDAR"; b.onclick=()=>{ map.hasLayer(relief)?map.removeLayer(relief):relief.addTo(map); b.classList.toggle("on", map.hasLayer(relief)); }; bm.appendChild(b); })();
+const relief = SITE.tiles.hillshade ? L.tileLayer(SITE.tiles.hillshade+"/{z}/{x}/{y}.png",{minZoom:12,maxNativeZoom:17,maxZoom:22,opacity:.6,pane:"relief",bounds:[[SITE.tileBounds[1],SITE.tileBounds[0]],[SITE.tileBounds[3],SITE.tileBounds[2]]]}) : null;
+(()=>{ if(!relief) return; const b=document.createElement("button"); b.textContent="⛰"; b.title="Relevo LiDAR"; b.onclick=()=>{ map.hasLayer(relief)?map.removeLayer(relief):relief.addTo(map); b.classList.toggle("on", map.hasLayer(relief)); }; bm.appendChild(b); })();
 function popup(p){
   const F = fields_i18n();
   let h = `<div class="pp"><h3>${p.name||p.asset_id||p.tree_name||"—"}</h3><table>`;
@@ -224,7 +218,7 @@ function loadScript(src){ return new Promise((res,rej)=>{ const sc=document.crea
 for(const [gname, gOn, layers] of GROUPS){
   for(const [t, title, kind, color, opt] of layers){
     const fc = DATA[t];
-    if(!fc && LAZY[t]){                       // heavy layer: placeholder group, data loads on first toggle
+    if(!fc && LAZY[t] && SITE.flags.lidar){                       // heavy layer: placeholder group, data loads on first toggle
       const group = L.layerGroup(); const o = layerObjs[t] = {lyr:group, on:false, lazy:LAZY[t], loaded:false, t, title, kind, color, opt};
       group.on("add", async ()=>{ if(o.loaded) return; o.loaded = true; const lz=o.lazy; if(window.showLoading) showLoading(lz.msg?(LANG==="en"?lz.msg[0]:lz.msg[1]):(LANG==="en"?"Loading…":"A carregar…")); const have=(function(){ try{ return typeof eval(lz.g)!=="undefined"; }catch(e){ return false; } })(); if(!have){ try{ window.__lazyLoads=window.__lazyLoads||{}; if(!window.__lazyLoads[lz.f]) window.__lazyLoads[lz.f]=loadScript(lz.f); await window.__lazyLoads[lz.f]; }catch(e){} } const src=(typeof window[lz.g]!=="undefined")?window[lz.g]:(function(){ try{ return eval(lz.g); }catch(e){ return {}; } })(); Object.assign(DATA, (window.edrAlias?edrAlias(src||{}):src)||{}); if(window.showLoading) showLoading(null);
         o.geo = buildLayer(t, title, kind, color, opt, DATA[t]); group.addLayer(o.geo); });
@@ -239,7 +233,7 @@ for(const [gname, gOn, layers] of GROUPS){
     }
   }
 }
-function fitAll(){ map.invalidateSize(); const est = layerObjs.cadastre_parcels ? layerObjs.cadastre_parcels.lyr.getBounds() : allBounds; if(est && est.isValid()) map.fitBounds(est.pad(0.04)); }
+function fitAll(){ map.invalidateSize(); const est = layerObjs.cadastre_parcels ? layerObjs.cadastre_parcels.lyr.getBounds() : allBounds; if(est && est.isValid()) map.fitBounds(est.pad(0.04)); else map.setView(SITE.centre, SITE.zoom); }
 fitAll();
 // container may not have its final size yet — retry until the fit sticks
 let fitTries = 0;
@@ -253,6 +247,7 @@ function saveOpen(){ try{ localStorage.setItem(OPEN_KEY, JSON.stringify([...open
 function buildSidebar(){
   document.getElementById("ttl").textContent = UI[LANG].ttl;
   document.getElementById("sub").textContent = UI[LANG].sub;
+  document.getElementById("place").textContent = SITE.place[LANG]; document.title = SITE.name + " — " + (LANG==="en" ? "Estate map" : "Mapa da Herdade");
   tree.innerHTML = "";
   const tools = document.createElement("div"); tools.className = "tree-tools";
   tools.innerHTML = `<span class="eyebrow">${LANG==="en"?"Layers by category":"Camadas por categoria"}</span><span><button id="tt-none">${LANG==="en"?"collapse all":"fechar todas"}</button></span>`;
@@ -320,10 +315,10 @@ function renderRisk(){
   const el = document.getElementById("risk");
   if(rcmToday == null){ el.innerHTML = ""; return; }
   const r = RCM[rcmToday] || ["?", "?", "#999"];
-  el.innerHTML = `<b>${LANG==="en"?"Fire risk today":"Risco de incêndio hoje"}</b><span class="lvl" style="background:${r[2]}">${LANG==="en"?r[1]:r[0]}</span><small>IPMA · Odemira · ${today}</small>`;
+  el.innerHTML = `<b>${LANG==="en"?"Fire risk today":"Risco de incêndio hoje"}</b><span class="lvl" style="background:${r[2]}">${LANG==="en"?r[1]:r[0]}</span><small>IPMA · ${SITE.concelho} · ${today}</small>`;
 }
 fetch("https://api.ipma.pt/open-data/forecast/meteorology/rcm/rcm-d0.json").then(r=>r.json()).then(d=>{
-  rcmToday = d.local && d.local["0211"] ? d.local["0211"].data.rcm : null; renderRisk();
+  rcmToday = d.local && d.local[SITE.ipma] ? d.local[SITE.ipma].data.rcm : null; renderRisk();
 }).catch(()=>{});
 // language switch
 const langsEl = document.getElementById("langs");
@@ -378,25 +373,25 @@ function openWork(){
 window.addEventListener("hashchange", ()=>{ openAsset(); openWork(); });
 setTimeout(()=>{ openAsset(); openWork(); }, 400);
 </script>
-<script src="modes.js?v=2ba29989"></script>
+<script src="modes.js?v=ff502f37"></script>
 <script src="card.js?v=c8deb725"></script>
-<script src="view.js?v=2b45a96b"></script>
-<script src="nav.js?v=d1e8fea3"></script>
-<script src="brain.js?v=b1db1e89"></script>
+<script src="view.js?v=ba2d39b5"></script>
+<script src="nav.js?v=ad3ab3ba"></script>
+<script src="brain.js?v=0b2ff852"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@geoman-io/leaflet-geoman-free@2.17.0/dist/leaflet-geoman.css">
 <script src="https://cdn.jsdelivr.net/npm/@geoman-io/leaflet-geoman-free@2.17.0/dist/leaflet-geoman.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7.1.0/turf.min.js"></script>
-<script src="offline.js?v=147808a7"></script>
-<script src="tasks.js?v=2b0e85ab"></script>
-<script src="presence.js?v=5d25105d"></script>
-<script src="sensors.js?v=20758379"></script>
+<script src="offline.js?v=995d156c"></script>
+<script src="tasks.js?v=42ed6595"></script>
+<script src="presence.js?v=a54c9819"></script>
+<script src="sensors.js?v=4aea7e19"></script>
 <script src="live.js?v=6950d6bf"></script>
 <script src="tour.js?v=2c665f07"></script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet.vectorgrid@1.3.0/dist/Leaflet.VectorGrid.bundled.min.js"></script>
-<script src="perma.js?v=d6164f37"></script>
-<script src="media.js?v=5903c275"></script>
+<script src="perma.js?v=022be5dc"></script>
+<script src="media.js?v=b0a221c7"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.11.0/proj4.js"></script>
 <script>if(window.proj4) proj4.defs("EPSG:3763","+proj=tmerc +lat_0=39.66825833333333 +lon_0=-8.133108333333334 +k=1 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");</script>
-<script src="edit.js?v=a43fda14"></script>
+<script src="edit.js?v=c964fb5c"></script>
 </body>
 </html>

@@ -22,7 +22,7 @@ const mapEl=document.getElementById("map"); const layer=L.layerGroup().addTo(map
 const today=()=>new Date().toISOString().slice(0,10);
 const isOver=t=>t.due&&t.status!=="feita"&&t.status!=="cancelada"&&t.due<today();
 function pinIcon(t){ const c=PCOL[t.priority]||PCOL.normal; const done=t.status==="feita"; return L.divIcon({className:"",html:`<div class="tk-pin ${done?"done":""}" style="background:${isOver(t)?"#d9534f":c}">${done?"✓":"!"}</div>`,iconSize:[28,28],iconAnchor:[14,28]}); }
-async function load(){ try{ const d=await fetch(API+"/tasks?status=all").then(r=>r.json()); tasks=d.tasks||[]; draw(); badge(); if(panel&&!panel.hidden) list(); }catch(e){} }
+async function load(){ try{ const d=await fetch(API+"/tasks?status=all&site="+SITE_ID).then(r=>r.json()); tasks=d.tasks||[]; draw(); badge(); if(panel&&!panel.hidden) list(); }catch(e){} }
 function draw(){ layer.clearLayers(); for(const t of tasks){ if(t.lat==null||t.status==="cancelada"||(t.status==="feita"&&filter!=="done")) continue; const m=L.marker([t.lat,t.lon],{icon:pinIcon(t),zIndexOffset:600}); m.on("click",()=>open(t)); m.bindTooltip(`${t.title}${t.assignee?" · "+t.assignee:""}`); layer.addLayer(m); } }
 function badge(){ const b=document.getElementById("nav-tasks"); if(!b) return; const open=tasks.filter(t=>t.status==="aberta"||t.status==="em curso"); const ov=open.filter(isOver).length; b.querySelector(".n").textContent=open.length; b.querySelector(".n").classList.toggle("ov",ov>0); }
 function ensurePanel(){ if(panel) return panel; panel=document.createElement("div"); panel.id="tpanel"; panel.hidden=true; mapEl.appendChild(panel); L.DomEvent.disableClickPropagation(panel); L.DomEvent.disableScrollPropagation(panel); return panel; }
@@ -59,7 +59,7 @@ function newTask(pre){ const a=auth(); if(a.role==="viewer"){ toast&&toast(T.sig
   let ll=pre.latlng||null; const pick=e=>{ ll=e.latlng; p.querySelector("#twhere").textContent=`📍 ${ll.lat.toFixed(5)}, ${ll.lng.toFixed(5)}`; mapEl.classList.remove("ed-draw"); map.off("click",pick); };
   if(!ll){ mapEl.classList.add("ed-draw"); setTimeout(()=>map.on("click",pick),0); }
   p.querySelector("#tsave").onclick=async()=>{ const title=p.querySelector("#tt").value.trim(); if(!title){ p.querySelector("#tt").focus(); return; } map.off("click",pick); mapEl.classList.remove("ed-draw");
-    const r=await fetch(API+"/tasks",{method:"POST",headers:hdr(),body:JSON.stringify({title,detail:p.querySelector("#td").value.trim(),assignee:p.querySelector("#ta").value.trim(),due:p.querySelector("#tdu").value||null,priority:p.querySelector("#tp").value,lon:ll?ll.lng:null,lat:ll?ll.lat:null,feature_id:pre.feature_id||null,actor:a.actor})}).then(r=>r.json()).catch(()=>({}));
+    const r=await fetch(API+"/tasks",{method:"POST",headers:hdr(),body:JSON.stringify({site:SITE_ID,title,detail:p.querySelector("#td").value.trim(),assignee:p.querySelector("#ta").value.trim(),due:p.querySelector("#tdu").value||null,priority:p.querySelector("#tp").value,lon:ll?ll.lng:null,lat:ll?ll.lat:null,feature_id:pre.feature_id||null,actor:a.actor})}).then(r=>r.json()).catch(()=>({}));
     if(r.ok){ toast&&toast(T.created); await load(); open(tasks.find(t=>t.id===r.id)); } else toast&&toast(r.error||"—"); }; }
 window.edrTasks={list,newTask,open:(id)=>{ const t=tasks.find(x=>x.id===id); if(t) open(t); },reload:load};
 // nav pill

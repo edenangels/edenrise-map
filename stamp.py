@@ -7,6 +7,19 @@ def stamp(html):
         if not os.path.exists(fp): return m.group(0)
         return f'{m.group(1)}{f}?v={hashlib.md5(open(fp,"rb").read()).hexdigest()[:8]}{m.group(3)}'
     return re.sub(r'((?:src|href)=")([A-Za-z0-9_\-]+\.(?:js|css))(?:\?v=[0-9a-f]+)?(")', rep, html)
-for page in glob.glob(os.path.join(os.path.dirname(os.path.abspath(__file__)),"*.html")):
+def stamp_list(text):
+    # quoted local .js paths (inside edrLoadData([...]) lists and sites.js data entries) get the same ?v= hash
+    def rep(m):
+        f=m.group(1); fp=os.path.join(os.path.dirname(os.path.abspath(__file__)),f)
+        if not os.path.exists(fp): return m.group(0)
+        return f'"{f}?v={hashlib.md5(open(fp,"rb").read()).hexdigest()[:8]}"'
+    return re.sub(r'"([A-Za-z0-9_\-/]+\.js)(?:\?v=[0-9a-f]+)?"', rep, text)
+HERE=os.path.dirname(os.path.abspath(__file__))
+for page in glob.glob(os.path.join(HERE,"*.html")):
     h=open(page).read(); n=stamp(h)
+    n=re.sub(r'edrLoadData\((\[[^\]]*\])\)', lambda m: "edrLoadData("+stamp_list(m.group(1))+")", n)
     if n!=h: open(page,"w").write(n); print("stamped", os.path.basename(page))
+sj=os.path.join(HERE,"sites.js")
+if os.path.exists(sj):
+    h=open(sj).read(); n=stamp_list(h)
+    if n!=h: open(sj,"w").write(n); print("stamped sites.js")

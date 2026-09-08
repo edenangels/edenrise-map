@@ -41,7 +41,7 @@ const history = [];
 async function send(){ const text=q.value.trim(); if(!text) return; q.value=""; msg("user", text); history.push({role:"user",content:text});
   const th = msg("a", T.thinking); const c = map.getCenter();
   const ctx = {view:{lat:+c.lat.toFixed(5), lon:+c.lng.toFixed(5), zoom:+map.getZoom().toFixed(1)}, near:[+c.lng.toFixed(5), +c.lat.toFixed(5)], focus: window.__focusId||null};
-  try{ const r = await fetch(API+"/ask",{method:"POST",headers:hdr(),body:JSON.stringify({lang:L_,messages:history.slice(-8),context:ctx,actor:ACTOR})}); const d = await r.json();
+  try{ const r = await fetch(API+"/ask",{method:"POST",headers:hdr(),body:JSON.stringify({site:SITE_ID,lang:L_,messages:history.slice(-8),context:ctx,actor:ACTOR})}); const d = await r.json();
     th.remove(); if(d.error){ msg("a", T.err+" ("+d.error+")"); return; }
     msg("a", d.reply, d.used); history.push({role:"assistant",content:d.reply}); if(d.role) setRole(d.role);
     if(d.action) act(d.action);
@@ -62,7 +62,7 @@ document.getElementById("brole").onclick = async ()=>{ if(KEY){ if(confirm(T.log
 (async()=>{ if(KEY){ try{ const h=await fetch(API+"/health",{headers:hdr()}).then(r=>r.json()); setRole(h.role||"viewer"); }catch(e){} } })();
 // ---------- live layers from the brain (proposals, occurrences) ----------
 const liveP = L.layerGroup().addTo(map), liveO = L.layerGroup().addTo(map);
-async function loadFeatures(){ if(window.renderFeatures) return window.renderFeatures(); try{ const d = await fetch(API+"/features").then(r=>r.json()); liveP.clearLayers(); liveO.clearLayers();
+async function loadFeatures(){ if(window.renderFeatures) return window.renderFeatures(); try{ const d = await fetch(apiSite(API+"/features")).then(r=>r.json()); liveP.clearLayers(); liveO.clearLayers();
   for(const f of d.features){ const p=f.properties; const isO = p.layer==="ocorrencias"; const c=f.geometry.coordinates; const m=L.marker([c[1],c[0]],{icon:L.divIcon({className:"",html:`<div class="prop-pin ${isO?"occ":""}">${isO?"!":"+"}</div>`,iconSize:[30,30],iconAnchor:[15,30]})});
     m.on("click", ()=>{ if(window.showCard) showCard({name:p.name, kind:p.kind, status:p.status, created_by:p.created_by, created_at:String(p.created_at).slice(0,16), note:p.note, brain_id:p.id}, L.latLng(c[1],c[0]), isO?T.layerO:T.layerP); });
     (isO?liveO:liveP).addLayer(m); } }catch(e){} }
@@ -78,7 +78,7 @@ function startPlace(a, layer){ const lyr = layer || a.layer || "propostas"; cons
   map.on("click", onClick);
   const end = ()=>{ map.off("click", onClick); document.getElementById("map").classList.remove("crosshair"); if(tmp) map.removeLayer(tmp); bar.remove(); placing=null; };
   bar.querySelector(".x").onclick = end;
-  bar.querySelector(".ok").onclick = async ()=>{ const note = prompt(L_==="en"?"Note (optional):":"Nota (opcional):","")||""; const r = await fetch(API+"/features",{method:"POST",headers:hdr(),body:JSON.stringify({layer:lyr,name:a.name||a.kind||"",kind:a.kind||"",lon:ll.lng,lat:ll.lat,note,actor:ACTOR})}).then(r=>r.json());
+  bar.querySelector(".ok").onclick = async ()=>{ const note = prompt(L_==="en"?"Note (optional):":"Nota (opcional):","")||""; const r = await fetch(API+"/features",{method:"POST",headers:hdr(),body:JSON.stringify({site:SITE_ID,layer:lyr,name:a.name||a.kind||"",kind:a.kind||"",lon:ll.lng,lat:ll.lat,note,actor:ACTOR})}).then(r=>r.json());
     if(r.ok){ msg("a", (lyr==="ocorrencias"?T.reported:T.placed)+` — ${r.id} (${ll.lat.toFixed(5)}, ${ll.lng.toFixed(5)})`); loadFeatures(); if(window.toast) toast(lyr==="ocorrencias"?T.reported:T.placed); } else msg("a", T.err+" "+(r.need||r.error||"")); end(); };
   placing = a;
 }

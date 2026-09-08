@@ -27,7 +27,8 @@ h1{font-family:"Cormorant Garamond",Georgia,serif;font-size:34px;font-weight:600
 </div>
 <div class="langs"><button onclick="setLang('pt')">PT</button><button onclick="setLang('en')">EN</button></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="data.js?v=0737499e"></script><script src="habitat-data.js?v=ee3f5cf1"></script>
+<script src="sites.js?v=f6bf9f1a"></script>
+<script>edrLoadData(["data.js?v=0737499e", "habitat-data.js?v=ee3f5cf1"])</script>
 <script>
 let LANG="pt"; try{LANG=localStorage.getItem("edr_lang")||"pt";}catch(e){}
 function setLang(l){LANG=l;try{localStorage.setItem("edr_lang",l);}catch(e){}render();}
@@ -62,5 +63,5 @@ function render(){ const t=T[LANG]; document.getElementById("ttl").textContent=t
   document.querySelectorAll(".chap").forEach(c=>c.onclick=()=>show(c.dataset.k)); }
 render(); show("sobro");
 </script>
-<script src="nav.js?v=d1e8fea3"></script>
+<script src="nav.js?v=ad3ab3ba"></script>
 </body></html>

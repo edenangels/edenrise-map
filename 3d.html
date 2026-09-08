@@ -58,20 +58,14 @@ a{color:var(--accent)}
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/deck.gl@9/dist.min.js"></script>
-<script src="data.js?v=0737499e"></script>
-<script src="ops-data.js?v=2751505a"></script>
-<script src="hydro-data.js?v=91ef64a3"></script>
-<script src="trees-data.js?v=bb99e5d4"></script>
-<script src="buildings-data.js?v=0fc788f4"></script>
-<script src="suitability-data.js?v=4e99bc9f"></script>
+<script src="sites.js?v=f6bf9f1a"></script>
+<script>edrLoadData(["data.js?v=0737499e", "ops-data.js?v=2751505a", "hydro-data.js?v=91ef64a3", "trees-data.js?v=bb99e5d4", "buildings-data.js?v=0fc788f4", "suitability-data.js?v=4e99bc9f", "defensible-data.js?v=f90a6c7b", "work-data.js?v=ad554e35"])</script>
 <script src="registry.js?v=ba3c7a82"></script>
-<script src="defensible-data.js?v=f90a6c7b"></script>
-<script src="work-data.js?v=ad554e35"></script>
 <script>
 const OGC = "https://ogcapi.dgterritorio.gov.pt/collections/";
 const ogcMap = c => `${OGC}${c}/map?bbox={bbox-epsg-3857}&bbox-crs=http://www.opengis.net/def/crs/EPSG/0/3857&width=256&height=256&f=png`;
 const BASES = {
-  dgt25: {pt:"DGT 2025 · 25 cm", en:"DGT 2025 · 25 cm", maxzoom:20, tiles:[location.href.replace(/[^/]*$/,"") + "ortho2025/{z}/{x}/{y}.jpg"], attr:"Ortofotos 2025 © DGT", bounds:[-8.661,37.497,-8.628,37.526]},
+  ...(SITE.tiles.ortho ? {dgt25: {pt:"DGT 2025 · 25 cm", en:"DGT 2025 · 25 cm", maxzoom:20, tiles:[location.href.replace(/[^/]*$/,"") + SITE.tiles.ortho + "/{z}/{x}/{y}.jpg"], attr:"Ortofotos 2025 © DGT", bounds:SITE.tileBounds}} : {}),
   dgt18: {pt:"DGT 2018 · 25 cm", en:"DGT 2018 · 25 cm", tiles:[ogcMap("ortos2018-rgb")], attr:"Ortofotos 2018 © DGT"},
   dgt23: {pt:"DGT 2023 · 30 cm", en:"DGT 2023 · 30 cm", tiles:[ogcMap("ortos-rgb")], attr:"OrtoSat2023 © DGT"},
   esri:  {pt:"Esri", en:"Esri", tiles:["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], attr:"© Esri & partners"},
@@ -88,11 +82,12 @@ const src = t => DATA[t];
 const LAYERS = []; for(const [g, gOn, ls] of GROUPS) for(const [t, title, kind, color, opt] of ls) LAYERS.push([g, t, title, kind, color, opt||{}]);
 const titleOf = t => { const e = LAYERS.find(x=>x[1]===t); return e ? (LANG==="en" ? (T_EN[t]||e[2]) : e[2]) : t; };
 const gname_i18n = g => LANG==="en" ? (G_EN[g]||g) : g;
-let curBase = "dgt25";
-const map = new maplibregl.Map({container:"map", attributionControl:{compact:true}, zoom:14.3, center:[-8.645,37.512], pitch:52, bearing:-20, maxPitch:75,
+let curBase = SITE.tiles.ortho ? "dgt25" : "dgt23";
+const map = new maplibregl.Map({container:"map", attributionControl:{compact:true}, zoom:SITE.zoom3d, center:[SITE.centre[1],SITE.centre[0]], pitch:SITE.pitch, bearing:SITE.bearing, maxPitch:75,
   style:{version:8, glyphs:"https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf", sources:{
-    terrain:{type:"raster-dem", tiles:[location.href.replace(/[^/]*$/,"") + "terrain/{z}/{x}/{y}.png"], encoding:"mapbox", tileSize:256, minzoom:8, maxzoom:16,
-             bounds:[-9.55,36.6,-7.75,38.45], attribution:"Terreno: LiDAR 2024 © DGT (50 cm) + Terrarium"},
+    terrain: SITE.tiles.terrain ? {type:"raster-dem", tiles:[location.href.replace(/[^/]*$/,"") + SITE.tiles.terrain + "/{z}/{x}/{y}.png"], encoding:"mapbox", tileSize:256, minzoom:8, maxzoom:16,
+             bounds:[-9.55,36.6,-7.75,38.45], attribution:"Terreno: LiDAR 2024 © DGT (50 cm) + Terrarium"}
+           : {type:"raster-dem", tiles:["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"], encoding:"terrarium", tileSize:256, minzoom:0, maxzoom:15, attribution:"Terreno: Terrarium (Mapzen / AWS) ~30 m"},
     base:{type:"raster", tiles:BASES[curBase].tiles, tileSize:256, attribution:BASES[curBase].attr, maxzoom:BASES[curBase].maxzoom||19},
     fallback:{type:"raster", tiles:[ogcMap("ortos-rgb")], tileSize:256, attribution:"OrtoSat2023 © DGT"},
     fwi:{type:"raster", tiles:["https://maps.effis.emergency.copernicus.eu/effis?service=WMS&version=1.3.0&request=GetMap&layers=mf010.fwi&styles=&crs=EPSG:3857&bbox={bbox-epsg-3857}&width=256&height=256&format=image/png&time="+new Date().toISOString().slice(0,10)], tileSize:256, attribution:"EFFIS © Copernicus"},
@@ -151,7 +146,7 @@ function addLayerFor(t){
 }
 const globalOf = g => { try{ return new Function("return (typeof "+g+"!==\"undefined\")?"+g+":null")(); }catch(e){ return null; } };
 const lazyInflight={};
-function lazyLoad(t){ const z = (typeof LAZY!=="undefined") && LAZY[t]; if(!z) return Promise.resolve(false); if(globalOf(z.g)){ Object.assign(DATA, edrAlias(Object.assign({},globalOf(z.g)))); return Promise.resolve(true); } if(lazyInflight[z.f]) return lazyInflight[z.f];
+function lazyLoad(t){ const z = (typeof LAZY!=="undefined") && SITE.flags.lidar && LAZY[t]; if(!z) return Promise.resolve(false); if(globalOf(z.g)){ Object.assign(DATA, edrAlias(Object.assign({},globalOf(z.g)))); return Promise.resolve(true); } if(lazyInflight[z.f]) return lazyInflight[z.f];
   return lazyInflight[z.f]=new Promise((res)=>{ const s=document.createElement("script"); s.src=z.f+"?d="+(location.hostname==="localhost"?Date.now():new Date().toISOString().slice(0,10)); s.onload=()=>{ Object.assign(DATA, edrAlias(Object.assign({},globalOf(z.g)||{}))); res(true); }; s.onerror=()=>res(false); document.head.appendChild(s); }); }
 let layersAdded = false;
 map.on("style.load", ()=>{            // fires once the style is parsed — does not wait on slow remote sources
@@ -169,8 +164,8 @@ async function setVis(t, on){ state[t]=on; try{ saved3d[t]=on; localStorage.setI
   const v = on?"visible":"none"; if(map.getLayer(t)) map.setLayoutProperty(t,"visibility",v); if(map.getLayer(t+"_o")) map.setLayoutProperty(t+"_o","visibility",v); }
 function buildPanel(){
   const tx = T[LANG];
-  document.getElementById("ttl").textContent = tx.ttl; document.getElementById("sub").textContent = tx.sub;
-  document.getElementById("hint").textContent = tx.hint; document.getElementById("fly").textContent = tx.fly; document.getElementById("tilt").textContent = tx.tilt;
+  document.getElementById("ttl").textContent = SITE.ttl3d[LANG]; document.getElementById("sub").textContent = tx.sub; document.title = SITE.name + " — 3D";
+  document.getElementById("hint").textContent = SITE.flags.lidar ? tx.hint : (LANG==="en" ? "Right-drag / two fingers to tilt and rotate. Click any feature for its record. Terrain: Copernicus/Terrarium (30 m) — upgrades to 50 cm when DGT LiDAR is added for this property." : "Arrastar com botão direito / dois dedos para inclinar e rodar. Clicar em qualquer elemento para a ficha. Terreno: Copernicus/Terrarium (30 m) — passa a 50 cm quando o LiDAR DGT for adicionado a esta propriedade."); document.getElementById("fly").textContent = tx.fly; document.getElementById("tilt").textContent = tx.tilt;
   const L = document.getElementById("langs"); L.innerHTML = "";
   [["pt","Português"],["en","English"]].forEach(([c,l])=>{ const b=document.createElement("button"); b.textContent=l; if(c===LANG) b.classList.add("on");
     b.onclick=()=>{ LANG=c; try{localStorage.setItem("edr_lang",c);}catch(e){} buildPanel(); }; L.appendChild(b); });
@@ -185,7 +180,7 @@ function buildPanel(){
   const openCats=(()=>{ try{ return new Set(JSON.parse(localStorage.getItem("edr_open_cats")||"[]")); }catch(e){ return new Set(); } })();
   const saveOpen=()=>{ try{ localStorage.setItem("edr_open_cats", JSON.stringify([...openCats])); }catch(e){} };
   for(const [gname, gOn, layers] of GROUPS){
-    const present = layers.filter(([t])=>src(t) || (typeof LAZY!=="undefined" && LAZY[t])); if(!present.length) continue;
+    const present = layers.filter(([t])=>src(t) || (typeof LAZY!=="undefined" && LAZY[t] && SITE.flags.lidar)); if(!present.length) continue;
     const cat=document.createElement("div"); cat.className="cat"+(openCats.has(gname)?" open":"");
     const onCount=present.filter(([t])=>state[t]).length;
     cat.innerHTML=`<div class="ch"><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 6 6 6-6 6"/></svg><span class="ico">${catIcon(gname)}</span><span class="cn">${gname_i18n(gname).replace(/^[\d]+ · |^[^\w]+ /,"")}</span><span class="cc ${onCount?"on":""}">${onCount}/${present.length}</span><label class="tg"><input type="checkbox" class="gc" ${onCount===present.length?"checked":""}><i></i></label></div><div class="cb"></div>`;
@@ -201,7 +196,7 @@ function buildPanel(){
     cat.querySelector(".ch").onclick=e=>{ if(e.target.closest(".tg")) return; cat.classList.toggle("open"); cat.classList.contains("open")?openCats.add(gname):openCats.delete(gname); saveOpen(); };
     tree.appendChild(cat);
   }
-  buildPermaCat(tree);
+  if(SITE.flags.perma) buildPermaCat(tree);
   // live fire danger
   const live=document.createElement("div"); live.className="cat"+(openCats.has("live")?" open":""); const fwiOn=map.getLayoutProperty("fwi","visibility")==="visible";
   live.innerHTML=`<div class="ch"><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 6 6 6-6 6"/></svg><span class="ico">🛰️</span><span class="cn">${LANG==="en"?"Live":"Em direto"}</span><span class="cc ${fwiOn?"on":""}">${fwiOn?1:0}/1</span></div><div class="cb"><label class="lyr"><span class="sw" style="background:#ff7043"></span><span class="nm">${LANG==="en"?"Fire danger today (EFFIS)":"Perigo de incêndio hoje (EFFIS)"}</span><span class="tg"><input type="checkbox" ${fwiOn?"checked":""}><i></i></span></label></div>`;
@@ -282,10 +277,10 @@ function buildPermaCat(tree){ const tx=PM[LANG]; const cat=document.createElemen
   // restore saved permaculture layers once
   if(!buildPermaCat.restored){ buildPermaCat.restored=true; keys.forEach(k=>{ if(pstate[k]) ptoggle(k,true); }); if(pstate.sun) psun(pstate.sun); if(pstate.shade) pshade(pstate.shade); } }
 /* ---------- 3D upgrades: sun by date/time, exaggeration, team proposals in 3D, placing proposals from the twin ---------- */
-const API="https://edenrise-brain.edenrise.workers.dev"; const CENTRE=[37.5125,-8.6445]; let sunDate=new Date();
+const API="https://edenrise-brain.edenrise.workers.dev"; const CENTRE=SITE.centre; let sunDate=new Date();
 function setSun(d){ sunDate=d; try{ const p=SunCalc.getPosition(d,CENTRE[0],CENTRE[1]); const alt=p.altitude*180/Math.PI, az=(p.azimuth*180/Math.PI+180)%360; const up=alt>0; const polar=Math.max(5,Math.min(88,90-alt)); map.setLight({anchor:"map",position:[1.5,az,polar],color:up?(alt<12?"#ffd0a0":"#fff4e2"):"#6a7a95",intensity:up?Math.min(.75,.25+alt/90):.12}); const el=document.getElementById("sunlbl"); if(el) el.textContent=`${d.toLocaleDateString(LANG==="en"?"en-GB":"pt-PT",{day:"2-digit",month:"short"})} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")} · ${up?`☀ ${Math.round(alt)}°`:"🌙"}`; }catch(e){} }
 let teamData={type:"FeatureCollection",features:[]};
-async function loadTeam(){ try{ const d=await fetch(API+"/features").then(r=>r.json()); teamData={type:"FeatureCollection",features:(d.features||[]).map(f=>{ const p=f.properties; const m=p.measures||{}; p.big=(m.area_m2||0)>20000||f.geometry.type==="MultiPolygon"; p.ret=p.op==="retire"||p.op==="modify"; p.h=(p.ret||p.big)?0:(+p.altura_m||(p.preset==="edificio"?3.2:p.preset==="tanque"?2.5:p.preset==="ponte"?1.2:0.6)); p.col=p.status==="aprovado"?"#7f9a6a":p.status==="reportado"?"#e07b39":"#c9a227"; return f; })}; }catch(e){}
+async function loadTeam(){ try{ const d=await fetch(apiSite(API+"/features")).then(r=>r.json()); teamData={type:"FeatureCollection",features:(d.features||[]).map(f=>{ const p=f.properties; const m=p.measures||{}; p.big=(m.area_m2||0)>20000||f.geometry.type==="MultiPolygon"; p.ret=p.op==="retire"||p.op==="modify"; p.h=(p.ret||p.big)?0:(+p.altura_m||(p.preset==="edificio"?3.2:p.preset==="tanque"?2.5:p.preset==="ponte"?1.2:0.6)); p.col=p.status==="aprovado"?"#7f9a6a":p.status==="reportado"?"#e07b39":"#c9a227"; return f; })}; }catch(e){}
   if(map.getSource("team")) map.getSource("team").setData(teamData); else { map.addSource("team",{type:"geojson",data:teamData});
     map.addLayer({id:"team_ret",type:"line",source:"team",filter:["all",["==",["geometry-type"],"Polygon"],["any",["==",["get","ret"],true],["==",["get","big"],true]]],paint:{"line-color":["case",["==",["get","op"],"retire"],"#e07b39","#c9a227"],"line-width":2,"line-dasharray":[2,2]}});
     map.addLayer({id:"team_pg",type:"fill-extrusion",source:"team",filter:["all",["==",["geometry-type"],"Polygon"],["!=",["get","ret"],true],["!=",["get","big"],true]],paint:{"fill-extrusion-color":["get","col"],"fill-extrusion-height":["get","h"],"fill-extrusion-opacity":.82}});
@@ -297,7 +292,7 @@ function placeMode(kind){ placing=kind; map.getCanvas().style.cursor="crosshair"
 map.on("click",async e=>{ if(!placing) return; const kind=placing; placing=null; map.getCanvas().style.cursor=""; const el=document.getElementById("placehint"); if(el) el.hidden=true; const key=localStorage.getItem("edr_role_key")||""; if(!key){ alert(LANG==="en"?"Sign in on the 2D map first (EDIT → team key).":"Entre primeiro no mapa 2D (EDITAR → chave da equipa)."); return; }
   const name=prompt(LANG==="en"?"Name:":"Nome:",kind); if(name===null) return; const h=+(prompt(LANG==="en"?"Height (m):":"Altura (m):",kind==="edificio"?"3.2":"2.5")||0); const size=+(prompt(LANG==="en"?"Footprint side (m):":"Lado da implantação (m):","8")||8);
   const kx=111320*Math.cos(e.lngLat.lat*Math.PI/180), ky=110540, d=size/2; const ring=[[-d,-d],[d,-d],[d,d],[-d,d],[-d,-d]].map(([x,y])=>[e.lngLat.lng+x/kx,e.lngLat.lat+y/ky]);
-  const r=await fetch(API+"/features",{method:"POST",headers:{"Content-Type":"application/json","X-Role-Key":key},body:JSON.stringify({layer:"propostas",name,kind,geometry:{type:"Polygon",coordinates:[ring]},props:{preset:kind,altura_m:h},note:LANG==="en"?"placed from the 3D twin":"colocado a partir do 3D",actor:localStorage.getItem("edr_actor")||"",measures:{kind:"polygon",area_m2:size*size,comprimento_m:size,largura_m:size}})}).then(r=>r.json()).catch(()=>({}));
+  const r=await fetch(API+"/features",{method:"POST",headers:{"Content-Type":"application/json","X-Role-Key":key},body:JSON.stringify({site:SITE_ID,layer:"propostas",name,kind,geometry:{type:"Polygon",coordinates:[ring]},props:{preset:kind,altura_m:h},note:LANG==="en"?"placed from the 3D twin":"colocado a partir do 3D",actor:localStorage.getItem("edr_actor")||"",measures:{kind:"polygon",area_m2:size*size,comprimento_m:size,largura_m:size}})}).then(r=>r.json()).catch(()=>({}));
   if(r.ok){ loadTeam(); } else alert(r.need||r.error||"—"); });
 document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&placing){ placing=null; map.getCanvas().style.cursor=""; const el=document.getElementById("placehint"); if(el) el.hidden=true; } });
 function buildSunUI(){ const host=document.getElementById("views"); if(!host||document.getElementById("sunbar")) return; const bar=document.createElement("div"); bar.id="sunbar"; bar.style.cssText="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px;font:12px Archivo,sans-serif";
@@ -308,29 +303,29 @@ function buildSunUI(){ const host=document.getElementById("views"); if(!host||do
 setTimeout(buildSunUI,1200);
 (function boot3d(n){ let ok=false; try{ if(map.getSource("terrain")){ setSun(sunDate||new Date()); loadTeam(); ok=true; } }catch(e){} if(!ok&&n<40) setTimeout(()=>boot3d(n+1),500); })(0);
 /* ---------- photoreal step 1: surface model terrain (DSM), LiDAR point cloud as 3D Tiles (deck.gl), ortho-coloured roofs ---------- */
-const PC_URL="https://edenangels.github.io/edenrise-3d/tiles/tileset.json"; let deckOverlay=null, pcOn=false, pcSize=2;
+const PC_URL=SITE.pointcloud; let deckOverlay=null, pcOn=false, pcSize=2;
 function pcLayer(){ return new deck.Tile3DLayer({id:"lidar",data:PC_URL,pointSize:pcSize,opacity:1,pickable:false,loadOptions:{"3d-tiles":{loadGLTF:false}},onTilesetLoad:(ts)=>{ const el=document.getElementById("pcinfo"); if(el) el.textContent=`LiDAR 2024 · ${LANG==="en"?"loaded":"carregada"}`; },_subLayerProps:{pointcloud:{pointSize:pcSize}}}); }
 function togglePC(on){ pcOn=on; if(!window.deck){ alert("deck.gl"); return; } if(!deckOverlay){ deckOverlay=new deck.MapboxOverlay({interleaved:true,layers:[]}); map.addControl(deckOverlay); } deckOverlay.setProps({layers:on?[pcLayer()]:[]}); }
 let surfaceOn=false;
-function toggleSurface(on){ surfaceOn=on; try{ if(!map.getSource("surface")) map.addSource("surface",{type:"raster-dem",tiles:[location.href.replace(/[^/]*$/,"")+"surface/{z}/{x}/{y}.png"],encoding:"mapbox",tileSize:256,minzoom:8,maxzoom:16}); const ex=(document.getElementById("exag")&&+document.getElementById("exag").value)||1.25; map.setTerrain({source:on?"surface":"terrain",exaggeration:on?1:ex}); if(map.getLayer("building_footprints")) map.setLayoutProperty("building_footprints","visibility",on?"none":"visible"); }catch(e){} }
-fetch("roofs.json").then(r=>r.json()).then(roofs=>{ const ids=Object.keys(roofs); if(!ids.length) return; const expr=["match",["to-string",["coalesce",["get","core_fid"],["get","name"]]]]; ids.forEach(k=>expr.push(k,roofs[k])); expr.push("#d9c7a3"); const apply=()=>{ try{ if(map.getLayer("building_footprints")) map.setPaintProperty("building_footprints","fill-extrusion-color",expr); }catch(e){} }; apply(); setTimeout(apply,3000); }).catch(()=>{});
-function buildPCUI(){ const bar=document.getElementById("sunbar"); if(!bar||document.getElementById("pcbar")) return; const b=document.createElement("div"); b.id="pcbar"; b.style.cssText="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;font:12px Archivo,sans-serif;color:#d9cfbc";
+function toggleSurface(on){ surfaceOn=on; try{ if(!map.getSource("surface")) map.addSource("surface",{type:"raster-dem",tiles:[location.href.replace(/[^/]*$/,"")+SITE.tiles.surface+"/{z}/{x}/{y}.png"],encoding:"mapbox",tileSize:256,minzoom:8,maxzoom:16}); const ex=(document.getElementById("exag")&&+document.getElementById("exag").value)||1.25; map.setTerrain({source:on?"surface":"terrain",exaggeration:on?1:ex}); if(map.getLayer("building_footprints")) map.setLayoutProperty("building_footprints","visibility",on?"none":"visible"); }catch(e){} }
+if(SITE.roofs) fetch(SITE.roofs).then(r=>r.json()).then(roofs=>{ const ids=Object.keys(roofs); if(!ids.length) return; const expr=["match",["to-string",["coalesce",["get","core_fid"],["get","name"]]]]; ids.forEach(k=>expr.push(k,roofs[k])); expr.push("#d9c7a3"); const apply=()=>{ try{ if(map.getLayer("building_footprints")) map.setPaintProperty("building_footprints","fill-extrusion-color",expr); }catch(e){} }; apply(); setTimeout(apply,3000); }).catch(()=>{});
+function buildPCUI(){ if(!SITE.pointcloud && !SITE.tiles.surface) return; const bar=document.getElementById("sunbar"); if(!bar||document.getElementById("pcbar")) return; const b=document.createElement("div"); b.id="pcbar"; b.style.cssText="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;font:12px Archivo,sans-serif;color:#d9cfbc";
   b.innerHTML=`<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="pcchk"> ${LANG==="en"?"LiDAR cloud (true colour)":"Nuvem LiDAR (cor real)"}</label><input type="range" id="pcsz" min="1" max="5" step=".5" value="2" style="width:70px" aria-label="point size"><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="sfchk"> ${LANG==="en"?"Surface model (trees & roofs)":"Modelo de superfície (árvores e telhados)"}</label><span id="pcinfo" style="color:#9a8f80;font:11px 'IBM Plex Mono',monospace"></span>`;
   bar.parentNode.insertBefore(b,bar.nextSibling); b.querySelector("#pcchk").onchange=e=>togglePC(e.target.checked); b.querySelector("#pcsz").oninput=e=>{ pcSize=+e.target.value; if(pcOn) deckOverlay.setProps({layers:[pcLayer()]}); }; b.querySelector("#sfchk").onchange=e=>toggleSurface(e.target.checked); }
 setTimeout(buildPCUI,1600);
 /* views */
-const VIEWS = [["Casa","Main house",[-8.6412,37.5148],17.2,64,-30],["Moinhos","Mills",[-8.6455,37.5165],17,60,25],["Norte","North",[-8.6485,37.5205],16,58,-10],["Sul","South",[-8.6440,37.5040],16,58,160],["Vale","Valley",[-8.6395,37.5100],16.4,66,-70]];
+const VIEWS = SITE.views3d;
 function buildViews(){ const v=document.getElementById("views"); v.innerHTML=""; VIEWS.forEach(([pt,en,c,z,p,b])=>{ const bt=document.createElement("button"); bt.textContent=LANG==="en"?en:pt; bt.onclick=()=>map.flyTo({center:c,zoom:z,pitch:p,bearing:b,duration:2200,essential:true}); v.appendChild(bt); }); }
 buildViews();
 document.getElementById("tilt").onclick = ()=> map.easeTo({pitch: map.getPitch()>10 ? 0 : 60, duration:800});
 document.getElementById("fly").onclick = ()=> {
-  map.easeTo({center:[-8.652,37.508], zoom:15.2, pitch:65, bearing:-60, duration:2500});
-  setTimeout(()=>map.easeTo({center:[-8.641,37.516], zoom:15.4, pitch:62, bearing:40, duration:5000}), 2600);
+  const [fa,fb]=SITE.fly3d; map.easeTo({center:fa[0], zoom:fa[1], pitch:fa[2], bearing:fa[3], duration:2500});
+  setTimeout(()=>map.easeTo({center:fb[0], zoom:fb[1], pitch:fb[2], bearing:fb[3], duration:5000}), 2600);
 };
 </script>
 <script>(function(){ const b=document.getElementById("pburger"), p=document.getElementById("panel"); if(!b||!p) return; const tx=()=>{ const s=document.getElementById("pburger-t"); if(s) s.textContent=p.classList.contains("open")?(LANG==="en"?"Close":"Fechar"):(LANG==="en"?"Layers & views":"Camadas & vistas"); }; b.onclick=()=>{ p.classList.toggle("open"); document.body.classList.toggle("sheet-open",p.classList.contains("open")); tx(); }; tx();
   map.on("click",()=>{ if(window.innerWidth<=700&&p.classList.contains("open")){ p.classList.remove("open"); document.body.classList.remove("sheet-open"); tx(); } }); })();
 </script>
-<script src="nav.js?v=d1e8fea3"></script>
+<script src="nav.js?v=ad3ab3ba"></script>
 </body>
 </html>

@@ -2,7 +2,7 @@
 // Depends on globals from index.html: map, layerObjs, DATA, GROUPS, LANG, LIVE, bases, popup, buildSidebar
 (function(){
 const OGC = "https://ogcapi.dgterritorio.gov.pt/collections/";
-const EST = [37.512, -8.645];
+const EST = SITE.centre;
 const tx = () => ({
   pt:{fire:"🔥 Fogo",field:"📍 Campo",time:"🕰️ Tempo",exit:"✕ sair do modo",search:"Pesquisar: ativo, edifício, árvore, zona…",
       wind:"Vento agora",gusts:"rajadas",hum:"humidade",temp:"temp.",worst:"Edifícios mais expostos",water:"pontos de água visíveis",
@@ -59,7 +59,7 @@ enter.fire = async function(){
     document.getElementById("windbox").innerHTML = `<div><b>${t.wind}: ${card} ${Math.round(c.wind_speed_10m)} km/h</b> · ${t.gusts} ${Math.round(c.wind_gusts_10m)} · ${t.hum} ${c.relative_humidity_2m}% · ${t.temp} ${Math.round(c.temperature_2m)}°</div><div style="font-size:10.5px;color:var(--muted)">Open-Meteo · ${c.time.replace("T"," ")}</div>`;
     // wind arrows: 5 across the estate pointing where the wind blows TO
     const rot = (c.wind_direction_10m + 180) % 360; const spd = c.wind_speed_10m;
-    layers.wind = L.layerGroup([[37.505,-8.655],[37.505,-8.635],[37.512,-8.645],[37.519,-8.655],[37.519,-8.635]].map(ll =>
+    layers.wind = L.layerGroup([[-0.007,-0.01],[-0.007,0.01],[0,0],[0.007,-0.01],[0.007,0.01]].map(([dy,dx])=>[EST[0]+dy,EST[1]+dx]).map(ll =>
       L.marker(ll,{interactive:false,icon:L.divIcon({className:"", html:`<div class="windarrow" style="transform:rotate(${rot}deg);opacity:${Math.min(.35+spd/40,1)}">➤</div>`, iconSize:[40,40], iconAnchor:[20,20]})}))).addTo(map);
   }catch(e){ document.getElementById("windbox").textContent = "Open-Meteo —"; }
   map.fitBounds(layerObjs.cadastre_parcels.lyr.getBounds().pad(.08));
@@ -103,9 +103,9 @@ function report(){
 (function(){ const m = location.hash.match(/#at=(-?\d+\.\d+),(-?\d+\.\d+)/); if(m){ const ll=[+m[1],+m[2]]; setTimeout(()=>{ map.setView(ll,18); L.marker(ll,{icon:L.divIcon({className:"", html:`<div class="pin rep">!</div>`, iconSize:[26,26], iconAnchor:[13,26]})}).addTo(map); }, 600); } })();
 
 // ---------- 🕰️ TIME MODE ----------
-const YEARS = [["ortos1995-irg","1995 (IR)"],["ortos2004-2006-rgb","2004–06"],["ortos2007-rgb","2007"],["ortos2010-rgb","2010"],["ortos2012-rgb","2012"],["ortos2015-rgb","2015"],["ortos2018-rgb","2018"],["ortos-rgb","2023"],["local2025","2025"]];
+const YEARS = [["ortos1995-irg","1995 (IR)"],["ortos2004-2006-rgb","2004–06"],["ortos2007-rgb","2007"],["ortos2010-rgb","2010"],["ortos2012-rgb","2012"],["ortos2015-rgb","2015"],["ortos2018-rgb","2018"],["ortos-rgb","2023"],["local2025","2025"]].filter(([c])=>c!=="local2025"||SITE.tiles.ortho);
 const OgcTile = L.TileLayer.extend({ getTileUrl(c){ const n=Math.pow(2,c.z), R=6378137*Math.PI, s=2*R/n; const x0=-R+c.x*s, y1=R-c.y*s; return `${OGC}${this.options.coll}/map?bbox=${x0},${y1-s},${x0+s},${y1}&bbox-crs=http://www.opengis.net/def/crs/EPSG/0/3857&width=256&height=256&f=png`; } });
-function orthoLayer(coll, pane){ return coll==="local2025" ? L.tileLayer("ortho2025/{z}/{x}/{y}.jpg",{minZoom:12,maxNativeZoom:18,maxZoom:20,pane,bounds:[[37.497,-8.661],[37.526,-8.628]]}) : new OgcTile("",{coll,pane,maxZoom:20,attribution:"© DGT"}); }
+function orthoLayer(coll, pane){ return coll==="local2025" ? L.tileLayer(SITE.tiles.ortho+"/{z}/{x}/{y}.jpg",{minZoom:12,maxNativeZoom:18,maxZoom:20,pane,bounds:[[SITE.tileBounds[1],SITE.tileBounds[0]],[SITE.tileBounds[3],SITE.tileBounds[2]]]}) : new OgcTile("",{coll,pane,maxZoom:20,attribution:"© DGT"}); }
 let divider = null, dragging = false;
 enter.time = function(){
   const t = tx();
