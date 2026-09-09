@@ -32,7 +32,7 @@
 </div>
 <div class="foot" id="foot"></div>
 </div>
-<script src="sites.js?v=5c3e6fdd"></script>
+<script src="sites.js?v=1af6698e"></script>
 <script>edrLoadData(["sat-data.js?v=98dc79f4", "alerts-data.js?v=be6d89d5", "work-data.js?v=ad554e35", "defensible-data.js?v=f90a6c7b", "water-data.js?v=4ce94f9b", "habitat-data.js?v=ee3f5cf1", "suitability-data.js?v=4e99bc9f", "trees-data.js?v=bb99e5d4"])</script>
 <script>
 let LANG="pt"; try{LANG=localStorage.getItem("edr_lang")||((navigator.language||"pt").toLowerCase().startsWith("pt")?"pt":"en");}catch(e){}
@@ -101,7 +101,7 @@ function render(){
     wk.innerHTML=Object.entries(by).map(([g,b])=>tile((NAMES[g]||{pt:g,en:g})[LANG], `${b.open}<small>${t.open}</small>`, `${b.closed} ${t.done}`, {extra:`<div class="bar"><i style="width:${100*b.closed/Math.max(b.open+b.closed,1)}%"></i></div>`})).join(""); }
   else { document.getElementById("n_work").textContent=""; wk.innerHTML=`<div class="empty" style="grid-column:1/-1">${t.nomirror}</div>`; }
   document.getElementById("h_water").textContent=t.water;
-  document.getElementById("t_water").innerHTML=`<tr>${t.wcols.map((c,i)=>`<th class="${i?"num":""}">${c}</th>`).join("")}</tr>`+(W?W.catchments_runoff.features.map(f=>{const p=f.properties;return `<tr><td>${p.name}</td><td class="num">${p.area_ha} ha</td><td class="num">${p.canopy_cover_pct}%</td><td class="num">${p.runoff_coef}</td><td class="num">${fmt(p.runoff_m3_50mm)}</td></tr>`;}).join(""):"");
+  document.getElementById("t_water").innerHTML=`<tr>${t.wcols.map((c,i)=>`<th class="${i?"num":""}">${c}</th>`).join("")}</tr>`+(W?[...W.catchments_runoff.features].sort((a,b)=>(b.properties.runoff_m3_50mm||0)-(a.properties.runoff_m3_50mm||0)).slice(0,12).map(f=>{const p=f.properties;return `<tr><td>${p.name}</td><td class="num">${p.area_ha} ha</td><td class="num">${p.canopy_cover_pct}%</td><td class="num">${p.runoff_coef}</td><td class="num">${fmt(p.runoff_m3_50mm)}</td></tr>`;}).join(""):"");
   document.getElementById("h_hab").textContent=t.hab;
   const tot=H?Object.values(H.summary.cos2025_classes_ha).reduce((a,b)=>a+b,0):1;
   document.getElementById("t_hab").innerHTML=`<tr>${t.hcols.map((c,i)=>`<th class="${i?"num":""}">${c}</th>`).join("")}</tr>`+(H?Object.entries(H.summary.cos2025_classes_ha).filter(([k,v])=>v>=0.05).map(([k,v])=>`<tr><td>${k}<div class="bar"><i style="width:${100*v/tot}%"></i></div></td><td class="num">${v}</td><td class="num">${(100*v/tot).toFixed(1)}%</td></tr>`).join(""):"");

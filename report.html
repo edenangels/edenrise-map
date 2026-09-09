@@ -37,7 +37,7 @@ td{padding:5px 8px 5px 0;border-bottom:1px solid var(--line);vertical-align:top}
 <div class="cap" style="margin-top:22px" id="foot"></div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="sites.js?v=5c3e6fdd"></script>
+<script src="sites.js?v=1af6698e"></script>
 <script>edrLoadData(["data.js?v=0737499e", "ops-data.js?v=2751505a", "habitat-data.js?v=ee3f5cf1", "trees-data.js?v=bb99e5d4", "buildings-data.js?v=0fc788f4"])</script>
 <script>
 let LANG="pt"; try{LANG=localStorage.getItem("edr_lang")||"pt";}catch(e){}
@@ -58,11 +58,11 @@ L.geoJSON(DATA.buildings_pt,{pointToLayer:(f,ll)=>L.circleMarker(ll,{radius:6,fi
 map.fitBounds(bnd.getBounds().pad(.05));
 function render(){
   const t=T[LANG]; for(const k of ["eb","ttl","lede","h1","h2","h3","h4","h5","h6","cap","foot"]) document.getElementById(k).textContent=t[k];
-  const parcel=DATA.cadastre_parcels.features[0].properties, cad=(OPS.cadastro_oficial?OPS.cadastro_oficial.features:[]).filter(f=>f.properties.pct_dentro>50);
-  const b=DATA.buildings_pt.features, reg=b.filter(f=>f.properties.status==="registado").length;
+  const parcel=((DATA.cadastre_parcels||{}).features||[])[0].properties, cad=(OPS.cadastro_oficial?OPS.cadastro_oficial.features:[]).filter(f=>f.properties.pct_dentro>50);
+  const b=((DATA.buildings_pt||{}).features||[]), reg=b.filter(f=>f.properties.status==="registado").length;
   document.getElementById("m1").innerHTML=`CRS <b>EPSG:3763</b>`; document.getElementById("m2").innerHTML=`${LANG==="en"?"DATE":"DATA"} <b>${new Date().toISOString().slice(0,10)}</b>`;
   document.getElementById("m3").innerHTML=`${LANG==="en"?"MUNICIPALITY":"CONCELHO"} <b>Odemira</b>`; document.getElementById("m4").innerHTML=`${LANG==="en"?"OWNER":"TITULAR"} <b>EdenRise</b>`;
-  const vals=[(parcel.m2/1e4).toFixed(1)+" ha", cad.length, b.length, reg+" / "+b.length, TR.length.toLocaleString(), H?H.canopy_pct_of_parcel+" % ("+H.canopy_ha+" ha)":"—"];
+  const vals=[(((DATA.cadastre_parcels||{}).features||[]).reduce((a,f)=>a+(+f.properties.m2||0),0)/1e4).toFixed(1)+" ha", cad.length, b.length, reg+" / "+b.length, TR.length.toLocaleString(), H?H.canopy_pct_of_parcel+" % ("+H.canopy_ha+" ha)":"—"];
   document.getElementById("kv").innerHTML=t.kv.map((k,i)=>`<div><div class="k">${k}</div><div class="v">${vals[i]}</div></div>`).join("");
   document.getElementById("tb").innerHTML=`<tr>${t.cols.map(c=>`<th>${c}</th>`).join("")}</tr>`+b.slice().sort((x,y)=>String(x.properties.status).localeCompare(String(y.properties.status))).map(f=>{const p=f.properties;return `<tr><td>${p.name||"—"}</td><td>${p.status||"—"}</td><td>${p.cadastral_article||"—"}</td><td>${p.areas_doc_m2||"—"}</td></tr>`;}).join("");
   document.getElementById("tc").innerHTML=`<tr>${t.ccols.map(c=>`<th>${c}</th>`).join("")}</tr>`+cad.map(f=>{const p=f.properties;return `<tr><td>${p.ref}</td><td class="num">${p.area_oficial_m2?Number(p.area_oficial_m2).toLocaleString():"—"}</td><td class="num">${p.pct_dentro}%</td></tr>`;}).join("");
