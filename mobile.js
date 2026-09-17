@@ -5,9 +5,9 @@
 const MQ = window.matchMedia("(max-width:700px)");
 const EN = (typeof LANG !== "undefined") && LANG === "en";
 const T = EN
-  ? {layers:"Layers", search:"Search", where:"Where", edit:"Edit", brain:"Brain", legend:"Legend", close:"Close",
+  ? {layers:"Layers", search:"Search", where:"GPS", edit:"Edit", brain:"Brain", legend:"Legend", close:"Close",
      gpsNo:"This device has no GPS", gpsFail:"Could not get your position", gpsOff:"Stopped following you"}
-  : {layers:"Camadas", search:"Procurar", where:"Onde estou", edit:"Editar", brain:"Cérebro", legend:"Legenda", close:"Fechar",
+  : {layers:"Camadas", search:"Procurar", where:"GPS", edit:"Editar", brain:"Cérebro", legend:"Legenda", close:"Fechar",
      gpsNo:"Este aparelho não tem GPS", gpsFail:"Não consegui obter a tua posição", gpsOff:"Deixei de te seguir"};
 
 const I = {
@@ -28,7 +28,7 @@ const items = [
   ["layers", T.layers, () => { const s = document.getElementById("side"); if(!s) return; s.classList.toggle("open"); sync(); }],
   ["search", T.search, () => { const s = document.getElementById("side"); if(s) s.classList.add("open"); sync();
       const q = document.getElementById("q"); if(q){ q.scrollIntoView({block:"center"}); setTimeout(()=>q.focus(), 250); } }],
-  ["where",  T.where,  () => locate()],
+  ["where",  T.where,  () => { if(window.edrSurvey) return edrSurvey.open(); locate(); }],
   ["edit",   T.edit,   () => { const s = document.getElementById("side"); if(s) s.classList.remove("open");
       if(!tap("#editbtn")) say(EN ? "Edit mode is still loading" : "O modo de edição ainda está a carregar"); setTimeout(sync, 150); }],
   ["brain",  T.brain,  () => { const s = document.getElementById("side"); if(s) s.classList.remove("open");
@@ -49,7 +49,7 @@ function sync(){
     layers: !!document.querySelector("#side.open"),
     edit:   isShown("#etools") || isShown("#eform"),
     brain:  isShown("#brain"),
-    where:  !!watch
+    where:  !!watch || !!document.querySelector("#svsheet.open") || !!(window.edrSurvey && edrSurvey.recording())
   };
   bar.querySelectorAll("button").forEach(b => b.classList.toggle("on", !!open[b.dataset.k]));
 }

@@ -620,5 +620,9 @@ async function runViewshed(e){ if(!vsOn) return; const o=e.latlng; showHint(T.vs
 /* ---------- boot ---------- */
 loadFeatures();
 if(/[#&]edit\b/.test(location.hash)) setTimeout(toggle,800);
-window.edrEdit={toggle,reload:loadFeatures,PRESETS,startWater,traceLine,elevB,renderTeamCat:()=>renderTeamCat(),feats:()=>lastFeats,importFile,ctx:()=>E.ctx}; loadDrafts();
+window.edrEdit={toggle,reload:loadFeatures,PRESETS,startWater,traceLine,elevB,renderTeamCat:()=>renderTeamCat(),feats:()=>lastFeats,importFile,ctx:()=>E.ctx,
+  on:()=>E.on,
+  // hand a finished geometry (a walked GPS trail, an averaged point) into the normal proposal flow:
+  // same form, presets, drafts, offline queue, review and sync as anything drawn by hand.
+  handoff:(layer,ctx)=>{ if(!E.on) toggle(); closeForm(); work.addLayer(layer); startEdit(layer,ctx); return layer; }}; loadDrafts();
 })();
