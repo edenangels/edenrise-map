@@ -25,7 +25,7 @@ const T = EN ? {
   tooShort:"Too short to save — walk a few more metres.", nameLine:"Walked line", nameArea:"Walked area", namePoint:"Surveyed point",
   note:(n,a,d)=>`GPS ${d}: ${n} fixes, mean accuracy ${a} m (phone GNSS, not survey grade).`,
   noteAvg:(n,a,s,d)=>`GPS ${d}: averaged ${n} fixes over ${s}s, mean accuracy ${a} m (phone GNSS, not survey grade).`,
-  close:"Close", follow:"Centre on me", elev:"elevation from our LiDAR terrain", drop:"drop"
+  close:"Close", follow:"Centre on me", cam:"See through the camera", elev:"elevation from our LiDAR terrain", drop:"drop"
 } : {
   title:"Levantamento GPS", waiting:"A apanhar sinal…", denied:"Permissão de localização recusada. Autoriza nas definições do browser.",
   unavailable:"Sem posição. Debaixo de árvores ou dentro de casa o céu fica tapado — sai para o aberto.",
@@ -38,7 +38,7 @@ const T = EN ? {
   tooShort:"Demasiado curto para guardar — caminha mais uns metros.", nameLine:"Percurso caminhado", nameArea:"Área caminhada", namePoint:"Ponto levantado",
   note:(n,a,d)=>`GPS ${d}: ${n} posições, precisão média ${a} m (GNSS do telemóvel, não é topografia).`,
   noteAvg:(n,a,s,d)=>`GPS ${d}: média de ${n} posições em ${s}s, precisão média ${a} m (GNSS do telemóvel, não é topografia).`,
-  close:"Fechar", follow:"Centrar em mim", elev:"cota do nosso terreno LiDAR", drop:"desnível"
+  close:"Fechar", follow:"Centrar em mim", cam:"Ver com a câmara", elev:"cota do nosso terreno LiDAR", drop:"desnível"
 };
 
 const KEY = "edr_survey_wip";                 // an unfinished walk survives a reload or a dead battery
@@ -254,6 +254,7 @@ function build(){
     else if(a === "discard") discard();
     else if(a === "pause"){ st.paused = !st.paused; render(); }
     else if(a === "follow" && st.last) map.setView(st.last.ll, Math.max(map.getZoom(), 18));
+    else if(a === "cam"){ if(window.edrAR) edrAR.open(); }
     else if(a === "gate-"){ gate = Math.max(3, gate - 5); saveGate(); }
     else if(a === "gate+"){ gate = Math.min(60, gate + 5); saveGate(); }
   });
@@ -305,6 +306,7 @@ function render(){
     point:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none"/></svg>',
     line:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 18 9 9l4 5 7-11"/><circle cx="4" cy="18" r="2"/><circle cx="20" cy="3" r="2"/></svg>',
     area:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M4 8.5 12 3l8 5.5V17l-8 5-8-5z"/></svg>',
+    cam:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M4 8h3l2-2.5h6L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.2"/></svg>',
     follow:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 2.5 21 21l-9-4.6L3 21z"/></svg>'
   };
   sheet.innerHTML = head + fix + `
@@ -313,6 +315,7 @@ function render(){
       <button class="a" data-a="line"  ${poor?"disabled":""}>${ic.line}<span>${T.line}</span></button>
       <button class="a" data-a="area"  ${poor?"disabled":""}>${ic.area}<span>${T.area}</span></button>
       <button class="a" data-a="follow">${ic.follow}<span>${T.follow}</span></button>
+      <button class="a" data-a="cam">${ic.cam}<span>${T.cam}</span></button>
     </div>
     <div class="gate"><span>${T.gate} <b style="color:var(--linen)">${gate} m</b></span>
       <span class="pm"><button data-a="gate-" aria-label="−">−</button><button data-a="gate+" aria-label="+">+</button></span></div>
