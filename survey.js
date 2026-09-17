@@ -25,7 +25,7 @@ const T = EN ? {
   tooShort:"Too short to save — walk a few more metres.", nameLine:"Walked line", nameArea:"Walked area", namePoint:"Surveyed point",
   note:(n,a,d)=>`GPS ${d}: ${n} fixes, mean accuracy ${a} m (phone GNSS, not survey grade).`,
   noteAvg:(n,a,s,d)=>`GPS ${d}: averaged ${n} fixes over ${s}s, mean accuracy ${a} m (phone GNSS, not survey grade).`,
-  close:"Close", follow:"Centre on me"
+  close:"Close", follow:"Centre on me", elev:"elevation from our LiDAR terrain", drop:"drop"
 } : {
   title:"Levantamento GPS", waiting:"A apanhar sinal…", denied:"Permissão de localização recusada. Autoriza nas definições do browser.",
   unavailable:"Sem posição. Debaixo de árvores ou dentro de casa o céu fica tapado — sai para o aberto.",
@@ -38,7 +38,7 @@ const T = EN ? {
   tooShort:"Demasiado curto para guardar — caminha mais uns metros.", nameLine:"Percurso caminhado", nameArea:"Área caminhada", namePoint:"Ponto levantado",
   note:(n,a,d)=>`GPS ${d}: ${n} posições, precisão média ${a} m (GNSS do telemóvel, não é topografia).`,
   noteAvg:(n,a,s,d)=>`GPS ${d}: média de ${n} posições em ${s}s, precisão média ${a} m (GNSS do telemóvel, não é topografia).`,
-  close:"Fechar", follow:"Centrar em mim"
+  close:"Fechar", follow:"Centrar em mim", elev:"cota do nosso terreno LiDAR", drop:"desnível"
 };
 
 const KEY = "edr_survey_wip";                 // an unfinished walk survives a reload or a dead battery
@@ -169,7 +169,8 @@ function finishAvg(){
   const meanAcc = f.reduce((s,x)=>s + x.acc, 0) / f.length;
   render();
   const m = L.marker(ll, {draggable:false});
-  hand(m, T.namePoint, T.noteAvg(f.length, fmt(meanAcc), AVG_SECONDS, new Date().toLocaleString(EN?"en-GB":"pt-PT")), "marco");
+  const base = T.noteAvg(f.length, fmt(meanAcc), AVG_SECONDS, new Date().toLocaleString(EN?"en-GB":"pt-PT"));
+  terrainNote(ll).then(extra => hand(m, T.namePoint, base + extra, "marco"));
 }
 
 function begin(mode){
@@ -192,13 +193,33 @@ function finish(){
     ? L.polygon(line, {color:"#c9a227", weight:3, fillColor:"#c9a227", fillOpacity:.15})
     : L.polyline(line, {color:"#c9a227", weight:4});
   clearTrail(); render();
-  hand(layer, mode === "area" ? T.nameArea : T.nameLine, T.note(pts.length, fmt(meanAcc), when), mode === "area" ? "zona" : "caminho");
+  const base = T.note(pts.length, fmt(meanAcc), when);
+  terrainDrop(line[0], line[line.length - 1]).then(extra =>
+    hand(layer, mode === "area" ? T.nameArea : T.nameLine, base + extra, mode === "area" ? "zona" : "caminho"));
 }
 
 function discard(){
   st.mode = null; st.pts = []; st.paused = false; clearTrail(); releaseScreen();
   try{ localStorage.removeItem(KEY); }catch(e){}
   render();
+}
+
+/* A phone's weakest number is height: GPS altitude is routinely 10–20 m out. We already hold the estate at
+   0.5 m from the LiDAR, so take the elevation from our own terrain instead of from the satellites. */
+async function terrainNote(ll){
+  try{
+    if(!(window.edrEdit && edrEdit.elevB)) return "";
+    const z = await edrEdit.elevB(L.latLng(ll[0], ll[1]));
+    return z == null ? "" : ` ${T.elev}: ${fmt(z)} m.`;
+  }catch(e){ return ""; }
+}
+async function terrainDrop(a, b){
+  try{
+    if(!(window.edrEdit && edrEdit.elevB)) return "";
+    const za = await edrEdit.elevB(L.latLng(a[0], a[1])), zb = await edrEdit.elevB(L.latLng(b[0], b[1]));
+    if(za == null || zb == null) return "";
+    return ` ${T.elev}: ${fmt(za)} → ${fmt(zb)} m, ${T.drop} ${fmt(Math.abs(za - zb))} m.`;
+  }catch(e){ return ""; }
 }
 
 /* the finished geometry joins the normal proposal flow: name it, type it, save it, it syncs like anything else */
