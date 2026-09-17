@@ -80,3 +80,65 @@ body{padding-top:44px!important}
 .leaflet-control-zoom{border:1px solid var(--line-2)!important;border-radius:8px!important;overflow:hidden;box-shadow:var(--sh)!important} .leaflet-control-zoom a{width:32px!important;height:32px!important;line-height:32px!important;font-size:16px!important}
 .leaflet-control-attribution{background:rgba(20,17,13,.7)!important;color:var(--muted)!important;font-size:10px!important} .leaflet-control-attribution a{color:var(--linen-2)!important}
 .kbd{font-family:var(--mono);font-size:10px;border:1px solid var(--line-2);border-radius:4px;padding:0 5px;color:var(--muted)}
+
+/* ================= Mobile (≤700px): one thumb bar, big targets, less chrome ================= */
+#mbar, #mleg, #msideclose{display:none}
+@media(max-width:700px){
+  :root{ --mbar:calc(60px + env(safe-area-inset-bottom,0px)); }
+
+  /* the single action bar: everything the team needs, within thumb reach */
+  #mbar{position:fixed;left:0;right:0;bottom:0;z-index:1600;display:flex;align-items:stretch;
+        background:rgba(20,17,13,.96);backdrop-filter:blur(14px) saturate(1.2);border-top:1px solid var(--line-2);
+        padding-bottom:env(safe-area-inset-bottom,0px)}
+  #mbar button{flex:1;min-width:0;min-height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+               background:none;border:0;color:var(--muted);font:600 10px var(--ui);letter-spacing:.01em;cursor:pointer;
+               padding:6px 2px;-webkit-tap-highlight-color:transparent;transition:color .15s}
+  #mbar button svg{width:23px;height:23px;flex:none}
+  #mbar button span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #mbar button.on{color:var(--straw)}
+  #mbar button:active{color:var(--linen)}
+  #mbar button:focus-visible{outline:2px solid var(--straw);outline-offset:-3px;border-radius:8px}
+
+  /* the scattered floating buttons are folded into the bar */
+  #burger, #editbtn, #brainbtn{display:none!important}
+
+  /* map controls at a real finger size, clear of the bar */
+  .leaflet-control-zoom a{width:46px!important;height:46px!important;line-height:46px!important;font-size:22px!important}
+  .leaflet-top.leaflet-left{top:4px}
+  .leaflet-bottom{bottom:var(--mbar)}
+  .leaflet-control-attribution{font-size:9px;max-width:58vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.75}
+  .leaflet-control-scale{margin-bottom:3px}
+
+  /* overlays stop above the bar instead of behind it */
+  #eform, #tpanel, #brain{bottom:calc(var(--mbar) + 8px)!important}
+  #etools{top:52px;gap:4px}
+  #mbar ~ #ehint, #ehint{top:auto;bottom:calc(var(--mbar) + 12px);max-width:calc(100vw - 24px)}
+
+  /* legend: a chip you open when you need it, not a quarter of the screen */
+  .legend{display:none;left:10px;right:10px;bottom:calc(var(--mbar) + 52px);max-width:none;max-height:44vh;overflow-y:auto;font-size:13px}
+  .legend .li{padding:4px 0} .legend .sw{width:14px;height:14px}
+  body.legopen .legend{display:block}
+  #mleg{display:block;position:fixed;left:10px;bottom:calc(var(--mbar) + 10px);z-index:1500;
+        background:rgba(28,24,19,.92);backdrop-filter:blur(8px);color:var(--muted);border:1px solid var(--line-2);
+        border-radius:999px;padding:9px 15px;font:600 12px var(--ui);min-height:38px;cursor:pointer}
+  #mleg.on{color:var(--linen);border-color:var(--oak)}
+  body:has(#side.open) #mleg, body:has(#side.open) .legend{display:none}
+
+  /* the layers panel: a visible way out, and less header before the work */
+  #side{width:min(86vw,370px);padding-bottom:calc(var(--mbar) + 16px)}
+  #msideclose{display:flex;position:absolute;top:8px;right:8px;z-index:5;align-items:center;justify-content:center;
+              width:40px;height:40px;background:var(--night-2);color:var(--linen);border:1px solid var(--line-2);
+              border-radius:50%;font-size:17px;line-height:1;cursor:pointer}
+  #side #ttl{font-size:23px;padding-right:44px} #side .sub{display:none}
+  #side .eyebrow#place{padding-right:44px}
+
+  /* rows and controls big enough to hit while walking */
+  .lyr{padding:10px 6px;font-size:13.5px} .tg{transform:scale(1.15);margin-left:4px}
+  .cat .ch{padding:12px 10px} .basemaps button{padding:10px 4px;font-size:11.5px}
+  #q{padding:12px 11px 12px 34px;font-size:16px}   /* 16px keeps iOS from zooming the page on focus */
+  #modes button{padding:11px 4px}
+
+  /* top bar: the property switcher stops eating the page links */
+  #appnav .site{margin-left:4px!important}
+  #appnav .sitebtn{max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:6px 9px!important}
+}
