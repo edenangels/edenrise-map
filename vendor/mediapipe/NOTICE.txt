@@ -1,0 +1,4 @@
+MediaPipe Tasks Vision 1.0.1 (vision_bundle.mjs, wasm/) — Copyright Google LLC — Apache License 2.0
+  https://github.com/google-ai-edge/mediapipe/blob/master/LICENSE
+EfficientDet-Lite0 object detector (efficientdet_lite0.tflite), COCO-trained — Apache License 2.0, distributed by Google via mediapipe-models.
+Vendored here so the estate map's camera view works with no network. Not modified.
