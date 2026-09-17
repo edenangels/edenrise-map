@@ -327,6 +327,6 @@ document.getElementById("fly").onclick = ()=> {
 <script>(function(){ const b=document.getElementById("pburger"), p=document.getElementById("panel"); if(!b||!p) return; const tx=()=>{ const s=document.getElementById("pburger-t"); if(s) s.textContent=p.classList.contains("open")?(LANG==="en"?"Close":"Fechar"):(LANG==="en"?"Layers & views":"Camadas & vistas"); }; b.onclick=()=>{ p.classList.toggle("open"); document.body.classList.toggle("sheet-open",p.classList.contains("open")); tx(); }; tx();
   map.on("click",()=>{ if(window.innerWidth<=700&&p.classList.contains("open")){ p.classList.remove("open"); document.body.classList.remove("sheet-open"); tx(); } }); })();
 </script>
-<script src="nav.js?v=9495da2c"></script>
+<script src="nav.js?v=7229f0b4"></script>
 </body>
 </html>

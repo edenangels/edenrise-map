@@ -1,6 +1,6 @@
 // EdenRise map — offline service worker. App shell + data: network-first (fresh when online, cached when not).
 // Tiles (ortho / terrain / hillshade): cache-first, and "Guardar para offline" pre-caches the estate at z14–19.
-const V = "edr-v1"; const SHELL = "edr-shell-" + V, TILES = "edr-tiles-" + V;
+const V = "edr-v2"; const SHELL = "edr-shell-" + V, TILES = "edr-tiles-" + V;
 self.addEventListener("install", e => { self.skipWaiting(); });
 self.addEventListener("activate", e => { e.waitUntil((async () => { for (const k of await caches.keys()) if (!k.endsWith(V)) await caches.delete(k); await self.clients.claim(); })()); });
 self.addEventListener("message", async e => {

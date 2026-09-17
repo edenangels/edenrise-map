@@ -41,7 +41,7 @@
     const a = bg.querySelector("#shasset"); if(a) a.onclick = ()=>copy(location.origin + location.pathname + assetHash[0]);
     bg.querySelector("#shprint").onclick = ()=>{ close(); setTimeout(()=>window.print(), 100); };
     const drawQR = ()=>{ try{ new QRCode(bg.querySelector("#shqr"), {text:url, width:56, height:56, correctLevel:QRCode.CorrectLevel.L}); }catch(e){} };
-    if(typeof QRCode==="undefined"){ const s=document.createElement("script"); s.src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"; s.onload=drawQR; document.head.appendChild(s); } else drawQR();
+    if(typeof QRCode==="undefined"){ const s=document.createElement("script"); s.src="vendor/qrcode.min.js"; s.onload=drawQR; document.head.appendChild(s); } else drawQR();
   }
   document.getElementById("navshare").onclick = openSheet;
   document.getElementById("nav-edit").onclick = ()=>{ if(window.edrEdit) window.edrEdit.toggle(); else location.href = sh("index.html")+"#edit"; };
