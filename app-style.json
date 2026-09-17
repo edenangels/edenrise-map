@@ -1,0 +1,13 @@
+{
+  "version": 8,
+  "name": "EdenRise Campo",
+  "sources": {
+    "ortho": { "type": "raster", "tiles": ["https://edenangels.github.io/edenrise-map/ortho2025/{z}/{x}/{y}.jpg"], "tileSize": 256, "minzoom": 12, "maxzoom": 20, "attribution": "EdenRise ortho 2025" },
+    "hillshade": { "type": "raster", "tiles": ["https://edenangels.github.io/edenrise-map/hillshade/{z}/{x}/{y}.png"], "tileSize": 256, "minzoom": 12, "maxzoom": 17 }
+  },
+  "layers": [
+    { "id": "bg", "type": "background", "paint": { "background-color": "#1c1813" } },
+    { "id": "hillshade", "type": "raster", "source": "hillshade", "paint": { "raster-opacity": 0.9 } },
+    { "id": "ortho", "type": "raster", "source": "ortho", "paint": { "raster-opacity": 1 } }
+  ]
+}
