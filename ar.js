@@ -126,7 +126,7 @@ let zEye = null;
 async function refreshFeats(){
   S.feats = gather();
   const z0 = await elev(S.pos); zEye = (z0 == null ? 0 : z0) + EYE;
-  for(const it of S.feats){ const z = await elev(it.c); it.el = z == null ? 0 : deg(Math.atan2(z - zEye, it.d)); }
+  for(const it of S.feats){ const z = await elev(it.c); it.z = z; it.el = z == null ? 0 : deg(Math.atan2(z - zEye, it.d)); }
 }
 
 /* ---------- on-device AI (lazy: nothing loads until the button is pressed) ---------- */
@@ -182,10 +182,13 @@ function draw(now){
       ctx.strokeRect(x, y, w, h); const lab = `${EN ? b.cls : (PT_CLASS[b.cls] || b.cls)} ${Math.round(b.score * 100)}%`;
       const tw = ctx.measureText(lab).width + 10 * dpr; ctx.fillStyle = "rgba(91,192,222,.9)"; ctx.fillRect(x, y - 20 * dpr, tw, 20 * dpr); ctx.fillStyle = "#0b1a20"; ctx.fillText(lab, x + 5 * dpr, y - 17 * dpr); }
   }
+  const XR = window.edrXR && edrXR.active;
+  if(XR){ const hh = edrXR.heading(); if(hh != null) S.heading = hh; S.pitch = edrXR.pitch(); }
   if(S.heading != null && S.pos){
     ctx.font = `600 ${13 * dpr}px ${font}`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
     for(const it of S.feats){
-      const p = project(it.brg, it.el || 0, W, H); if(!p) continue;
+      const lift = (typeof layerObjs !== "undefined" && layerObjs[it.t] && layerObjs[it.t].kind === "pt") ? 1.5 : 0.8;
+      const p = XR ? edrXR.project(it.c, (it.z == null ? (zEye - EYE) : it.z) + lift, W, H) : project(it.brg, it.el || 0, W, H); if(!p) continue;
       const label = `${it.name}  ·  ${Math.round(it.d)} ${T.far}`; const w = ctx.measureText(label).width + 22 * dpr, h = 30 * dpr;
       ctx.globalAlpha = Math.max(.45, 1 - it.d / RADIUS);
       ctx.fillStyle = "rgba(28,24,19,.86)"; ctx.strokeStyle = "#ffd166"; ctx.lineWidth = 1.2 * dpr;
@@ -197,7 +200,7 @@ function draw(now){
   }
   drawMini();
   const st = document.getElementById("arstat");
-  if(st) st.textContent = S.heading == null ? T.waiting : `${Math.round(S.heading)}° · ${S.acc ? "±" + Math.round(S.acc) + " m" : T.waiting} · ${S.feats.length}${(window.edrSurvey && edrSurvey.recording()) ? " · ● " + T.rec : ""}`;
+  if(st) st.textContent = S.heading == null ? T.waiting : `${Math.round(S.heading)}° · ${S.acc ? "±" + (S.acc < 1 ? S.acc.toFixed(2) : Math.round(S.acc)) + " m" : T.waiting}${S.rtk ? " RTK" : ""}${(window.edrXR && edrXR.active) ? (edrXR.state.aligned ? " · AR+ ✓" : " · AR+ …") : ""} · ${S.feats.length}${(window.edrSurvey && edrSurvey.recording()) ? " · ● " + T.rec : ""}`;
 }
 /* the mini-map: north-up, 120 px = 2×RADIUS, me in the middle, heading cone, features, and the walk being recorded */
 function drawMini(){
@@ -222,7 +225,7 @@ async function startSensors(){
   }
   window.addEventListener("deviceorientationabsolute", onOri, true);
   window.addEventListener("deviceorientation", onOri, true);
-  S.watch = navigator.geolocation.watchPosition(p => { S.pos = [p.coords.latitude, p.coords.longitude]; S.acc = p.coords.accuracy || 99; refreshFeats(); }, () => {}, {enableHighAccuracy:true, maximumAge:1000, timeout:30000});
+  S.watch = navigator.geolocation.watchPosition(p => { S.pos = [p.coords.latitude, p.coords.longitude]; S.acc = p.coords.accuracy || 99; S.fixAt = p.timestamp || Date.now(); S.rtk = !!p.rtk; refreshFeats(); }, () => {}, {enableHighAccuracy:true, maximumAge:1000, timeout:30000});
   return true;
 }
 async function startCamera(){
@@ -230,9 +233,21 @@ async function startCamera(){
   catch(e){ say(T.noCam); return false; }
 }
 function say(m){ if(window.toast) toast(m); }
+/* AR+ : WebXR world tracking (Android Chrome). The browser shows the camera itself; our overlay stays on top. */
+async function toggleXR(btn){
+  if(edrXR.active){ edrXR.stop(); return; }
+  if(!S.pos){ say(T.waiting); return; }
+  try{
+    if(S.stream){ S.stream.getTracks().forEach(t => t.stop()); S.stream = null; } video.style.display = "none";
+    await edrXR.start(ui, {fix:() => S.pos ? {pos:S.pos, acc:S.acc, at:S.fixAt || 0} : null, heading:() => S.hRaw, elev:ll => elev([ll.lat, ll.lng]),
+      onEnd:() => { btn.classList.remove("on"); video.style.display = ""; if(S.on) startCamera(); }});
+    btn.classList.add("on"); say(EN ? "AR+ on: walk a few metres so the tracking locks to the GPS" : "AR+ ligado: anda uns metros para o tracking se prender ao GPS");
+  }catch(e){ video.style.display = ""; startCamera(); say((EN ? "AR+ could not start: " : "AR+ não arrancou: ") + (e && e.message || e)); }
+}
 
 /* ---------- point-to-mark ---------- */
 async function groundPoint(){
+  if(window.edrXR && edrXR.active) return edrXR.hitGround();
   if(!S.pos || S.heading == null) return null;
   if(S.pitch > -3) return null;
   const z0 = await elev(S.pos); const eye = (z0 == null ? 0 : z0) + EYE; const slope = Math.tan(rad(S.pitch));
@@ -243,7 +258,7 @@ async function mark(){
   const g = await groundPoint(); if(!g){ say(T.noGround); return; }
   const cls = classAtReticle(); const preset = (cls && PRESET_FOR[cls]) || "marco";
   const m = L.marker(g.ll); close();
-  const note = T.note(g.d, Math.round(S.heading), Math.round(S.acc), cls ? (EN ? cls : (PT_CLASS[cls] || cls)) : "");
+  const note = T.note(g.d, Math.round(S.heading), Math.round(S.acc), cls ? (EN ? cls : (PT_CLASS[cls] || cls)) : "") + (g.real ? (EN ? " Placed by AR+ world tracking on the real ground." : " Colocado pelo AR+ (tracking do mundo) no chão real.") : "");
   const name = cls ? `${T.marked}: ${EN ? cls : (PT_CLASS[cls] || cls)}` : T.marked;
   if(window.edrEdit && edrEdit.handoff) edrEdit.handoff(m, {layer:"propostas", preset, props:{name, note}}); else { m.addTo(map); say(note); }
 }
@@ -252,16 +267,17 @@ async function mark(){
 function build(){
   ui = document.createElement("div"); ui.id = "arview"; ui.setAttribute("role", "dialog"); ui.setAttribute("aria-label", T.title);
   ui.innerHTML = `<video playsinline muted autoplay></video><canvas class="ov"></canvas><div class="ret"></div>
-    <div class="top"><span id="arstat"></span><span class="r"><button class="ai" data-a="ai">${T.ai}</button><button class="x" data-a="close" aria-label="${T.close}">✕</button></span></div>
+    <div class="top"><span id="arstat"></span><span class="r"><button class="ai" data-a="xr" hidden>AR+</button><button class="ai" data-a="ai">${T.ai}</button><button class="x" data-a="close" aria-label="${T.close}">✕</button></span></div>
     <canvas class="mini"></canvas>
     <div class="bot"><div class="hint">${T.calib}</div><button data-a="mark">${T.mark}</button></div>
     <div class="start" data-a="start">${T.tapStart}</div>`;
-  document.body.appendChild(ui); video = ui.querySelector("video"); canvas = ui.querySelector("canvas.ov"); ctx = canvas.getContext("2d"); mini = ui.querySelector("canvas.mini"); mctx = mini.getContext("2d");
+  document.body.appendChild(ui); if(window.edrXR) edrXR.supported().then(ok => { const b = ui.querySelector('[data-a="xr"]'); if(b && ok) b.hidden = false; }); video = ui.querySelector("video"); canvas = ui.querySelector("canvas.ov"); ctx = canvas.getContext("2d"); mini = ui.querySelector("canvas.mini"); mctx = mini.getContext("2d");
   ui.addEventListener("click", async e => {
     const el = e.target.closest("[data-a]"), a = el && el.dataset.a;
     if(a === "close") return close();
     if(a === "mark") return mark();
     if(a === "ai") return toggleAI(el);
+    if(a === "xr") return toggleXR(el);
     if(a === "start"){ el.remove(); const ok = await startSensors(); if(ok) await startCamera(); return; }
     const r = canvas.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
     const hit = hits.find(h => Math.abs(x - h.x) <= h.w / 2 && Math.abs(y - h.y) <= h.h / 2);
