@@ -661,7 +661,7 @@ map.on("mousedown touchstart",e=>{ if(!multiOn||!E.on) return; const oe=e.origin
 map.on("mousemove touchmove",e=>{ if(!multiOn||!mStart||!mBox) return; mBox.setBounds(L.latLngBounds(mStart,e.latlng)); });
 map.on("mouseup touchend",e=>{ if(!multiOn||!mStart||!mBox) return; const b=L.latLngBounds(mStart,e.latlng||mStart); mStart=null; map.removeLayer(mBox); mBox=null; if(b.getNorthEast().equals(b.getSouthWest())) return; boxPick(b); });
 document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&multiOn){ stopMulti(); setTool(null); } });
-window.edrEdit={toggle,_render:render,_multi:{start:startMulti,stop:stopMulti,pick:boxPick,sel:()=>mSel},removeLastVertex,reload:loadFeatures,PRESETS,startWater,traceLine,elevB,renderTeamCat:()=>renderTeamCat(),feats:()=>lastFeats,importFile,ctx:()=>E.ctx,
+window.edrEdit={toggle,_render:render,openById:id=>{ let hit=null; drawn.eachLayer(l=>{ if(l.feature&&l.feature.properties&&l.feature.properties.id===id) hit=l; }); if(hit) openInfo(hit); return !!hit; },_multi:{start:startMulti,stop:stopMulti,pick:boxPick,sel:()=>mSel},removeLastVertex,reload:loadFeatures,PRESETS,startWater,traceLine,elevB,renderTeamCat:()=>renderTeamCat(),feats:()=>lastFeats,importFile,ctx:()=>E.ctx,
   on:()=>E.on,
   // hand a finished geometry (a walked GPS trail, an averaged point) into the normal proposal flow:
   // same form, presets, drafts, offline queue, review and sync as anything drawn by hand.

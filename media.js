@@ -47,7 +47,7 @@ async function queuePhoto(blob,params){ const id="Q-"+Date.now().toString(36)+Ma
 async function flushMedia(){ if(flushing||!navigator.onLine||!auth().key) return; flushing=true; try{ const items=await IDB.all(); for(const it of items){ try{ await upload(it.blob,it.params); await IDB.del(it.id); toast&&toast((EN?"Photo sent":"Foto enviada")+" ✓"); document.dispatchEvent(new CustomEvent("edr-media-sent",{detail:it})); }catch(e){ it.tries++; it.err=String(e&&e.error||e).slice(0,80); await IDB.put(it); } } }finally{ flushing=false; updateQueueBadge(); } }
 async function updateQueueBadge(){ const n=(await IDB.all()).length; window.edrMediaQueue=n; document.dispatchEvent(new CustomEvent("edr-media-queue",{detail:n})); }
 window.addEventListener("online",flushMedia); setInterval(flushMedia,60000); setTimeout(()=>{ updateQueueBadge(); flushMedia(); },5000);
-window.edrFlushMedia=flushMedia; window.edrMediaQueued=()=>IDB.all();
+window.edrFlushMedia=flushMedia; window.edrMediaQueued=()=>IDB.all(); window.edrUpload=upload; window.edrQueuePhoto=queuePhoto;
 
 /* ---------- the item brain block (gallery + timeline + add) ---------- */
 window.edrItem=async function(fid,container,opts){ opts=opts||{}; const ll=opts.latlng||null; const box=document.createElement("div"); box.className="mb"; container.appendChild(box);

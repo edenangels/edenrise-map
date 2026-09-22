@@ -34,7 +34,8 @@ const RADIUS = 300, HFOV = 62, EYE = 1.6;
 const PRESET_FOR = {cow:"pasto", sheep:"pasto", horse:"pasto", dog:"atencao", person:"atencao", car:"infraestrutura", truck:"infraestrutura", motorcycle:"infraestrutura", bicycle:"infraestrutura", bus:"infraestrutura", boat:"tanque", "fire hydrant":"conduta", bench:"infraestrutura", "potted plant":"arvore", bird:"outro"};
 const PT_CLASS = {cow:"vaca", sheep:"ovelha", horse:"cavalo", dog:"cão", person:"pessoa", car:"carro", truck:"camião", motorcycle:"mota", bicycle:"bicicleta", bus:"autocarro", boat:"barco", bird:"pássaro", "potted plant":"planta", bench:"banco", "fire hydrant":"hidrante", cat:"gato", chair:"cadeira"};
 
-const S = {on:false, pos:null, acc:99, heading:null, pitch:0, hRaw:null, feats:[], watch:null, raf:null, stream:null, ai:false, det:null, boxes:[], lastAI:0, aiBusy:false};
+const S = {on:false, pos:null, acc:99, heading:null, pitch:0, hRaw:null, feats:[], watch:null, raf:null, stream:null, ai:false, det:null, boxes:[], lastAI:0, aiBusy:false, mode:"point", path:[]};
+const API = "https://edenrise-brain.edenrise.workers.dev"; const MAX_LABELS = 12;
 let ui = null, video = null, canvas = null, ctx = null, mini = null, mctx = null, hits = [], work = null;
 
 const css = document.createElement("style"); css.textContent = `
@@ -52,6 +53,8 @@ const css = document.createElement("style"); css.textContent = `
 #arview canvas.mini{position:absolute;right:12px;bottom:calc(92px + env(safe-area-inset-bottom,0px));width:120px;height:120px;border-radius:50%;border:2px solid rgba(255,255,255,.55);background:rgba(20,17,13,.75);box-shadow:0 4px 16px rgba(0,0,0,.5)}
 #arview .bot{position:absolute;left:12px;right:144px;bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:8px}
 #arview .bot button{min-height:56px;border-radius:14px;border:0;background:var(--straw);color:var(--bark);font:700 15px var(--ui);cursor:pointer}
+#arview .modes{display:flex;gap:6px} #arview .modes button{flex:1;min-height:40px;background:rgba(20,17,13,.7);color:#fff;border:1px solid rgba(255,255,255,.35);font-size:13px} #arview .modes button.on{background:#5be0a0;color:#0b1a20;border-color:#5be0a0}
+#arview .pathrow{display:flex;gap:6px} #arview .pathrow[hidden]{display:none} #arview .pathrow button{min-height:46px;background:rgba(20,17,13,.7);color:#fff;border:1px solid rgba(255,255,255,.35);font-size:14px} #arview .pathrow button[data-a=finish]{flex:1;background:#5be0a0;color:#0b1a20;border-color:#5be0a0} #arview .pathrow button:disabled{opacity:.4}
 #arview .hint{color:#fff;font:500 11.5px var(--ui);text-shadow:0 1px 3px #000;opacity:.9}
 #arview .start{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font:600 16px var(--ui);text-align:center;padding:30px;background:rgba(0,0,0,.55)}
 `; document.head.appendChild(css);
@@ -186,21 +189,47 @@ function draw(now){
   if(XR){ const hh = edrXR.heading(); if(hh != null) S.heading = hh; S.pitch = edrXR.pitch(); }
   if(S.heading != null && S.pos){
     ctx.font = `600 ${13 * dpr}px ${font}`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    const cands = [];
     for(const it of S.feats){
       const lift = (typeof layerObjs !== "undefined" && layerObjs[it.t] && layerObjs[it.t].kind === "pt") ? 1.5 : 0.8;
       const p = XR ? edrXR.project(it.c, (it.z == null ? (zEye - EYE) : it.z) + lift, W, H) : project(it.brg, it.el || 0, W, H); if(!p) continue;
-      const label = `${it.name}  ·  ${Math.round(it.d)} ${T.far}`; const w = ctx.measureText(label).width + 22 * dpr, h = 30 * dpr;
-      ctx.globalAlpha = Math.max(.45, 1 - it.d / RADIUS);
-      ctx.fillStyle = "rgba(28,24,19,.86)"; ctx.strokeStyle = "#ffd166"; ctx.lineWidth = 1.2 * dpr;
-      ctx.beginPath(); ctx.roundRect(p.x - w / 2, p.y - h / 2, w, h, 8 * dpr); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = "#fff"; ctx.fillText(label, p.x, p.y);
-      ctx.beginPath(); ctx.moveTo(p.x, p.y + h / 2); ctx.lineTo(p.x, p.y + h / 2 + 10 * dpr); ctx.stroke(); ctx.globalAlpha = 1;
-      hits.push({x: p.x / dpr, y: p.y / dpr, w: w / dpr, h: h / dpr, it});
+      const label = `${it.name}  ·  ${Math.round(it.d)} ${T.far}`; cands.push({it, p, label, w: ctx.measureText(label).width + 22 * dpr, h: 30 * dpr});
     }
+    // nearest first (S.feats is sorted by distance): each label takes the first free slot above or below its true spot
+    const placed = []; const gap = 6 * dpr;
+    const free = b => b.x >= 0 && b.x + b.w <= W && b.y >= 0 && b.y + b.h <= H && !placed.some(q => b.x < q.x + q.w + gap && b.x + b.w + gap > q.x && b.y < q.y + q.h + gap && b.y + b.h + gap > q.y);
+    for(const c of cands){
+      const {it, p, w, h} = c; let box = null;
+      if(placed.length < MAX_LABELS){ for(const k of [0, -1, 1, -2, 2, -3, 3, -4, 4]){ const b = {x: Math.min(Math.max(p.x - w / 2, 0), W - w), y: p.y - h / 2 + k * (h + gap), w, h}; if(free(b)){ box = b; break; } } }
+      ctx.globalAlpha = Math.max(.45, 1 - it.d / RADIUS);
+      // the true spot: a small dot
+      ctx.fillStyle = "#ffd166"; ctx.beginPath(); ctx.arc(p.x, p.y, 3.5 * dpr, 0, 7); ctx.fill();
+      if(!box){ hits.push({x: p.x / dpr, y: p.y / dpr, w: 30, h: 30, it}); ctx.globalAlpha = 1; continue; }   // no room: dot only, still tappable
+      placed.push(box);
+      const cx = box.x + w / 2, cy = box.y + h / 2;
+      if(Math.abs(cy - p.y) > h){ ctx.strokeStyle = "rgba(255,209,102,.9)"; ctx.lineWidth = 1.2 * dpr; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(cx, cy < p.y ? box.y + h : box.y); ctx.stroke(); }
+      ctx.fillStyle = "rgba(28,24,19,.86)"; ctx.strokeStyle = "#ffd166"; ctx.lineWidth = 1.2 * dpr;
+      ctx.beginPath(); ctx.roundRect(box.x, box.y, w, h, 8 * dpr); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#fff"; ctx.fillText(c.label, cx, cy); ctx.globalAlpha = 1;
+      hits.push({x: cx / dpr, y: cy / dpr, w: w / dpr, h: h / dpr, it});
+    }
+    const hiddenN = cands.length - placed.length;
+    if(hiddenN > 0){ ctx.font = `600 ${11 * dpr}px ${font}`; ctx.fillStyle = "rgba(255,209,102,.9)"; ctx.textAlign = "left"; ctx.fillText(`+${hiddenN} ${EN ? "more as dots" : "mais, só pontos"}`, 14 * dpr, H - 130 * dpr); ctx.textAlign = "center"; }
+    drawPath(W, H, dpr);
   }
   drawMini();
   const st = document.getElementById("arstat");
   if(st) st.textContent = S.heading == null ? T.waiting : `${Math.round(S.heading)}° · ${S.acc ? "±" + (S.acc < 1 ? S.acc.toFixed(2) : Math.round(S.acc)) + " m" : T.waiting}${S.rtk ? " RTK" : ""}${(window.edrXR && edrXR.active) ? (edrXR.state.aligned ? " · AR+ ✓" : " · AR+ …") : ""} · ${S.feats.length}${(window.edrSurvey && edrSurvey.recording()) ? " · ● " + T.rec : ""}`;
+}
+/* the line or area being marked: its vertices projected like the features, joined; closed when it is an area */
+function pathPt(v, W, H){ if(window.edrXR && edrXR.active) return edrXR.project(v.ll, v.z + 0.15, W, H); if(!S.pos) return null; const d = dist(S.pos, v.ll); const el = deg(Math.atan2(v.z + 0.15 - zEye, Math.max(d, 0.5))); return project(bearing(S.pos, v.ll), el, W, H); }
+function drawPath(W, H, dpr){
+  if(!S.path.length) return; const pts = S.path.map(v => pathPt(v, W, H));
+  ctx.strokeStyle = "#5be0a0"; ctx.lineWidth = 3 * dpr; ctx.setLineDash([8 * dpr, 6 * dpr]); ctx.beginPath(); let open = false;
+  const seq = S.mode === "area" && pts.length > 2 ? [...pts, pts[0]] : pts;
+  for(const q of seq){ if(!q){ open = false; continue; } if(open) ctx.lineTo(q.x, q.y); else ctx.moveTo(q.x, q.y); open = true; }
+  ctx.stroke(); ctx.setLineDash([]);
+  pts.forEach((q, i) => { if(!q) return; ctx.fillStyle = "#5be0a0"; ctx.beginPath(); ctx.arc(q.x, q.y, 6 * dpr, 0, 7); ctx.fill(); ctx.fillStyle = "#0b1a20"; ctx.font = `700 ${10 * dpr}px monospace`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(String(i + 1), q.x, q.y); });
 }
 /* the mini-map: north-up, 120 px = 2×RADIUS, me in the middle, heading cone, features, and the walk being recorded */
 function drawMini(){
@@ -213,6 +242,8 @@ function drawMini(){
   if(S.pos){
     const sv = window.edrSurvey && edrSurvey.state; if(sv && sv.pts && sv.pts.length > 1){ mctx.strokeStyle = "#ffd166"; mctx.lineWidth = 2 * dpr; mctx.beginPath();
       sv.pts.forEach((p, i) => { const d = dist(S.pos, p.ll), b = rad(bearing(S.pos, p.ll)); const x = c + Math.sin(b) * d * k, y = c - Math.cos(b) * d * k; i ? mctx.lineTo(x, y) : mctx.moveTo(x, y); }); mctx.stroke(); }
+    if(S.path.length){ mctx.strokeStyle = "#5be0a0"; mctx.lineWidth = 2 * dpr; mctx.setLineDash([3 * dpr, 2 * dpr]); mctx.beginPath(); const seq = S.mode === "area" && S.path.length > 2 ? [...S.path, S.path[0]] : S.path;
+      seq.forEach((v, i) => { const d = dist(S.pos, v.ll), b = rad(bearing(S.pos, v.ll)); const x = c + Math.sin(b) * d * k, y = c - Math.cos(b) * d * k; i ? mctx.lineTo(x, y) : mctx.moveTo(x, y); }); mctx.stroke(); mctx.setLineDash([]); }
     for(const it of S.feats){ const b = rad(it.brg); mctx.fillStyle = "#e07b39"; mctx.beginPath(); mctx.arc(c + Math.sin(b) * it.d * k, c - Math.cos(b) * it.d * k, 2.2 * dpr, 0, 7); mctx.fill(); }
   }
   mctx.fillStyle = "#3ba9ff"; mctx.strokeStyle = "#fff"; mctx.lineWidth = 2 * dpr; mctx.beginPath(); mctx.arc(c, c, 4 * dpr, 0, 7); mctx.fill(); mctx.stroke();
@@ -245,6 +276,17 @@ async function toggleXR(btn){
   }catch(e){ video.style.display = ""; startCamera(); say((EN ? "AR+ could not start: " : "AR+ não arrancou: ") + (e && e.message || e)); }
 }
 
+/* ---------- a photo of what was marked: the camera frame at that instant, geotagged, captioned with the type.
+   It goes to the media store (queued offline) and becomes the item's photo — and, later, a labelled training image. ---------- */
+function snapFrame(){ return new Promise(res => { try{ if(!video || !video.videoWidth || (window.edrXR && edrXR.active)) return res(null);
+  const vw = video.videoWidth, vh = video.videoHeight, sc = Math.min(1, 1280 / Math.max(vw, vh)); const c = document.createElement("canvas"); c.width = Math.round(vw * sc); c.height = Math.round(vh * sc);
+  c.getContext("2d").drawImage(video, 0, 0, c.width, c.height); c.toBlob(b => res(b ? {blob:b, w:c.width, h:c.height} : null), "image/jpeg", .82); }catch(e){ res(null); } }); }
+async function sendPhoto(shot, ll, preset, name){
+  if(!shot || !window.edrUpload) return null; const a = window.edrAuth || {}; if(!a.key) return null;
+  const params = {lat:ll[0], lon:ll[1], caption:`[${preset}] ${name}`, actor:a.actor || "", w:shot.w, h:shot.h};
+  try{ const d = await edrUpload(shot.blob, params); return d && d.id ? `${API}/media/${d.id}` : null; }
+  catch(e){ try{ await edrQueuePhoto(shot.blob, params); }catch(_){} return null; }
+}
 /* ---------- point-to-mark ---------- */
 async function groundPoint(){
   if(window.edrXR && edrXR.active) return edrXR.hitGround();
@@ -254,13 +296,29 @@ async function groundPoint(){
   for(let s = 2; s <= 250; s += 2){ const p = dest(S.pos, S.heading, s); const zt = await elev(p); if(zt == null) continue; if(eye + s * slope <= zt) return {ll:p, d:s}; }
   return null;
 }
+function setMode(m){ if(S.path.length && m !== S.mode && !confirm(EN ? "Drop the points marked so far?" : "Descartar os pontos já marcados?")) return; S.mode = m; S.path = []; paintBot(); }
+function paintBot(){ if(!ui) return; ui.querySelectorAll(".modes button").forEach(b => b.classList.toggle("on", b.dataset.m === S.mode)); const n = S.path.length; const row = ui.querySelector(".pathrow"); row.hidden = !n;
+  ui.querySelector("[data-a=mark]").textContent = S.mode === "point" ? T.mark : (EN ? `Add point ${n + 1}` : `Marcar ponto ${n + 1}`);
+  const need = S.mode === "area" ? 3 : 2; const fin = ui.querySelector("[data-a=finish]"); fin.disabled = n < need; fin.textContent = (EN ? "Finish " : "Terminar ") + (S.mode === "area" ? (EN ? "area" : "área") : (EN ? "line" : "linha")) + ` (${n})`; }
+async function finishPath(){
+  const need = S.mode === "area" ? 3 : 2; if(S.path.length < need) return;
+  const ll = S.path.map(v => v.ll); const layer = S.mode === "area" ? L.polygon(ll) : L.polyline(ll); const n = S.path.length; const xr = window.edrXR && edrXR.active;
+  const note = EN ? `${S.mode === "area" ? "Area" : "Line"} marked with the camera ${new Date().toLocaleString("en-GB")}: ${n} points, ${xr ? "AR+ world tracking" : "compass + GPS"}, GPS ±${Math.round(S.acc)} m.`
+                  : `${S.mode === "area" ? "Área" : "Linha"} marcada com a câmara ${new Date().toLocaleString("pt-PT")}: ${n} pontos, ${xr ? "AR+ (tracking do mundo)" : "bússola + GPS"}, GPS ±${Math.round(S.acc)} m.`;
+  const name = EN ? (S.mode === "area" ? "Area from the camera" : "Line from the camera") : (S.mode === "area" ? "Área marcada com a câmara" : "Linha marcada com a câmara");
+  S.path = []; close();
+  if(window.edrEdit && edrEdit.handoff) edrEdit.handoff(layer, {layer:"propostas", preset:"outro", props:{name, note}}); else layer.addTo(map);
+}
 async function mark(){
   const g = await groundPoint(); if(!g){ say(T.noGround); return; }
+  if(S.mode !== "point"){ const z = await elev(g.ll); S.path.push({ll:g.ll, z:z == null ? (zEye - EYE) : z, d:g.d}); paintBot(); say((EN ? "Point " : "Ponto ") + S.path.length); return; }
   const cls = classAtReticle(); const preset = (cls && PRESET_FOR[cls]) || "marco";
+  const shot = await snapFrame();
   const m = L.marker(g.ll); close();
   const note = T.note(g.d, Math.round(S.heading), Math.round(S.acc), cls ? (EN ? cls : (PT_CLASS[cls] || cls)) : "") + (g.real ? (EN ? " Placed by AR+ world tracking on the real ground." : " Colocado pelo AR+ (tracking do mundo) no chão real.") : "");
   const name = cls ? `${T.marked}: ${EN ? cls : (PT_CLASS[cls] || cls)}` : T.marked;
-  if(window.edrEdit && edrEdit.handoff) edrEdit.handoff(m, {layer:"propostas", preset, props:{name, note}}); else { m.addTo(map); say(note); }
+  const props = {name, note}; if(shot){ say(EN ? "Photo attached" : "Foto anexada"); sendPhoto(shot, g.ll, preset, name).then(url => { if(url){ props.photo = url; const f = document.querySelector("#eform #ephoto"); if(f && !f.value) f.value = url; } }); }
+  if(window.edrEdit && edrEdit.handoff) edrEdit.handoff(m, {layer:"propostas", preset, props}); else { m.addTo(map); say(note); }
 }
 
 /* ---------- ui ---------- */
@@ -269,13 +327,20 @@ function build(){
   ui.innerHTML = `<video playsinline muted autoplay></video><canvas class="ov"></canvas><div class="ret"></div>
     <div class="top"><span id="arstat"></span><span class="r"><button class="ai" data-a="xr" hidden>AR+</button><button class="ai" data-a="ai">${T.ai}</button><button class="x" data-a="close" aria-label="${T.close}">✕</button></span></div>
     <canvas class="mini"></canvas>
-    <div class="bot"><div class="hint">${T.calib}</div><button data-a="mark">${T.mark}</button></div>
+    <div class="bot"><div class="hint">${T.calib}</div>
+      <div class="modes"><button data-m="point" class="on">${EN ? "Point" : "Ponto"}</button><button data-m="line">${EN ? "Line" : "Linha"}</button><button data-m="area">${EN ? "Area" : "Área"}</button></div>
+      <button data-a="mark">${T.mark}</button>
+      <div class="pathrow" hidden><button data-a="back">↶</button><button data-a="finish" disabled></button><button data-a="drop">✕</button></div></div>
     <div class="start" data-a="start">${T.tapStart}</div>`;
   document.body.appendChild(ui); if(window.edrXR) edrXR.supported().then(ok => { const b = ui.querySelector('[data-a="xr"]'); if(b && ok) b.hidden = false; }); video = ui.querySelector("video"); canvas = ui.querySelector("canvas.ov"); ctx = canvas.getContext("2d"); mini = ui.querySelector("canvas.mini"); mctx = mini.getContext("2d");
   ui.addEventListener("click", async e => {
     const el = e.target.closest("[data-a]"), a = el && el.dataset.a;
     if(a === "close") return close();
     if(a === "mark") return mark();
+    if(a === "back"){ S.path.pop(); paintBot(); return; }
+    if(a === "finish") return finishPath();
+    if(a === "drop"){ if(!S.path.length || confirm(EN ? "Drop these points?" : "Descartar estes pontos?")){ S.path = []; paintBot(); } return; }
+    const mb = e.target.closest(".modes button"); if(mb) return setMode(mb.dataset.m);
     if(a === "ai") return toggleAI(el);
     if(a === "xr") return toggleXR(el);
     if(a === "start"){ el.remove(); const ok = await startSensors(); if(ok) await startCamera(); return; }
@@ -285,7 +350,7 @@ function build(){
   });
 }
 function open(){ if(!navigator.mediaDevices || !navigator.geolocation){ say(T.noCam); return; } if(!ui) build();
-  S.on = true; ui.classList.add("on"); if(window.edrSurvey) edrSurvey.close(); draw(performance.now()); }   // a walk being recorded keeps recording: its watch is its own
+  S.on = true; ui.classList.add("on"); if(window.edrSurvey) edrSurvey.close(); paintBot(); draw(performance.now()); }   // a walk being recorded keeps recording: its watch is its own
 function close(){ S.on = false; if(ui) ui.classList.remove("on"); cancelAnimationFrame(S.raf);
   window.removeEventListener("deviceorientationabsolute", onOri, true); window.removeEventListener("deviceorientation", onOri, true);
   if(S.watch != null){ navigator.geolocation.clearWatch(S.watch); S.watch = null; }
@@ -293,5 +358,5 @@ function close(){ S.on = false; if(ui) ui.classList.remove("on"); cancelAnimatio
   if(ui && !ui.querySelector(".start")){ const d = document.createElement("div"); d.className = "start"; d.dataset.a = "start"; d.textContent = T.tapStart; ui.appendChild(d); }
 }
 
-window.edrAR = {open, close, state:S, project, groundPoint, gather, refreshFeats, cameraAxis, loadAI, _sim:(o)=>Object.assign(S, o)};
+window.edrAR = {open, close, state:S, project, groundPoint, gather, refreshFeats, cameraAxis, loadAI, finishPath, setMode, _hits:()=>hits, _sim:(o)=>Object.assign(S, o)};
 })();
