@@ -24,8 +24,10 @@ const say = m => window.toast && toast(m);
 const S = {fid:null, name:"", ll:null, mount:null, api:null, ui:null, version:0, dirty:false, lastSaved:0, files:{}, fileUrls:{}, versions:[], viewOnly:false, timer:null};
 
 const css = document.createElement("style"); css.textContent = `
+.qpulse{animation:qpulse 1.2s ease-out 3} @keyframes qpulse{0%{stroke-opacity:1;stroke-width:3}100%{stroke-opacity:0;stroke-width:14}}
 #qboard{position:fixed;inset:0;z-index:7000;background:#f1e9d8;display:none;flex-direction:column}
 #qboard.on{display:flex}
+#qboard.split{left:auto;width:min(60vw,920px);box-shadow:-14px 0 34px rgba(0,0,0,.35);border-left:1px solid rgba(28,24,19,.25)} #qboard.split .qhd .lb{display:none} #qboard.split .qhd .ttl small{display:none} body.qsplit #mbar,body.qsplit #mleg{right:min(60vw,920px)} body.qsplit #minebtn{display:none} #qboard .qhd button[data-a=split].on{border-color:#c9a227;color:#c9a227} @media (max-width:899px){ #qboard .qhd button[data-a=split]{display:none} }
 #qboard .qhd{height:52px;display:flex;align-items:center;gap:8px;padding:0 10px;background:#1c1813;color:#f1e9d8;font:600 13px var(--ui);flex:0 0 auto}
 #qboard .qhd .ttl{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px} #qboard .qhd .ttl small{display:block;font:500 11px var(--mono);opacity:.65}
 #qboard .qhd button{height:36px;border-radius:18px;border:1px solid rgba(241,233,216,.25);background:transparent;color:#f1e9d8;font:600 12px var(--ui);padding:0 12px;cursor:pointer;white-space:nowrap}
@@ -199,16 +201,29 @@ async function openHistory(){
     try{ const d = await loadVersion(m); const sc = await hydrate(d); S.api.updateScene({elements:sc.elements, appState:sc.appState}); S.api.addFiles(sc.files); S.api.scrollToContent(sc.elements, {fitToContent:true}); markDirty(); tray.classList.remove("on"); say(`${T.versionOf} ${verOf(m)} → ${T.save}`); }catch(e){ say(T.err); } });
 }
 
+/* ---------- split view: the board beside the map, each pointing at the other ---------- */
+function splitDefault(){ if(innerWidth < 900) return false; const saved = localStorage.getItem("edr_board_split"); if(saved != null) return saved === "1"; return matchMedia("(pointer:coarse)").matches && innerWidth > innerHeight; }
+function setSplit(on, silent){ if(innerWidth < 900) on = false; S.ui.classList.toggle("split", on); document.body.classList.toggle("qsplit", on); const b = S.ui.querySelector("[data-a=split]"); if(b) b.classList.toggle("on", on); if(!silent) try{ localStorage.setItem("edr_board_split", on ? "1" : "0"); }catch(e){}
+  try{ if(typeof map !== "undefined"){ setTimeout(() => { map.invalidateSize(); if(on && S.ll){ map.setView(S.ll, Math.max(map.getZoom(), 18), {animate:false}); map.panBy([S.ui.getBoundingClientRect().width / 2, 0], {animate:false}); } }, 80); } }catch(e){} if(on) hookMap(); else unhookMap(); }
+let mapHook = null, pulse = null;
+function hookMap(){ if(mapHook || typeof map === "undefined") return; mapHook = e => centreOn(e.latlng.lat, e.latlng.lng); map.on("click", mapHook); }
+function unhookMap(){ if(mapHook && typeof map !== "undefined"){ map.off("click", mapHook); mapHook = null; } if(pulse){ try{ map.removeLayer(pulse); }catch(e){} pulse = null; } }
+/** centre the board on a place (map tap) */
+function centreOn(lat, lon){ if(!S.api || !S.geo) return; const [x, y] = toBoard(lat, lon); const st = S.api.getAppState(); const host = S.ui.querySelector(".qmount"); const W = host.clientWidth, H = host.clientHeight; const z = st.zoom.value;
+  S.api.updateScene({appState:{scrollX:W / 2 / z - x, scrollY:H / 2 / z - y}}); }
+/** show on the map where a brought-in shape is (board selection) */
+function showOnMap(e){ if(typeof map === "undefined" || !S.geo || !S.ui.classList.contains("split")) return; const o = outline(e); if(!o || !o.pts.length) return; const cx = o.pts.reduce((s, p) => s + p[0], 0) / o.pts.length, cy = o.pts.reduce((s, p) => s + p[1], 0) / o.pts.length; const [lat, lon] = toLL(cx, cy);
+  if(pulse) map.removeLayer(pulse); pulse = L.circleMarker([lat, lon], {radius:14, color:"#ffd166", weight:3, fill:false, className:"qpulse"}).addTo(map); map.panTo([lat, lon]); }
 /* ---------- ui ---------- */
 function markDirty(){ S.dirty = true; setStatus(T.draft, true); clearTimeout(S.timer); S.timer = setTimeout(saveDraft, 1500); }
 function build(){
   const ui = document.createElement("div"); ui.id = "qboard"; ui.setAttribute("role", "dialog"); ui.setAttribute("aria-label", T.board);
   ui.innerHTML = `<div class="qhd"><button data-a="close" aria-label="${T.close}">← ${T.close}</button><div class="ttl"><span class="nm"></span><small class="st"></small></div>
-      <button data-a="tpl" title="${T.templates}">▦<span class="lb"> ${T.templates}</span></button><button data-a="photos" title="${T.photos}">📷<span class="lb"> ${T.photos}</span></button><button data-a="aerial" title="${T.aerial}">🛰<span class="lb"> ${T.aerial}</span></button><button data-a="map" title="${T.map}">🗺<span class="lb"> ${T.map}</span></button><button data-a="measure" title="${T.measure}">📏<span class="lb"> ${T.measure}</span></button><button data-a="link" title="${T.link}">🔗<span class="lb"> ${T.link}</span></button><button data-a="lock" title="${T.lock}">🔓</button><button data-a="hist" title="${T.history}">🕘<span class="lb"> ${T.history}</span></button><button data-a="save" class="ok">${T.save}</button></div>
+      <button data-a="tpl" title="${T.templates}">▦<span class="lb"> ${T.templates}</span></button><button data-a="photos" title="${T.photos}">📷<span class="lb"> ${T.photos}</span></button><button data-a="aerial" title="${T.aerial}">🛰<span class="lb"> ${T.aerial}</span></button><button data-a="map" title="${T.map}">🗺<span class="lb"> ${T.map}</span></button><button data-a="measure" title="${T.measure}">📏<span class="lb"> ${T.measure}</span></button><button data-a="link" title="${T.link}">🔗<span class="lb"> ${T.link}</span></button><button data-a="lock" title="${T.lock}">🔓</button><button data-a="split" title="${EN ? "Beside the map" : "Ao lado do mapa"}">⫿</button><button data-a="hist" title="${T.history}">🕘<span class="lb"> ${T.history}</span></button><button data-a="save" class="ok">${T.save}</button></div>
     <div class="qbody"><div class="qcanvas"><div class="qmount" style="position:absolute;inset:0"></div><div class="qscale">${T.scale}</div><div class="qload">${T.loading}</div></div><div class="qtray"></div></div>`;
   document.body.appendChild(ui);
   ui.querySelector(".qhd").addEventListener("click", async e => { const b = e.target.closest("button[data-a]"); if(!b) return; const a = b.dataset.a;
-    if(a === "close") return close(); if(a === "save") return save(true); if(a === "map") return openMapMenu(); if(a === "measure") return openMeasureMenu(); if(a === "lock") return toggleLock(b); if(a === "photos") return openPhotos(); if(a === "link") return openLink(); if(a === "aerial") return addAerial(); if(a === "hist") return openHistory();
+    if(a === "close") return close(); if(a === "save") return save(true); if(a === "split") return setSplit(!S.ui.classList.contains("split")); if(a === "map") return openMapMenu(); if(a === "measure") return openMeasureMenu(); if(a === "lock") return toggleLock(b); if(a === "photos") return openPhotos(); if(a === "link") return openLink(); if(a === "aerial") return addAerial(); if(a === "hist") return openHistory();
     if(a === "tpl"){ const tray = ui.querySelector(".qtray"); tray.classList.add("on"); const t = await skel("edenrise-templates");
       tray.innerHTML = `<div class="th"><span>${T.templates}</span><button data-x>✕</button></div><div class="list">${t.templates.map(x => `<button data-t="${x.id}">${EN ? x.en : x.name}</button>`).join("")}</div>`;
       tray.querySelector("[data-x]").onclick = () => tray.classList.remove("on"); tray.querySelectorAll("[data-t]").forEach(bb => bb.onclick = () => { applyTemplate(bb.dataset.t); tray.classList.remove("on"); }); } });
@@ -224,7 +239,7 @@ function sizeBadge(els, st){
 
 async function open(fid, opts){
   opts = opts || {}; if(!S.ui) S.ui = build(); S.fid = fid; S.name = opts.name || fid; S.ll = opts.latlng || null; S.viewOnly = !auth().key || auth().role === "viewer"; S.dirty = false; S.version = 0; S.fileUrls = {};
-  S.ui.classList.add("on"); S.ui.querySelector(".nm").textContent = `${T.board} · ${S.name}`; setStatus(T.loading); S.ui.querySelector(".qload").style.display = "flex"; S.ui.querySelector(".qtray").classList.remove("on");
+  S.ui.classList.add("on"); S.ui.querySelector(".nm").textContent = `${T.board} · ${S.name}`; setSplit(splitDefault(), true); setStatus(T.loading); S.ui.querySelector(".qload").style.display = "flex"; S.ui.querySelector(".qtray").classList.remove("on");
   S.ui.querySelectorAll('[data-a="save"],[data-a="tpl"],[data-a="photos"],[data-a="aerial"],[data-a="link"]').forEach(b => b.disabled = S.viewOnly);
   try{ await loadLib(); }catch(e){ say(T.err); close(true); return; }
   // what to show: the newest server version, unless a newer local draft exists
@@ -237,6 +252,7 @@ async function open(fid, opts){
     onChange:(els, st) => { if(!S.api) return; sizeBadge(els, st); watchSelection(els, st); const v = EdrBoardLib.getSceneVersion(els); if(S.lastV != null && v !== S.lastV){ if(!S.viewOnly) markDirty(); tapeWatch(els); } S.lastV = v; },
     onLinkOpen:followLink});
   S.api = await S.mount.ready(); await new Promise(r => setTimeout(r, 300));   // the engine applies initialData asynchronously; defaults go in after it settles
+  if(!S.api || !S.on) return;   // closed while settling
   if(scene.elements.length) S.api.scrollToContent(scene.elements, {fitToContent:true, viewportZoomFactor:0.8});
   const d0 = defaultsState(); const saved = (data && data.appState) || {}; S.api.updateScene({appState:{...d0, gridModeEnabled:saved.gridModeEnabled != null ? saved.gridModeEnabled : true, gridSize:saved.gridSize || GRID, viewBackgroundColor:saved.viewBackgroundColor || d0.viewBackgroundColor}}); S.lastV = EdrBoardLib.getSceneVersion(S.api.getSceneElements());
   S.ui.querySelector(".qload").style.display = "none"; setStatus(S.viewOnly ? T.viewOnly : (S.dirty ? T.draft : (S.version ? `${T.saved} · v${S.version}` : "")), S.dirty);
@@ -244,7 +260,7 @@ async function open(fid, opts){
 }
 async function close(force){
   if(!force && S.dirty && !S.viewOnly){ if(confirm(T.unsaved)){ const ok = await save(true); if(!ok) return; } else saveDraft(); }
-  if(S.ui) S.ui.classList.remove("on"); if(S.mount){ try{ S.mount.unmount(); }catch(e){} S.mount = null; } S.api = null;
+  if(S.ui) S.ui.classList.remove("on"); document.body.classList.remove("qsplit"); if(S.mount){ try{ S.mount.unmount(); }catch(e){} S.mount = null; } S.api = null; unhookMap();
 }
 /* ---------- geometry helpers (board px ↔ metres ↔ lon/lat) ---------- */
 function rotPt(px, py, cx, cy, a){ if(!a) return [px, py]; const c = Math.cos(a), s = Math.sin(a); return [cx + (px - cx) * c - (py - cy) * s, cy + (px - cx) * s + (py - cy) * c]; }
@@ -351,7 +367,7 @@ const SMART = {
 };
 let lastSel = "";
 function smartOf(els, ids){ const sel = els.filter(e => ids.includes(e.id)); for(const e of sel){ if(e.customData && e.customData.smart) return e; } for(const e of sel){ if(e.groupIds && e.groupIds.length){ const b = els.find(x => x.customData && x.customData.smart && x.groupIds && x.groupIds.some(g => e.groupIds.includes(g))); if(b) return b; } } return null; }
-function watchSelection(els, st){ const ids = Object.keys(st.selectedElementIds || {}); const key = ids.join(","); if(key === lastSel) return; lastSel = key; if(S.viewOnly) return; const body = ids.length ? smartOf(els, ids) : null; const tray = S.ui.querySelector(".qtray"); if(body) openFicha(body); else if(tray.dataset.ficha){ tray.classList.remove("on"); delete tray.dataset.ficha; } }
+function watchSelection(els, st){ const ids = Object.keys(st.selectedElementIds || {}); const key = ids.join(","); if(key === lastSel) return; lastSel = key; if(ids.length === 1){ const e = els.find(x => x.id === ids[0]); if(e && e.customData && e.customData.fromMap) showOnMap(e); } if(S.viewOnly) return; const body = ids.length ? smartOf(els, ids) : null; const tray = S.ui.querySelector(".qtray"); if(body) openFicha(body); else if(tray.dataset.ficha){ tray.classList.remove("on"); delete tray.dataset.ficha; } }
 function openFicha(body){
   const def = SMART[body.customData.smart]; if(!def) return; const cd = body.customData; const tray = S.ui.querySelector(".qtray"); tray.classList.add("on"); tray.dataset.ficha = body.id;
   const stLabel = s => T[s] || s;

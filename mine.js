@@ -22,7 +22,7 @@ const css = document.createElement("style"); css.textContent = `
 #minebtn{position:absolute;right:14px;top:calc(var(--nav-h,52px) + 14px);z-index:1450;height:38px;border-radius:19px;border:1px solid var(--line-2,#3a342c);background:rgba(28,24,19,.92);color:#f1e9d8;font:700 12px var(--ui);padding:0 12px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35)}
 #minebtn[hidden]{display:none} #minebtn b{display:inline-block;min-width:18px;height:18px;border-radius:9px;background:#e07b39;color:#1c1813;font:700 11px var(--mono);line-height:18px;text-align:center;margin-left:6px}
 #minebtn b:empty{display:none}
-@media (max-width:700px){ #minebtn{top:auto;bottom:calc(var(--mbar,64px) + 62px);right:12px} }
+@media (max-width:700px), ((pointer:coarse) and (max-width:1366px)){ #minebtn{top:auto;bottom:calc(var(--mbar,64px) + 62px);right:12px} }
 #minesheet{position:fixed;left:0;right:0;bottom:0;z-index:1900;max-height:78vh;background:#1c1813;color:#f1e9d8;border-radius:18px 18px 0 0;box-shadow:0 -10px 30px rgba(0,0,0,.5);display:flex;flex-direction:column;transform:translateY(105%);transition:transform .25s}
 #minesheet.open{transform:none} @media (min-width:701px){ #minesheet{left:auto;right:14px;bottom:14px;width:380px;border-radius:18px} }
 #minesheet .hd{display:flex;justify-content:space-between;align-items:center;padding:14px 16px 8px;font:700 15px var(--ui)} #minesheet .hd button{height:36px;border-radius:18px;border:1px solid var(--line-2,#3a342c);background:transparent;color:#f1e9d8;font:600 12px var(--ui);padding:0 12px;cursor:pointer;margin-left:6px}

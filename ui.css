@@ -81,9 +81,9 @@ body{padding-top:44px!important}
 .leaflet-control-attribution{background:rgba(20,17,13,.7)!important;color:var(--muted)!important;font-size:10px!important} .leaflet-control-attribution a{color:var(--linen-2)!important}
 .kbd{font-family:var(--mono);font-size:10px;border:1px solid var(--line-2);border-radius:4px;padding:0 5px;color:var(--muted)}
 
-/* ================= Mobile (≤700px): one thumb bar, big targets, less chrome ================= */
+/* ================= Touch tier: phones (≤700px) and touch tablets (coarse pointer ≤1366px): one thumb bar, big targets, less chrome ================= */
 #mbar, #mleg, #msideclose{display:none}
-@media(max-width:700px){
+@media (max-width:700px), ((pointer:coarse) and (max-width:1366px)){
   :root{ --mbar:calc(60px + env(safe-area-inset-bottom,0px)); }
 
   /* the single action bar: everything the team needs, within thumb reach */
