@@ -70,7 +70,7 @@ const skelCache = {};
 async function skel(name){ if(skelCache[name]) return skelCache[name]; const d = await fetch(V + name + ".json").then(r => r.json()); skelCache[name] = d; return d; }
 
 /* ---------- storage: the item's media store ---------- */
-async function itemMedia(fid){ try{ const d = await fetch(`${API}/item/${encodeURIComponent(fid)}`).then(r => r.json()); return d.media || []; }catch(e){ return []; } }
+async function itemMedia(fid){ let out = []; for(const id of [fid, ...((S.fid === fid && S.aliases) || [])]){ try{ const d = await fetch(`${API}/item/${encodeURIComponent(id)}`).then(r => r.json()); out = out.concat(d.media || []); }catch(e){} } return out; }
 const isBoardFile = m => /^\[quadro\]/.test(m.caption || "");
 const isSnap = m => /^\[quadro-snap\]/.test(m.caption || "");
 const isBoardImg = m => /^\[quadro-img\]/.test(m.caption || "");
@@ -238,7 +238,7 @@ function sizeBadge(els, st){
 }
 
 async function open(fid, opts){
-  opts = opts || {}; if(!S.ui) S.ui = build(); S.fid = fid; S.name = opts.name || fid; S.ll = opts.latlng || null; S.viewOnly = !auth().key || auth().role === "viewer"; S.dirty = false; S.version = 0; S.fileUrls = {};
+  opts = opts || {}; if(!S.ui) S.ui = build(); S.fid = fid; S.aliases = opts.aliases || []; S.name = opts.name || fid; S.ll = opts.latlng || null; S.viewOnly = !auth().key || auth().role === "viewer"; S.dirty = false; S.version = 0; S.fileUrls = {};
   S.ui.classList.add("on"); S.ui.querySelector(".nm").textContent = `${T.board} · ${S.name}`; setSplit(splitDefault(), true); setStatus(T.loading); S.ui.querySelector(".qload").style.display = "flex"; S.ui.querySelector(".qtray").classList.remove("on");
   S.ui.querySelectorAll('[data-a="save"],[data-a="tpl"],[data-a="photos"],[data-a="aerial"],[data-a="link"]').forEach(b => b.disabled = S.viewOnly);
   try{ await loadLib(); }catch(e){ say(T.err); close(true); return; }

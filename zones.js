@@ -16,7 +16,7 @@ const say = m => window.toast && toast(m);
 /* the layers whose areas count as places you can be inside */
 const ZONE_LAYERS = ["building_footprints", "grazing_parks_pg", "agri_features_pg", "power_pg", "prop_etar_pg", "orchards_pg"];
 const ZONE_PRESETS = ["edificio", "zona", "pasto", "infraestrutura", "tanque"];
-function coreRef(t, f){ const p = f.properties || {}; return p.asset_id ? ("asset:" + p.asset_id) : `${t}:${p.key || p.name || p.tree_name || "?"}`; }
+function coreRef(t, f){ const p = f.properties || {}; return p.asset_id ? ("asset:" + p.asset_id) : (p.uid ? "u:" + p.uid : `${t}:${p.key || p.name || p.tree_name || "?"}`); }
 function nameOf(f, t){ const p = f.properties || {}; return p.name || p.asset_id || p.tree_name || (typeof title_i18n === "function" ? title_i18n(t, t) : t); }
 function fidOf(t, f){ return t === "propostas" ? (f.properties || {}).id : coreRef(t, f); }
 function polyOf(f){ const g = f.geometry; if(!g) return null; if(g.type === "Polygon") return f; if(g.type === "MultiPolygon") return {type:"Feature", properties:f.properties, geometry:{type:"Polygon", coordinates:g.coordinates[0]}}; return null; }

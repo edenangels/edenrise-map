@@ -11,7 +11,7 @@ for(const [group, , items] of GROUPS){
     layers.push({key, title, title_en:T_EN[key]||title, group, group_en:G_EN[group]||group, kind, color, cat:(opt&&opt.cat)||null, colors:(opt&&opt.colors)||null});
     const fc = src[key]; if(!fc||!fc.features) continue;
     for(const f of fc.features){ if(!f.geometry) continue; const p = f.properties||{};
-      const keep = {}; for(const k of ["name","asset_id","status","category","year","species","note","notes","tipo","uso","estado","capacity_m3","m","area_ha","site"]) if(p[k]!=null) keep[k]=p[k];
+      const keep = {}; for(const k of ["uid","name","asset_id","status","category","year","species","note","notes","tipo","uso","estado","capacity_m3","m","area_ha","site"]) if(p[k]!=null) keep[k]=p[k];
       features.push({l:key, n:p.name||p.asset_id||"", p:keep, g:f.geometry}); }
   }
 }
