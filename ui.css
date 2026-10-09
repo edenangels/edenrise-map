@@ -70,7 +70,8 @@ body{padding-top:44px!important}
 .seg{display:flex;gap:4px;background:var(--bark);border:1px solid var(--line);border-radius:999px;padding:3px} .seg button{flex:1;font:600 11.5px var(--ui);padding:6px 10px;border:0;border-radius:999px;background:transparent;color:var(--muted);cursor:pointer;transition:background .15s,color .15s} .seg button.on{background:var(--night-2);color:var(--linen)}
 
 /* map extras */
-.cat .cb{display:block;max-height:0;overflow:hidden;padding:0 6px;transition:max-height .22s ease,padding .22s ease} .cat.open .cb{max-height:900px;padding:2px 6px 8px;border-top:1px solid var(--line)}
+.cat .cb{display:none;padding:0 6px} .cat.open .cb{display:block;max-height:none;overflow:visible;padding:2px 6px 8px;border-top:1px solid var(--line)}
+#teamcat .cb{scroll-margin-top:8px} #side{scroll-behavior:smooth;overscroll-behavior:contain}
 .cat .ico{width:16px;height:16px;flex:none;color:var(--linen-2)} .cat .ico svg{width:16px;height:16px;display:block}
 .legend{position:absolute;left:12px;bottom:26px;z-index:900;background:rgba(28,24,19,.92);backdrop-filter:blur(8px);border:1px solid var(--line-2);border-radius:10px;padding:10px 12px;font-size:11.5px;max-width:260px;box-shadow:var(--sh)}
 .legend .lt{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px} .legend .li{display:flex;align-items:center;gap:7px;padding:2px 0} .legend .sw{width:11px;height:11px;border-radius:50%}
