@@ -15,7 +15,10 @@ const API = "https://edenrise-brain.edenrise.workers.dev";
 const say = m => window.toast && toast(m);
 const esc = x => String(x == null ? "" : x).replace(/[<>&"]/g, c => ({"<":"&lt;", ">":"&gt;", "&":"&amp;", '"':"&quot;"}[c]));
 const auth = () => window.edrAuth || {key:"", role:"viewer", actor:""};
-const BASE = () => location.origin + location.pathname.replace(/[^/]*$/, "");   // folder of the map, works on any host
+// Sticker links always point at the published map (the native app builds the same image to anchor its labels on the
+// sticker, so the text must be identical wherever the sheet was printed). Local copies keep their own address for tests.
+const CANON = "https://edenangels.github.io/edenrise-map/";
+const BASE = () => /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) ? location.origin + location.pathname.replace(/[^/]*$/, "") : CANON;
 const linkOf = fid => `${BASE()}#item=${encodeURIComponent(fid)}`;
 const shortId = fid => { const s = String(fid); if(s.startsWith("u:")) return s.slice(2, 10).toUpperCase(); if(s.startsWith("asset:")) return s.slice(6); return s.length > 14 ? s.slice(-10) : s; };
 
@@ -53,8 +56,11 @@ const css = document.createElement("style"); css.textContent = `
 @media print{ body.tagprint > *:not(#tagprint){display:none!important} #tagprint{display:block!important} }
 #tagprint{display:none;background:#fff;color:#111} #tagprint .grid{display:grid;grid-template-columns:repeat(3,62mm);gap:4mm} #tagprint .st{border:0.3mm dashed #999;border-radius:3mm;padding:3mm;display:flex;gap:3mm;align-items:center;height:34mm;box-sizing:border-box;break-inside:avoid} #tagprint .st .q{width:26mm;height:26mm;flex:none} #tagprint .st .q img,#tagprint .st .q canvas{width:26mm!important;height:26mm!important} #tagprint .st b{display:block;font:800 9.5pt sans-serif;line-height:1.15} #tagprint .st small{display:block;font:600 7pt monospace;color:#555;margin-top:1mm} #tagprint .st i{display:block;font:600 6.5pt sans-serif;color:#777;margin-top:1.5mm;font-style:normal}`;
 document.head.appendChild(css);
-let qrP = null; function qrLib(){ if(window.QRCode) return Promise.resolve(); if(!qrP) qrP = new Promise((res, rej) => { const sc = document.createElement("script"); sc.src = "vendor/qrcode.min.js"; sc.onload = res; sc.onerror = rej; document.head.appendChild(sc); }); return qrP; }
-async function qrInto(el, text, px){ el.innerHTML = ""; try{ await qrLib(); new QRCode(el, {text, width:px, height:px, correctLevel:QRCode.CorrectLevel.M}); }catch(e){ el.textContent = text; } }
+let qrP = null; function qrLib(){ if(window.qrcode) return Promise.resolve(); if(!qrP) qrP = new Promise((res, rej) => { const sc = document.createElement("script"); sc.src = "vendor/qrgen.js"; sc.onload = res; sc.onerror = rej; document.head.appendChild(sc); }); return qrP; }
+/* QR drawing: qrcode-generator (MIT), the same encoder the native app uses, error correction M, no quiet zone (the sticker's white is the margin) */
+function qrMatrix(text){ const q = qrcode(0, "M"); q.addData(text); q.make(); return q; }
+async function qrInto(el, text, px){ el.innerHTML = ""; try{ await qrLib(); const q = qrMatrix(text), n = q.getModuleCount(), cell = Math.max(1, Math.floor(px / n)); const cv = document.createElement("canvas"); cv.width = cv.height = n * cell; cv.style.width = cv.style.height = px + "px"; cv.style.imageRendering = "pixelated";
+  const g = cv.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, cv.width, cv.height); g.fillStyle = "#000"; for(let r = 0; r < n; r++) for(let c = 0; c < n; c++) if(q.isDark(r, c)) g.fillRect(c * cell, r * cell, cell, cell); cv.setAttribute("aria-label", text); el.appendChild(cv); }catch(e){ el.textContent = text; } }
 let sheet = null;
 function open(fid, name){
   if(!sheet){ sheet = document.createElement("div"); sheet.id = "tagsheet"; sheet.setAttribute("role", "dialog"); document.body.appendChild(sheet); sheet.addEventListener("click", e => { if(e.target === sheet) close(); }); }
