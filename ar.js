@@ -39,7 +39,7 @@ const API = "https://edenrise-brain.edenrise.workers.dev"; const MAX_LABELS = 12
 let ui = null, video = null, canvas = null, ctx = null, mini = null, mctx = null, hits = [], work = null;
 
 const css = document.createElement("style"); css.textContent = `
-#arview{position:fixed;inset:0;z-index:1800;background:#000;display:none}
+#arview{position:fixed;inset:0;z-index:2050;background:#000;display:none}
 #arview.on{display:block}
 #arview video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 #arview canvas.ov{position:absolute;inset:0;width:100%;height:100%}
@@ -195,6 +195,8 @@ function draw(now){
       ctx.strokeRect(x, y, w, h); const lab = `${EN ? b.cls : (PT_CLASS[b.cls] || b.cls)} ${Math.round(b.score * 100)}%`;
       const tw = ctx.measureText(lab).width + 10 * dpr; ctx.fillStyle = "rgba(91,192,222,.9)"; ctx.fillRect(x, y - 20 * dpr, tw, 20 * dpr); ctx.fillStyle = "#0b1a20"; ctx.fillText(lab, x + 5 * dpr, y - 17 * dpr); }
   }
+  // QR stickers in the frame: the item's label sits on its sticker (indoors this beats GPS)
+  if(window.edrCamTags && video && !(window.edrXR && edrXR.active)){ try{ for(const h of edrCamTags.draw(ctx, W, H, dpr, video, now || performance.now(), font)) hits.push(h); }catch(e){} }
   const XR = window.edrXR && edrXR.active;
   if(XR){ const hh = edrXR.heading(); if(hh != null) S.heading = hh; S.pitch = edrXR.pitch(); }
   if(S.heading != null && S.pos){
@@ -231,7 +233,7 @@ function draw(now){
   }
   drawMini();
   const st = document.getElementById("arstat");
-  if(st) st.textContent = S.heading == null ? T.waiting : `${Math.round(S.heading)}° · ${S.acc ? "±" + (S.acc < 1 ? S.acc.toFixed(2) : Math.round(S.acc)) + " m" : T.waiting}${S.rtk ? " RTK" : ""}${(window.edrXR && edrXR.active) ? (edrXR.state.aligned ? " · AR+ ✓" : " · AR+ …") : ""} · ${S.feats.length}${(window.edrSurvey && edrSurvey.recording()) ? " · ● " + T.rec : ""}`;
+  if(st) st.textContent = S.heading == null ? T.waiting + (window.edrCamTags && edrCamTags.count() ? " · 🏷 " + edrCamTags.count() : "") : `${Math.round(S.heading)}° · ${S.acc ? "±" + (S.acc < 1 ? S.acc.toFixed(2) : Math.round(S.acc)) + " m" : T.waiting}${S.rtk ? " RTK" : ""}${(window.edrXR && edrXR.active) ? (edrXR.state.aligned ? " · AR+ ✓" : " · AR+ …") : ""} · ${S.feats.length}${(window.edrSurvey && edrSurvey.recording()) ? " · ● " + T.rec : ""}${window.edrCamTags && edrCamTags.count() ? " · 🏷 " + edrCamTags.count() : ""}`;
 }
 /* the line or area being marked: its vertices projected like the features, joined; closed when it is an area */
 function pathPt(v, W, H){ if(window.edrXR && edrXR.active) return edrXR.project(v.ll, v.z + 0.15, W, H); if(!S.pos) return null; const d = dist(S.pos, v.ll); const el = deg(Math.atan2(v.z + 0.15 - zEye, Math.max(d, 0.5))); return project(bearing(S.pos, v.ll), el, W, H); }
@@ -356,15 +358,16 @@ function build(){
     if(a === "ai") return toggleAI(el);
     if(a === "zone"){ S.zoneOff = !S.zoneOff; refreshFeats(); return; }
     if(a === "xr") return toggleXR(el);
-    if(a === "start"){ el.remove(); const ok = await startSensors(); if(ok) await startCamera(); return; }
+    if(a === "start"){ el.remove(); await startSensors(); await startCamera(); return; }
     const r = canvas.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
     const hit = hits.find(h => Math.abs(x - h.x) <= h.w / 2 && Math.abs(y - h.y) <= h.h / 2);
+    if(hit && hit.tag){ close(); if(window.edrTags) edrTags.openRef(hit.tag); return; }
     if(hit){ close(); if(hit.it.t === "propostas" && window.edrEdit && edrEdit.openById && edrEdit.openById(hit.it.fid)) return; if(window.showCard) showCard(hit.it.f.properties, L.latLng(hit.it.c[0], hit.it.c[1]), hit.it.name, hit.it.t); }
   });
 }
 function open(){ if(!navigator.mediaDevices || !navigator.geolocation){ say(T.noCam); return; } if(!ui) build();
   S.on = true; ui.classList.add("on"); if(window.edrSurvey) edrSurvey.close(); paintBot(); draw(performance.now()); }   // a walk being recorded keeps recording: its watch is its own
-function close(){ S.on = false; if(ui) ui.classList.remove("on"); cancelAnimationFrame(S.raf);
+function close(){ S.on = false; if(ui) ui.classList.remove("on"); cancelAnimationFrame(S.raf); if(window.edrCamTags) edrCamTags.reset();
   window.removeEventListener("deviceorientationabsolute", onOri, true); window.removeEventListener("deviceorientation", onOri, true);
   if(S.watch != null){ navigator.geolocation.clearWatch(S.watch); S.watch = null; }
   if(S.stream){ S.stream.getTracks().forEach(t => t.stop()); S.stream = null; }
