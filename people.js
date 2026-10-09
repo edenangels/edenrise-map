@@ -21,7 +21,7 @@ const T = EN ? {team:"Team", me:"Me", share:"Share my position while on duty", d
 const auth = () => window.edrAuth || {key:"", role:"viewer", actor:""};
 const say = m => window.toast && toast(m);
 const K_DUTY = "edr_duty", K_SHARE = "edr_share_pos";
-const S = {duty:localStorage.getItem(K_DUTY) || "off", share:localStorage.getItem(K_SHARE) === "1", fix:null, watch:null, battery:null, others:[], markers:new Map(), panel:null, card:null};
+const S = {tab:"people", duty:localStorage.getItem(K_DUTY) || "off", share:localStorage.getItem(K_SHARE) === "1", fix:null, watch:null, battery:null, others:[], markers:new Map(), panel:null, card:null};
 const colour = name => { let h = 0; for(const c of String(name)) h = (h * 31 + c.charCodeAt(0)) % 360; return `hsl(${h} 55% 50%)`; };
 const initials = n => String(n).split(/\s+/).filter(Boolean).map(w => w[0]).join("").slice(0, 2).toUpperCase();
 
@@ -87,7 +87,7 @@ function render(others){
       mk.on("click", e => { L.DomEvent.stop(e); openCard(o.actor); }); ring.addTo(layer); mk.addTo(layer); m = {mk, ring}; S.markers.set(o.actor, m); }
     else { m.mk.setLatLng([o.lat, o.lon]); m.mk.setIcon(L.divIcon({className:"", html, iconSize:[34, 34], iconAnchor:[17, 17]})); m.ring.setLatLng([o.lat, o.lon]).setRadius(o.acc || 10); m.ring.setStyle({opacity:fr === "stale" ? .25 : .6, fillOpacity:fr === "stale" ? .03 : .1}); } }
   for(const [a, m] of S.markers) if(!keep.has(a)){ layer.removeLayer(m.mk); layer.removeLayer(m.ring); S.markers.delete(a); }
-  chip(); paintPanel(); if(S.card) openCard(S.card, true);
+  chip(); if(S.tab !== "chat") paintPanel(); if(S.card) openCard(S.card, true);
 }
 setInterval(() => { if(S.others.length) render(S.others.map(o => ({actor:o.actor, role:o.role, lat:o.lat, lon:o.lon, zoom:o.zoom, page:o.page, at:o.at}))); }, 30000);   // ages tick even without new beats
 
@@ -99,13 +99,16 @@ function togglePanel(){ if(!S.panel){ S.panel = document.createElement("div"); S
 function distTo(o){ const me = S.fix; if(!me || o.lat == null) return null; return map.distance([me.lat, me.lon], [o.lat, o.lon]); }
 function fmtD(d){ return d == null ? "" : d < 1000 ? `${Math.round(d)} m` : `${(d / 1000).toFixed(1)} km`; }
 function paintPanel(){ const p = S.panel; if(!p || !p.classList.contains("on")) return; const placed = S.others.filter(o => o.gps).sort((a, b) => age(a) - age(b)); const viewing = S.others.filter(o => !o.gps);
-  p.innerHTML = `<div class="hd"><span>${T.team} · ${S.others.length + 1}</span><button data-x>${T.close}</button></div><div class="bd">
+  const chat = window.edrTeamChat; const un = chat ? chat.unread() : 0; const lateN = chat ? chat.overdueNames() : [];
+  if(S.tab === "chat" && chat){ p.innerHTML = `<div class="hd"><span>${T.team} · ${S.others.length + 1}</span><button data-x>${T.close}</button></div><div class="tabs"><button data-tab="people">${EN ? "People" : "Pessoas"}</button><button data-tab="chat" class="on">${EN ? "Messages" : "Mensagens"}</button></div><div class="bd" id="chatbody"></div>`; p.querySelector("[data-x]").onclick = () => p.classList.remove("on"); p.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => showTab(b.dataset.tab)); chat.renderInto(p.querySelector("#chatbody")); return; }
+  p.innerHTML = `<div class="hd"><span>${T.team} · ${S.others.length + 1}</span><button data-x>${T.close}</button></div>${chat ? `<div class="tabs"><button data-tab="people" class="on">${EN ? "People" : "Pessoas"}</button><button data-tab="chat">${EN ? "Messages" : "Mensagens"}${un ? `<b>${un}</b>` : ""}</button></div>` : ""}<div class="bd">
     <div class="pme"><b>${T.me} · ${auth().actor || "—"}</b><div class="seg">${["on", "brk", "off"].map(d => `<button data-duty="${d}" class="${S.duty === d ? "on" : ""}">${T.duty[d]}</button>`).join("")}</div>
       <label class="sw"><input type="checkbox" data-share ${S.share ? "checked" : ""}><span>${T.share}</span></label>
       <div class="muted">${S.share && S.duty === "on" ? `${T.sharingOn}${S.fix ? ` · ±${Math.round(S.fix.acc)} m` : ""}` : T.sharingOff}</div></div>
-    ${placed.length ? `<div class="sec">📍 ${placed.length}</div>` + placed.map(o => { const fr = fresh(o); const t = o.task ? tasks().find(x => x.id === o.task) : null; return `<div class="p" data-p="${o.actor}"><div class="av ${fr}" style="background:${colour(o.actor)}">${initials(o.actor)}</div><div><b>${o.actor}</b><small>${T.duty[o.duty] || ""} · ${ageText(o)}${o.acc ? ` · ±${Math.round(o.acc)} m` : ""}${t ? ` · ${t.title.slice(0, 26)}` : ""}</small></div><div class="r">${fmtD(distTo(o))}</div></div>`; }).join("") : `<div class="muted">${T.nobody}</div>`}
+    ${placed.length ? `<div class="sec">📍 ${placed.length}</div>` + placed.map(o => { const fr = fresh(o); const t = o.task ? tasks().find(x => x.id === o.task) : null; return `<div class="p" data-p="${o.actor}"><div class="av ${fr}" style="background:${colour(o.actor)}">${initials(o.actor)}</div><div><b>${o.actor}${lateN.includes(o.actor) ? ` <span style="color:#ffb347">⏰</span>` : ""}</b><small>${T.duty[o.duty] || ""} · ${ageText(o)}${o.acc ? ` · ±${Math.round(o.acc)} m` : ""}${t ? ` · ${t.title.slice(0, 26)}` : ""}</small></div><div class="r">${fmtD(distTo(o))}</div></div>`; }).join("") : `<div class="muted">${T.nobody}</div>`}
     ${viewing.length ? `<div class="sec">${T.online}</div>` + viewing.map(o => `<div class="p" data-p="${o.actor}"><div class="av" style="background:${colour(o.actor)};opacity:.6">${initials(o.actor)}</div><div><b>${o.actor}</b><small>${T.tasks(openTasksOf(o.actor).length)}</small></div><div class="r"></div></div>`).join("") : ""}</div>`;
   p.querySelector("[data-x]").onclick = () => p.classList.remove("on");
+  p.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => showTab(b.dataset.tab));
   p.querySelectorAll("[data-duty]").forEach(b => b.onclick = () => setDuty(b.dataset.duty)); p.querySelector("[data-share]").onchange = e => setShare(e.target.checked);
   p.querySelectorAll("[data-p]").forEach(r => r.onclick = () => openCard(r.dataset.p)); }
 /* ---------- person card ---------- */
@@ -116,7 +119,7 @@ function openCard(name, refresh){
   let c = document.getElementById("pcard"); if(!c){ c = document.createElement("div"); c.id = "pcard"; c.setAttribute("role", "dialog"); document.body.appendChild(c); }
   const t = o.task ? tasks().find(x => x.id === o.task) : null; const open = openTasksOf(o.actor); const fr = o.gps ? fresh(o) : null;
   c.innerHTML = `<button class="x" aria-label="${T.close}">✕</button>${S.backToPanel ? `<button class="bk" data-back>← ${T.team}</button>` : ""}<div class="top"><div class="av" style="background:${colour(o.actor)}">${initials(o.actor)}</div><div><b>${o.actor}</b><small>${o.gps ? `${T.duty[o.duty] || ""} · ${ageText(o)}` : T.online}</small></div></div>
-    ${fr === "stale" ? `<div class="warn">⚠ ${T.stale}</div>` : ""}
+    ${fr === "stale" ? `<div class="warn">⚠ ${T.stale}</div>` : ""}${window.edrTeamChat && edrTeamChat.overdueNames().includes(o.actor) ? `<div class="warn">⏰ ${EN ? "Check-in overdue" : "Check-in em atraso"}</div>` : ""}
     <div class="facts">${o.gps ? `<div><span>${T.acc}</span>±${Math.round(o.acc || 0)} m${o.rtk ? ` · ${T.rtk}` : ""}</div><div><span>${T.dist}</span>${fmtD(distTo(o)) || "—"}</div>` : ""}${o.battery != null ? `<div><span>${T.battery}</span>${o.battery}%</div>` : ""}<div><span>${T.task}</span>${t ? t.title : T.noTask}</div><div><span>${EN ? "Open tasks" : "Tarefas abertas"}</span>${open.length}</div></div>
     <div class="acts">${o.gps ? `<button class="ok" data-a="assign">＋ ${T.assign}</button><button data-a="route">🥾 ${T.route}</button><button data-a="centre">◎ ${T.centre}</button>` : `<button class="ok" data-a="assign">＋ ${EN ? "Assign a task" : "Atribuir tarefa"}</button>`}<button data-a="msg">💬 ${T.message}</button>${t ? `<button data-a="task">📋 ${EN ? "Their task" : "A tarefa"}</button>` : ""}</div>`;
   c.classList.add("on"); if(refresh) return;
@@ -128,10 +131,11 @@ function openCard(name, refresh){
     if(a === "task" && t && window.edrTasks){ closeCard(); edrTasks.open(t.id); }
     if(a === "msg"){ const where = ll ? ` (${ll.lat.toFixed(5)}, ${ll.lng.toFixed(5)})` : ""; const text = `@${o.actor} — ${auth().actor}${where}: `; if(window.edrTeamChat && edrTeamChat.compose) edrTeamChat.compose(o.actor, text); else window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank"); } });
 }
+function showTab(t){ S.tab = t; if(!S.panel || !S.panel.classList.contains("on")) togglePanel(); else paintPanel(); }
 function closeCard(){ S.card = null; S.backToPanel = false; const c = document.getElementById("pcard"); if(c) c.classList.remove("on"); }
 document.addEventListener("keydown", e => { if(e.key === "Escape"){ closeCard(); if(S.panel) S.panel.classList.remove("on"); } });
 /* ---------- start ---------- */
 if(S.share && S.duty === "on") startWatch();
 setTimeout(chip, 2500);
-window.edrPeople = {payload, render, openCard, togglePanel, setDuty, setShare, state:S, _decode:decode, _encode:encode};
+window.edrPeople = {payload, render, openCard, togglePanel, showTab, setDuty, setShare, state:S, _decode:decode, _encode:encode};
 })();
