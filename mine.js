@@ -26,7 +26,7 @@ const css = document.createElement("style"); css.textContent = `
 #minesheet{position:fixed;left:0;right:0;bottom:0;z-index:1900;max-height:78vh;background:#1c1813;color:#f1e9d8;border-radius:18px 18px 0 0;box-shadow:0 -10px 30px rgba(0,0,0,.5);display:flex;flex-direction:column;transform:translateY(105%);transition:transform .25s}
 #minesheet.open{transform:none} @media (min-width:701px){ #minesheet{left:auto;right:14px;bottom:14px;width:380px;border-radius:18px} }
 #minesheet .hd{display:flex;justify-content:space-between;align-items:center;padding:14px 16px 8px;font:700 15px var(--ui)} #minesheet .hd button{height:36px;border-radius:18px;border:1px solid var(--line-2,#3a342c);background:transparent;color:#f1e9d8;font:600 12px var(--ui);padding:0 12px;cursor:pointer;margin-left:6px}
-#minesheet .bd{overflow-y:auto;padding:0 12px 16px;display:flex;flex-direction:column;gap:6px}
+#minesheet .bd{overflow-y:auto;padding:0 12px 16px;display:flex;flex-direction:column;gap:6px;min-height:0} #minesheet .bd > *{flex-shrink:0}
 #minesheet .it{display:flex;gap:10px;align-items:center;padding:10px 10px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);cursor:pointer;min-height:54px}
 #minesheet .it .n{flex:1;font:600 13px var(--ui);line-height:1.25} #minesheet .it .n small{display:block;font:500 11px var(--mono);opacity:.6;margin-top:2px}
 #minesheet .pill{font:700 10px var(--mono);letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:4px 8px;color:#1c1813;white-space:nowrap}
