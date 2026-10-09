@@ -69,7 +69,7 @@ async function record(fid, kind, text, extra){
 async function act(kind, fid, name, latlng){
   const q = kind === "servico" ? T.askService : kind === "peca" ? T.askPart : kind === "problema" ? T.askProblem : T.askReading; const v = prompt(q, ""); if(v === null || !v.trim()) return;
   const text = kind === "leitura" ? `${name}: ${v.trim()}` : v.trim(); const ok = await record(fid, kind, text);
-  if(ok && kind === "problema" && window.edrTasks){ edrTasks.newTask({feature_id:fid, latlng, title:`⚠ ${name}: ${v.trim().slice(0, 60)}`, detail:`${EN ? "Problem reported" : "Problema reportado"} ${new Date().toLocaleString(EN ? "en-GB" : "pt-PT")} · ${a.actor}:\n${v.trim()}`}); }
+  if(ok && kind === "problema" && window.edrTasks){ edrTasks.newTask({feature_id:fid, latlng, title:`⚠ ${name}: ${v.trim().slice(0, 60)}`, detail:`${EN ? "Problem reported" : "Problema reportado"} ${new Date().toLocaleString(EN ? "en-GB" : "pt-PT")} · ${auth().actor}:\n${v.trim()}`}); }
 }
 /* the quick-action row for an item card */
 function actionsHTML(){ return `<button data-za="servico">🔧 ${T.service}</button><button data-za="peca">📦 ${T.part}</button><button data-za="problema" style="border-color:var(--ember)">⚠ ${T.problem}</button><button data-za="leitura">🔢 ${T.reading}</button>`; }
