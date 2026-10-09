@@ -252,7 +252,7 @@ async function open(fid, opts){
     onChange:(els, st) => { if(!S.api) return; sizeBadge(els, st); watchSelection(els, st); const v = EdrBoardLib.getSceneVersion(els); if(S.lastV != null && v !== S.lastV){ if(!S.viewOnly) markDirty(); tapeWatch(els); } S.lastV = v; },
     onLinkOpen:followLink});
   S.api = await S.mount.ready(); await new Promise(r => setTimeout(r, 300));   // the engine applies initialData asynchronously; defaults go in after it settles
-  if(!S.api || !S.on) return;   // closed while settling
+  if(!S.api || !S.ui || !S.ui.classList.contains("on") || S.fid !== fid) return;   // closed or switched while settling
   if(scene.elements.length) S.api.scrollToContent(scene.elements, {fitToContent:true, viewportZoomFactor:0.8});
   const d0 = defaultsState(); const saved = (data && data.appState) || {}; S.api.updateScene({appState:{...d0, gridModeEnabled:saved.gridModeEnabled != null ? saved.gridModeEnabled : true, gridSize:saved.gridSize || GRID, viewBackgroundColor:saved.viewBackgroundColor || d0.viewBackgroundColor}}); S.lastV = EdrBoardLib.getSceneVersion(S.api.getSceneElements());
   S.ui.querySelector(".qload").style.display = "none"; setStatus(S.viewOnly ? T.viewOnly : (S.dirty ? T.draft : (S.version ? `${T.saved} · v${S.version}` : "")), S.dirty);
