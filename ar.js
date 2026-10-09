@@ -34,7 +34,7 @@ const RADIUS = 300, HFOV = 62, EYE = 1.6;
 const PRESET_FOR = {cow:"pasto", sheep:"pasto", horse:"pasto", dog:"atencao", person:"atencao", car:"infraestrutura", truck:"infraestrutura", motorcycle:"infraestrutura", bicycle:"infraestrutura", bus:"infraestrutura", boat:"tanque", "fire hydrant":"conduta", bench:"infraestrutura", "potted plant":"arvore", bird:"outro"};
 const PT_CLASS = {cow:"vaca", sheep:"ovelha", horse:"cavalo", dog:"cão", person:"pessoa", car:"carro", truck:"camião", motorcycle:"mota", bicycle:"bicicleta", bus:"autocarro", boat:"barco", bird:"pássaro", "potted plant":"planta", bench:"banco", "fire hydrant":"hidrante", cat:"gato", chair:"cadeira"};
 
-const S = {on:false, pos:null, acc:99, heading:null, pitch:0, hRaw:null, feats:[], watch:null, raf:null, stream:null, ai:false, det:null, boxes:[], lastAI:0, aiBusy:false, mode:"point", path:[]};
+const S = {zone:null, zoneOff:false, zoneKey:"", on:false, pos:null, acc:99, heading:null, pitch:0, hRaw:null, feats:[], watch:null, raf:null, stream:null, ai:false, det:null, boxes:[], lastAI:0, aiBusy:false, mode:"point", path:[]};
 const API = "https://edenrise-brain.edenrise.workers.dev"; const MAX_LABELS = 12;
 let ui = null, video = null, canvas = null, ctx = null, mini = null, mctx = null, hits = [], work = null;
 
@@ -47,6 +47,7 @@ const css = document.createElement("style"); css.textContent = `
 #arview .top .r{display:flex;gap:8px;align-items:center}
 #arview .x,#arview .ai{height:42px;border-radius:21px;border:1px solid rgba(255,255,255,.35);background:rgba(20,17,13,.7);color:#fff;font:700 13px var(--ui);cursor:pointer;padding:0 14px}
 #arview .x{width:42px;padding:0;font-size:17px}
+#arview .zone{height:36px;border-radius:18px;border:1px solid #5be0a0;background:rgba(91,224,160,.18);color:#fff;font:700 12px var(--ui);padding:0 12px;cursor:pointer;max-width:46vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} #arview .zone.off{border-color:rgba(255,255,255,.35);background:rgba(20,17,13,.7)} #arview .zone[hidden]{display:none}
 #arview .ai.on{background:var(--straw);color:var(--bark);border-color:var(--straw)}
 #arview .ret{position:absolute;left:50%;top:50%;width:28px;height:28px;margin:-14px 0 0 -14px;border:2px solid #ffd166;border-radius:50%;box-shadow:0 0 0 2px rgba(0,0,0,.5);pointer-events:none}
 #arview .ret::after{content:"";position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px 0 0 -2px;background:#ffd166;border-radius:50%}
@@ -114,13 +115,18 @@ function onOri(e){
 function gather(){
   if(!S.pos || typeof layerObjs === "undefined") return [];
   const out = [];
+  // inside a zone: only what belongs to it, with its live state
+  S.zone = (window.edrZones && !S.zoneOff) ? (edrZones.zonesAt(S.pos)[0] || null) : null;
+  if(S.zone){ for(const k of edrZones.children(S.zone)){ const d = dist(S.pos, k.c); if(d > 80) continue; /* standing on it counts: in a pump room you are next to everything */ out.push({t:k.t, f:k.f, c:k.c, d, brg:bearing(S.pos, k.c), name:k.name, fid:k.fid}); } return out.sort((a, b) => a.d - b.d).slice(0, 40); }
+  // in the open: the map's items plus the team's proposals
+  try{ for(const f of (window.edrEdit && edrEdit.feats ? edrEdit.feats() : [])){ const p = f.properties || {}; if(p.op === "retire" || p.status === "rejeitado" || !f.geometry) continue; const c = f.geometry.type === "Point" ? [f.geometry.coordinates[1], f.geometry.coordinates[0]] : centroid(f.geometry); if(!c) continue; const d = dist(S.pos, c); if(d > RADIUS || d < 1) continue; out.push({t:"propostas", f, c, d, brg:bearing(S.pos, c), name:p.name || p.preset || p.id, fid:p.id}); } }catch(e){}
   for(const t in layerObjs){
     const o = layerObjs[t]; if(!o || !map.hasLayer(o.lyr)) continue;
     const fc = (typeof DATA !== "undefined") && DATA[t]; if(!fc || !fc.features) continue;
     for(const f of fc.features){
       const c = f.geometry && (f.geometry.type === "Point" ? [f.geometry.coordinates[1], f.geometry.coordinates[0]] : centroid(f.geometry));
       if(!c) continue; const d = dist(S.pos, c); if(d > RADIUS || d < 1) continue;
-      out.push({t, f, c, d, brg: bearing(S.pos, c), name: f.properties.name || f.properties.asset_id || (window.title_i18n ? title_i18n(t, t) : t)});
+      out.push({t, f, c, d, brg: bearing(S.pos, c), name: f.properties.name || f.properties.asset_id || (window.title_i18n ? title_i18n(t, t) : t), fid: window.edrZones ? edrZones.fidOf(t, f) : null});
     }
   }
   out.sort((a, b) => a.d - b.d); return out.slice(0, 40);
@@ -130,6 +136,8 @@ async function refreshFeats(){
   S.feats = gather();
   const z0 = await elev(S.pos); zEye = (z0 == null ? 0 : z0) + EYE;
   for(const it of S.feats){ const z = await elev(it.c); it.z = z; it.el = z == null ? 0 : deg(Math.atan2(z - zEye, it.d)); }
+  if(window.edrZones){ const want = S.zone ? S.feats : S.feats.slice(0, 12); for(const it of want){ if(!it.fid) continue; edrZones.status(it.fid).then(st => { it.st = st; }).catch(() => {}); } }
+  paintZone();
 }
 
 /* ---------- on-device AI (lazy: nothing loads until the button is pressed) ---------- */
@@ -170,6 +178,8 @@ function classAtReticle(){
   return null;
 }
 
+function paintZone(){ const b = ui && ui.querySelector(".zone"); if(!b) return; const z = S.zone || (S.zoneOff && window.edrZones ? edrZones.zonesAt(S.pos || [0, 0])[0] : null);
+  if(!z){ b.hidden = true; return; } b.hidden = false; b.classList.toggle("off", S.zoneOff); b.textContent = S.zoneOff ? (EN ? `↩ ${z.name}` : `↩ ${z.name}`) : `📍 ${z.name} · ${S.feats.length}`; b.title = S.zoneOff ? (EN ? "Back to this zone's items" : "Voltar aos itens desta zona") : (EN ? "Show everything instead" : "Mostrar tudo"); }
 /* ---------- drawing ---------- */
 function draw(now){
   if(!S.on) return; S.raf = requestAnimationFrame(draw);
@@ -193,7 +203,8 @@ function draw(now){
     for(const it of S.feats){
       const lift = (typeof layerObjs !== "undefined" && layerObjs[it.t] && layerObjs[it.t].kind === "pt") ? 1.5 : 0.8;
       const p = XR ? edrXR.project(it.c, (it.z == null ? (zEye - EYE) : it.z) + lift, W, H) : project(it.brg, it.el || 0, W, H); if(!p) continue;
-      const label = `${it.name}  ·  ${Math.round(it.d)} ${T.far}`; cands.push({it, p, label, w: ctx.measureText(label).width + 22 * dpr, h: 30 * dpr});
+      const label = `${it.name}  ·  ${Math.round(it.d)} ${T.far}`; const sub = it.st && it.st.summary ? it.st.summary : null; ctx.font = `600 ${13 * dpr}px ${font}`; const w1 = ctx.measureText(label).width; ctx.font = `600 ${11 * dpr}px ${font}`; const w2 = sub ? ctx.measureText(sub).width : 0; ctx.font = `600 ${13 * dpr}px ${font}`;
+      cands.push({it, p, label, sub, w: Math.max(w1, w2) + 22 * dpr, h: (sub ? 44 : 30) * dpr});
     }
     // nearest first (S.feats is sorted by distance): each label takes the first free slot above or below its true spot
     const placed = []; const gap = 6 * dpr;
@@ -208,9 +219,10 @@ function draw(now){
       placed.push(box);
       const cx = box.x + w / 2, cy = box.y + h / 2;
       if(Math.abs(cy - p.y) > h){ ctx.strokeStyle = "rgba(255,209,102,.9)"; ctx.lineWidth = 1.2 * dpr; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(cx, cy < p.y ? box.y + h : box.y); ctx.stroke(); }
-      ctx.fillStyle = "rgba(28,24,19,.86)"; ctx.strokeStyle = "#ffd166"; ctx.lineWidth = 1.2 * dpr;
+      const lv = c.it.st && c.it.st.level; const edge = lv === "problem" ? "#ff6b6b" : lv === "waiting" ? "#ffb347" : lv === "ok" ? "#5be0a0" : "#ffd166";
+      ctx.fillStyle = "rgba(28,24,19,.86)"; ctx.strokeStyle = edge; ctx.lineWidth = (lv === "problem" ? 2 : 1.2) * dpr;
       ctx.beginPath(); ctx.roundRect(box.x, box.y, w, h, 8 * dpr); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = "#fff"; ctx.fillText(c.label, cx, cy); ctx.globalAlpha = 1;
+      ctx.fillStyle = "#fff"; if(c.sub){ ctx.font = `600 ${13 * dpr}px ${font}`; ctx.fillText(c.label, cx, box.y + 15 * dpr); ctx.font = `600 ${11 * dpr}px ${font}`; ctx.fillStyle = edge; ctx.fillText(c.sub, cx, box.y + 32 * dpr); ctx.font = `600 ${13 * dpr}px ${font}`; } else ctx.fillText(c.label, cx, cy); ctx.globalAlpha = 1;
       hits.push({x: cx / dpr, y: cy / dpr, w: w / dpr, h: h / dpr, it});
     }
     const hiddenN = cands.length - placed.length;
@@ -317,15 +329,15 @@ async function mark(){
   const m = L.marker(g.ll); close();
   const note = T.note(g.d, Math.round(S.heading), Math.round(S.acc), cls ? (EN ? cls : (PT_CLASS[cls] || cls)) : "") + (g.real ? (EN ? " Placed by AR+ world tracking on the real ground." : " Colocado pelo AR+ (tracking do mundo) no chão real.") : "");
   const name = cls ? `${T.marked}: ${EN ? cls : (PT_CLASS[cls] || cls)}` : T.marked;
-  const props = {name, note}; if(shot){ say(EN ? "Photo attached" : "Foto anexada"); sendPhoto(shot, g.ll, preset, name).then(url => { if(url){ props.photo = url; const f = document.querySelector("#eform #ephoto"); if(f && !f.value) f.value = url; } }); }
-  if(window.edrEdit && edrEdit.handoff) edrEdit.handoff(m, {layer:"propostas", preset, props}); else { m.addTo(map); say(note); }
+  const props = {name, note}; if(S.zone){ props.zone = S.zone.fid; props.zone_name = S.zone.name; } if(shot){ say(EN ? "Photo attached" : "Foto anexada"); sendPhoto(shot, g.ll, preset, name).then(url => { if(url){ props.photo = url; const f = document.querySelector("#eform #ephoto"); if(f && !f.value) f.value = url; } }); }
+  if(window.edrEdit && edrEdit.handoff) edrEdit.handoff(m, {layer:"propostas", preset:S.zone && preset === "marco" ? "infraestrutura" : preset, props}); else { m.addTo(map); say(note); }
 }
 
 /* ---------- ui ---------- */
 function build(){
   ui = document.createElement("div"); ui.id = "arview"; ui.setAttribute("role", "dialog"); ui.setAttribute("aria-label", T.title);
   ui.innerHTML = `<video playsinline muted autoplay></video><canvas class="ov"></canvas><div class="ret"></div>
-    <div class="top"><span id="arstat"></span><span class="r"><button class="ai" data-a="xr" hidden>AR+</button><button class="ai" data-a="ai">${T.ai}</button><button class="x" data-a="close" aria-label="${T.close}">✕</button></span></div>
+    <div class="top"><span id="arstat"></span><button class="zone" data-a="zone" hidden></button><span class="r"><button class="ai" data-a="xr" hidden>AR+</button><button class="ai" data-a="ai">${T.ai}</button><button class="x" data-a="close" aria-label="${T.close}">✕</button></span></div>
     <canvas class="mini"></canvas>
     <div class="bot"><div class="hint">${T.calib}</div>
       <div class="modes"><button data-m="point" class="on">${EN ? "Point" : "Ponto"}</button><button data-m="line">${EN ? "Line" : "Linha"}</button><button data-m="area">${EN ? "Area" : "Área"}</button></div>
@@ -342,11 +354,12 @@ function build(){
     if(a === "drop"){ if(!S.path.length || confirm(EN ? "Drop these points?" : "Descartar estes pontos?")){ S.path = []; paintBot(); } return; }
     const mb = e.target.closest(".modes button"); if(mb) return setMode(mb.dataset.m);
     if(a === "ai") return toggleAI(el);
+    if(a === "zone"){ S.zoneOff = !S.zoneOff; refreshFeats(); return; }
     if(a === "xr") return toggleXR(el);
     if(a === "start"){ el.remove(); const ok = await startSensors(); if(ok) await startCamera(); return; }
     const r = canvas.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
     const hit = hits.find(h => Math.abs(x - h.x) <= h.w / 2 && Math.abs(y - h.y) <= h.h / 2);
-    if(hit && window.showCard){ close(); showCard(hit.it.f.properties, L.latLng(hit.it.c[0], hit.it.c[1]), hit.it.name, hit.it.t); }
+    if(hit){ close(); if(hit.it.t === "propostas" && window.edrEdit && edrEdit.openById && edrEdit.openById(hit.it.fid)) return; if(window.showCard) showCard(hit.it.f.properties, L.latLng(hit.it.c[0], hit.it.c[1]), hit.it.name, hit.it.t); }
   });
 }
 function open(){ if(!navigator.mediaDevices || !navigator.geolocation){ say(T.noCam); return; } if(!ui) build();

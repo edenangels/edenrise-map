@@ -43,7 +43,7 @@ function badge(){ btn.querySelector("b").textContent = unread ? String(unread) :
 async function poll(force){
   const a = auth(); btn.hidden = !a.key || !a.actor; if(btn.hidden) return;
   if(!force && document.hidden) return;
-  let feats = []; try{ const d = await fetch(`${API}/features?status=all&site=${SITE}`).then(r => r.json()); feats = d.features || []; }catch(e){ return; }
+  let feats = []; try{ const d = await fetch(`${API}/features?site=${SITE}`).then(r => r.json()); feats = d.features || []; }catch(e){ return; }
   let retired = []; try{ const d = await fetch(`${API}/features/retired?site=${SITE}`).then(r => r.json()); retired = (d.retired || []).map(f => ({...f, properties:{...(f.properties || f), status:"retirado"}})); }catch(e){}
   mine = [...feats, ...retired].map(f => f.properties || f).filter(p => p && p.created_by === a.actor);
   const prev = get(K_ST, null); const now = {}; mine.forEach(p => { now[p.id] = p.status || "proposto"; });
