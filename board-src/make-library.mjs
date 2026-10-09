@@ -31,9 +31,9 @@ const SYMBOLS = [
  ["Portão", [R(0,0,60,36,{strokeColor:C.earth}), L(0,0,[[0,0],[60,36]],{strokeColor:C.earth}), L(0,36,[[0,0],[60,-36]],{strokeColor:C.earth}), lab("Portão",0,42,60)]],
  ["Edifício", [R(0,20,72,48,{strokeColor:C.ink, backgroundColor:C.paper, fillStyle:"solid"}), L(-4,20,[[0,0],[40,-20],[80,0]],{strokeColor:C.ink, strokeWidth:3}), R(30,46,14,22,{strokeColor:C.ink}), lab("Edifício",6,74,60)]],
  ["Caminho", [L(0,0,[[0,0],[60,-10],[120,0]],{strokeColor:C.grey, strokeWidth:6, strokeStyle:"dotted"}), lab("Caminho",30,-30,60)]],
- ["Nota", [R(0,0,140,90,{strokeColor:C.straw, backgroundColor:"#fff2bf", fillStyle:"solid", label:{text:"Nota…", fontSize:14, textAlign:"left", verticalAlign:"top"}})]],
- ["Feito ✓", [R(0,0,120,34,{strokeColor:C.moss, backgroundColor:"#dfe9d6", fillStyle:"solid", roundness:{type:3}, label:{text:"Feito ✓", fontSize:14}})]],
- ["A fazer", [R(0,0,120,34,{strokeColor:C.clay, backgroundColor:"#f7dfd0", fillStyle:"solid", roundness:{type:3}, label:{text:"A fazer", fontSize:14}})]],
+ ["Nota", [R(0,0,140,90,{strokeColor:C.straw, backgroundColor:"#fff2bf", fillStyle:"solid", label:{text:"Nota…", fontSize:14, fontFamily:2, textAlign:"left", verticalAlign:"top"}})]],
+ ["Feito ✓", [R(0,0,120,34,{strokeColor:C.moss, backgroundColor:"#dfe9d6", fillStyle:"solid", roundness:{type:3}, label:{text:"Feito ✓", fontSize:14, fontFamily:2}})]],
+ ["A fazer", [R(0,0,120,34,{strokeColor:C.clay, backgroundColor:"#f7dfd0", fillStyle:"solid", roundness:{type:3}, label:{text:"A fazer", fontSize:14, fontFamily:2}})]],
  ["Atenção", [D(0,0,44,44,{strokeColor:C.ember, backgroundColor:C.ember, fillStyle:"solid"}), Tx(17,10,"!",{fontSize:20, strokeColor:C.white}), lab("Atenção",-8,50,60)]],
  ["Legenda", [R(0,0,180,110,{strokeColor:C.grey, backgroundColor:C.white, fillStyle:"solid"}), Tx(8,6,"Legenda",{fontSize:14, textAlign:"left"}), L(10,40,[[0,0],[30,0]],{strokeColor:C.water, strokeWidth:4}), Tx(48,32,"água",{fontSize:12, textAlign:"left"}), L(10,64,[[0,0],[30,0]],{strokeColor:C.power, strokeWidth:3, strokeStyle:"dashed"}), Tx(48,56,"eletricidade",{fontSize:12, textAlign:"left"}), L(10,88,[[0,0],[30,0]],{strokeColor:C.grey, strokeWidth:6, strokeStyle:"dotted"}), Tx(48,80,"caminho",{fontSize:12, textAlign:"left"})]],
 ];
@@ -50,7 +50,7 @@ const TEMPLATES = [
    ...zone(0,90,260,260,"Entrada de água",C.water), ...zone(300,90,320,260,"Bombas & quadro",C.power), ...zone(660,90,260,260,"Filtragem",C.waterL), ...zone(960,90,260,260,"Saída / rede",C.water),
    A(260,220,[[0,0],[40,0]],{strokeColor:C.water, strokeWidth:4}), A(620,220,[[0,0],[40,0]],{strokeColor:C.water, strokeWidth:4}), A(920,220,[[0,0],[40,0]],{strokeColor:C.water, strokeWidth:4}),
    ...zone(0,390,600,220,"Estado atual · o que está feito",C.moss), ...zone(640,390,580,220,"Propostas · o que podemos fazer",C.clay),
-   R(0,650,1220,80,{strokeColor:C.straw, backgroundColor:"#fff2bf", fillStyle:"solid", label:{text:"Notas: horários de rega, pressões, quem fecha o quê no inverno…", fontSize:14, textAlign:"left", verticalAlign:"top"}}) ] },
+   R(0,650,1220,80,{strokeColor:C.straw, backgroundColor:"#fff2bf", fillStyle:"solid", label:{text:"Notas: horários de rega, pressões, quem fecha o quê no inverno…", fontSize:14, fontFamily:2, textAlign:"left", verticalAlign:"top"}}) ] },
  { id:"water", name:"Sistema de água", en:"Water system", elements:[
    ...title("Sistema de água","Origem → bombagem → armazenamento → distribuição → consumos"),
    ...zone(0,90,240,200,"Origem (furos, charcas)",C.water), ...zone(290,90,240,200,"Bombagem",C.power), ...zone(580,90,240,200,"Depósitos",C.water), ...zone(870,90,240,200,"Rede & consumos",C.waterL),

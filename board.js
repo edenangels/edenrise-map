@@ -24,7 +24,7 @@ const say = m => window.toast && toast(m);
 const S = {fid:null, name:"", ll:null, mount:null, api:null, ui:null, version:0, dirty:false, lastSaved:0, files:{}, fileUrls:{}, versions:[], viewOnly:false, timer:null};
 
 const css = document.createElement("style"); css.textContent = `
-#qboard{position:fixed;inset:0;z-index:2000;background:#f1e9d8;display:none;flex-direction:column}
+#qboard{position:fixed;inset:0;z-index:7000;background:#f1e9d8;display:none;flex-direction:column}
 #qboard.on{display:flex}
 #qboard .qhd{height:52px;display:flex;align-items:center;gap:8px;padding:0 10px;background:#1c1813;color:#f1e9d8;font:600 13px var(--ui);flex:0 0 auto}
 #qboard .qhd .ttl{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px} #qboard .qhd .ttl small{display:block;font:500 11px var(--mono);opacity:.65}
@@ -124,7 +124,7 @@ async function installLibrary(){
 async function applyTemplate(id){
   const t = (await skel("edenrise-templates")).templates.find(x => x.id === id); if(!t) return;
   if(S.api.getSceneElements().length && !confirm(T.tplQ)) return;
-  const els = EdrBoardLib.convertToExcalidrawElements(t.elements); S.api.updateScene({elements:els}); S.api.scrollToContent(els, {fitToContent:true}); markDirty();
+  const els = EdrBoardLib.convertToExcalidrawElements(t.elements); S.api.updateScene({elements:els}); S.api.scrollToContent(els, {fitToContent:true, viewportZoomFactor:0.8}); markDirty();
 }
 
 /* ---------- photos tray, links, aerial ---------- */
@@ -230,6 +230,7 @@ async function open(fid, opts){
     onChange:(els, st) => { if(!S.api) return; sizeBadge(els, st); const v = EdrBoardLib.getSceneVersion(els); if(S.lastV != null && v !== S.lastV && !S.viewOnly) markDirty(); S.lastV = v; },
     onLinkOpen:followLink});
   S.api = await S.mount.ready(); await new Promise(r => setTimeout(r, 300));   // the engine applies initialData asynchronously; defaults go in after it settles
+  if(scene.elements.length) S.api.scrollToContent(scene.elements, {fitToContent:true, viewportZoomFactor:0.8});
   const d0 = defaultsState(); const saved = (data && data.appState) || {}; S.api.updateScene({appState:{...d0, gridModeEnabled:saved.gridModeEnabled != null ? saved.gridModeEnabled : true, gridSize:saved.gridSize || GRID, viewBackgroundColor:saved.viewBackgroundColor || d0.viewBackgroundColor}}); S.lastV = EdrBoardLib.getSceneVersion(S.api.getSceneElements());
   S.ui.querySelector(".qload").style.display = "none"; setStatus(S.viewOnly ? T.viewOnly : (S.dirty ? T.draft : (S.version ? `${T.saved} · v${S.version}` : "")), S.dirty);
   if(!S.viewOnly) installLibrary();
