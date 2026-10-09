@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>EdenRise — Clima & balanço hídrico</title>
-<link rel="stylesheet" href="ui.css?v=e436d22c">
+<link rel="stylesheet" href="ui.css?v=10ade97b">
 <style>
 .wrap{max-width:1100px;margin:0 auto;padding:64px 18px 40px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-top:14px} #top{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))} @media(max-width:700px){ .wrap{padding:58px 12px 30px} .big{font-size:22px} .card{padding:12px} .grid{gap:10px} }
@@ -29,7 +29,7 @@ svg text{font:600 10px var(--mono);fill:var(--muted)} .note{font-size:11px;color
   <div class="card" style="grid-column:1/-1" id="budget"><h2 id="h-bud"></h2><div id="bud"></div><div class="note" id="n-bud"></div></div>
 </div>
 </div>
-<script src="sites.js?v=1af6698e"></script><script src="nav.js?v=7229f0b4"></script>
+<script src="sites.js?v=6866f0cc"></script><script src="nav.js?v=7229f0b4"></script>
 <script>
 let LANG="pt"; try{ LANG=localStorage.getItem("edr_lang")||((navigator.language||"pt").toLowerCase().startsWith("pt")?"pt":"en"); }catch(e){}
 const EN=LANG==="en"; const T=EN?{eb:"Estate · Odemira",ttl:"Climate & water balance",sub:"30-year normals at the estate, the summer deficit, and what the candidate dams could hold",

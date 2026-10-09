@@ -10,7 +10,7 @@ const SITES = {
     ttl3d:{pt:"EdenRise — Herdade 3D",en:"EdenRise — Estate 3D"},
     centre:[37.512,-8.645], zoom:14.3, zoom3d:14.3, pitch:52, bearing:-20,
     bbox:[-8.65749,37.50061,-8.63173,37.52273], tileBounds:[-8.661,37.497,-8.628,37.526],
-    data:{core:"data.js?v=e153f59b"},                                   // EdenRise pages list their own analysis files inline (stamped)
+    data:{core:"data.js?v=1329a635"},                                   // EdenRise pages list their own analysis files inline (stamped)
     tiles:{ortho:"ortho2025", hillshade:"hillshade", terrain:"terrain", surface:"surface", contours:"contours"}, ortho:{label:"DGT 2025", year:"2025", attr:"Ortofotos 2025 © DGT", maxNative:20}, terrainEncoding:"mapbox", terrainMaxzoom:16,
     pointcloud:"https://edenangels.github.io/edenrise-3d/tiles/tileset.json", roofs:"roofs.json", permaBase:"perma/", contoursBase:"contours/", downloadsBase:"downloads/",
     ipma:"0211", concelho:"Odemira",
