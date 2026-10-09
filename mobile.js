@@ -100,7 +100,7 @@ if(side){
 }
 
 /* ---------- the board of the place I am standing in ---------- */
-function refOf(t, f){ const p = f.properties || {}; return p.asset_id ? ("asset:" + p.asset_id) : (p.uid ? "u:" + p.uid : (t + ":" + (p.key || p.name || p.tree_name || "?"))); }
+function refOf(t, f){ if(window.edrRefOf) return edrRefOf(t, f.properties || {}).ref; const p = f.properties || {}; return p.asset_id ? ("asset:" + p.asset_id) : (p.uid ? "u:" + p.uid : (t + ":" + (p.key || p.name || p.tree_name || "?"))); }
 function centroidOf(g){ try{ const w = c => typeof c[0] === "number" ? [c] : c.flatMap(w); const pts = w(g.coordinates); return [pts.reduce((s, q) => s + q[1], 0) / pts.length, pts.reduce((s, q) => s + q[0], 0) / pts.length]; }catch(e){ return null; } }
 function nearest(lat, lon, R){
   const kx = 111320 * Math.cos(lat * Math.PI / 180), ky = 110540; let best = null;

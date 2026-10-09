@@ -16,7 +16,7 @@ const say = m => window.toast && toast(m);
 /* the layers whose areas count as places you can be inside */
 const ZONE_LAYERS = ["building_footprints", "grazing_parks_pg", "agri_features_pg", "power_pg", "prop_etar_pg", "orchards_pg"];
 const ZONE_PRESETS = ["edificio", "zona", "pasto", "infraestrutura", "tanque"];
-function coreRef(t, f){ const p = f.properties || {}; return p.asset_id ? ("asset:" + p.asset_id) : (p.uid ? "u:" + p.uid : `${t}:${p.key || p.name || p.tree_name || "?"}`); }
+function coreRef(t, f){ if(window.edrRefOf) return edrRefOf(t, f.properties || {}).ref; const p = f.properties || {}; return p.asset_id ? ("asset:" + p.asset_id) : (p.uid ? "u:" + p.uid : `${t}:${p.key || p.name || p.tree_name || "?"}`); }
 function nameOf(f, t){ const p = f.properties || {}; return p.name || p.asset_id || p.tree_name || (typeof title_i18n === "function" ? title_i18n(t, t) : t); }
 function fidOf(t, f){ return t === "propostas" ? (f.properties || {}).id : coreRef(t, f); }
 function polyOf(f){ const g = f.geometry; if(!g) return null; if(g.type === "Polygon") return f; if(g.type === "MultiPolygon") return {type:"Feature", properties:f.properties, geometry:{type:"Polygon", coordinates:g.coordinates[0]}}; return null; }
@@ -56,10 +56,15 @@ function derive(notes){
 }
 function invalidate(fid){ cache.delete(fid); }
 /* ---------- recording: one tap each, into the item's timeline; a problem also becomes a task ---------- */
+const NQ = "edr_note_q"; const nqget = () => { try{ return JSON.parse(localStorage.getItem(NQ) || "[]"); }catch(e){ return []; } }; const nqset = a => { try{ localStorage.setItem(NQ, JSON.stringify(a)); }catch(e){} };
+async function sendNote(it){ const r = await fetch(`${API}/item/${encodeURIComponent(it.fid)}/notes`, {method:"POST", headers:{"Content-Type":"application/json", "X-Role-Key":auth().key}, body:JSON.stringify({text:it.text, kind:it.kind, actor:it.actor, site:SITE, ...(it.extra || {})})}); if(!r.ok) throw new Error(r.status); }
+async function flushNotes(){ const q = nqget(); if(!q.length || !navigator.onLine || !auth().key) return; const left = []; for(const it of q){ try{ await sendNote(it); invalidate(it.fid); }catch(e){ left.push(it); } } nqset(left); if(left.length < q.length) say(`${q.length - left.length} ${EN ? "field records sent" : "registos de campo enviados"}`); }
+window.addEventListener("online", flushNotes); setTimeout(flushNotes, 6000);
 async function record(fid, kind, text, extra){
   const a = auth(); if(!a.key){ say(EN ? "Sign in first" : "Entra primeiro"); return false; }
-  try{ const r = await fetch(`${API}/item/${encodeURIComponent(fid)}/notes`, {method:"POST", headers:{"Content-Type":"application/json", "X-Role-Key":a.key}, body:JSON.stringify({text, kind, actor:a.actor, site:SITE, ...(extra || {})})}); if(!r.ok) throw new Error(r.status); invalidate(fid); say(T.saved); document.dispatchEvent(new CustomEvent("edr-item-note", {detail:{fid, kind}})); return true; }
-  catch(e){ say(T.err); return false; }
+  const it = {fid, kind, text, actor:a.actor, extra, at:new Date().toISOString()};
+  try{ await sendNote(it); invalidate(fid); say(T.saved); document.dispatchEvent(new CustomEvent("edr-item-note", {detail:{fid, kind}})); return true; }
+  catch(e){ nqset([...nqget(), it]); say(EN ? "No signal — saved on this device, will send later" : "Sem rede — guardado neste aparelho, envia depois"); return true; }
 }
 async function act(kind, fid, name, latlng){
   const q = kind === "servico" ? T.askService : kind === "peca" ? T.askPart : kind === "problema" ? T.askProblem : T.askReading; const v = prompt(q, ""); if(v === null || !v.trim()) return;
@@ -69,5 +74,5 @@ async function act(kind, fid, name, latlng){
 /* the quick-action row for an item card */
 function actionsHTML(){ return `<button data-za="servico">🔧 ${T.service}</button><button data-za="peca">📦 ${T.part}</button><button data-za="problema" style="border-color:var(--ember)">⚠ ${T.problem}</button><button data-za="leitura">🔢 ${T.reading}</button>`; }
 function bindActions(box, fid, name, latlng, refresh){ box.querySelectorAll("[data-za]").forEach(b => b.onclick = async () => { await act(b.dataset.za, fid, name, latlng); refresh && refresh(); }); }
-window.edrZones = {zonesAt, children, status, derive, record, act, actionsHTML, bindActions, fidOf, invalidate, ZONE_LAYERS};
+window.edrZones = {queued:nqget, flushNotes, zonesAt, children, status, derive, record, act, actionsHTML, bindActions, fidOf, invalidate, ZONE_LAYERS};
 })();

@@ -65,20 +65,20 @@ function paint(){
 /* ---------- receipts: what is on this device, what reached the server, what is waiting ---------- */
 async function syncState(){
   const edits = (window.edrEdit && edrEdit.queued) ? edrEdit.queued() : []; let photos = []; try{ photos = window.edrMediaQueued ? await edrMediaQueued() : []; }catch(e){}
-  const drafts = (window.edrEdit && edrEdit.drafts) ? edrEdit.drafts() : []; let boards = 0; try{ for(let i = 0; i < localStorage.length; i++) if(localStorage.key(i).startsWith("edr_qb_")) boards++; }catch(e){}
+  const drafts = (window.edrEdit && edrEdit.drafts) ? edrEdit.drafts() : []; const notesQ = (window.edrZones && edrZones.queued) ? edrZones.queued() : []; let boards = 0; try{ for(let i = 0; i < localStorage.length; i++) if(localStorage.key(i).startsWith("edr_qb_")) boards++; }catch(e){}
   const fmt = k => { const v = localStorage.getItem(k); return v ? new Date(v).toLocaleString(EN ? "en-GB" : "pt-PT").slice(0, 17) : T.never; };
-  return {online:navigator.onLine, edits, photos, drafts, boards, lastSync:fmt("edr_last_sync"), lastPull:fmt("edr_last_pull"), key:!!auth().key};
+  return {online:navigator.onLine, edits, photos, notesQ, drafts, boards, lastSync:fmt("edr_last_sync"), lastPull:fmt("edr_last_pull"), key:!!auth().key};
 }
-async function paintSync(){ const el = sheet.querySelector("#minesync"); if(!el) return; const s = await syncState(); const pending = s.edits.length + s.photos.length;
+async function paintSync(){ const el = sheet.querySelector("#minesync"); if(!el) return; const s = await syncState(); const pending = s.edits.length + s.photos.length + s.notesQ.length;
   el.innerHTML = `<div class="sec">${T.sync} · ${s.online ? T.online : T.offline}</div><div class="sy">
-    <div class="syrow"><b>${s.edits.length}</b> ${T.edits}</div><div class="syrow"><b>${s.photos.length}</b> ${T.photos}</div><div class="syrow"><b>${s.drafts.length}</b> ${T.drafts}</div><div class="syrow"><b>${s.boards}</b> ${T.boards}</div>
+    <div class="syrow"><b>${s.edits.length}</b> ${T.edits}</div><div class="syrow"><b>${s.photos.length}</b> ${T.photos}</div><div class="syrow"><b>${s.notesQ.length}</b> ${EN ? "field records waiting" : "registos de campo por enviar"}</div><div class="syrow"><b>${s.drafts.length}</b> ${T.drafts}</div><div class="syrow"><b>${s.boards}</b> ${T.boards}</div>
     <div class="syrow small">${T.lastSync}: ${s.lastSync} · ${T.lastPull}: ${s.lastPull}</div>
     <div class="syrow small" style="color:${s.key ? "#7f9a6a" : "#e07b39"}">${s.key ? T.keyOk : T.keyNo}</div>
     <div class="row">${pending ? `<button data-send>↑ ${T.sendNow} (${pending})</button><button data-exp>⤓ ${T.exportQ}</button>` : `<span class="ok">✓ ${T.allSent}</span>`}</div></div>`;
-  const b = el.querySelector("[data-send]"); if(b) b.onclick = async () => { b.disabled = true; try{ if(window.edrEdit && edrEdit.flushNow) await edrEdit.flushNow(); if(window.edrFlushMedia) await edrFlushMedia(); }catch(e){} paintSync(); badgePending(); };
+  const b = el.querySelector("[data-send]"); if(b) b.onclick = async () => { b.disabled = true; try{ if(window.edrEdit && edrEdit.flushNow) await edrEdit.flushNow(); if(window.edrZones && edrZones.flushNotes) await edrZones.flushNotes(); if(window.edrFlushMedia) await edrFlushMedia(); }catch(e){} paintSync(); badgePending(); };
   const x = el.querySelector("[data-exp]"); if(x) x.onclick = () => { const fc = {type:"FeatureCollection", features:s.edits.map(it => ({type:"Feature", properties:{...(it.body || {}), geometry:undefined, _path:it.path, _method:it.method}, geometry:(it.body || {}).geometry || null}))}; const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(fc, null, 1)], {type:"application/geo+json"})); a.download = `edenrise-pendentes-${new Date().toISOString().slice(0, 10)}.geojson`; a.click(); };
   badgePending(s); }
-async function badgePending(s){ s = s || await syncState(); const n = s.edits.length + s.photos.length; const b = btn.querySelector("b"); if(n && !unread) b.textContent = `⏳${n}`; else if(!n && !unread) b.textContent = ""; }
+async function badgePending(s){ s = s || await syncState(); const n = s.edits.length + s.photos.length + s.notesQ.length; const b = btn.querySelector("b"); if(n && !unread) b.textContent = `⏳${n}`; else if(!n && !unread) b.textContent = ""; }
 /* ---------- readiness: can this device go to the field now? ---------- */
 async function paintReady(){ const el = sheet.querySelector("#mineready"); if(!el) return; el.innerHTML = `<div class="sec">${T.ready}</div><div class="sy" id="rdy">${T.checking}</div>`;
   const rows = []; const ok = (good, text, fix) => rows.push(`<div class="syrow"><span style="color:${good ? "#7f9a6a" : "#e07b39"}">${good ? "✓" : "✗"}</span> ${text}${!good && fix ? ` <button data-fix="${fix}">${fix === "offline" ? T.saveOffline : fix}</button>` : ""}</div>`);

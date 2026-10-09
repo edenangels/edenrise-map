@@ -8,7 +8,7 @@ from shapely import wkb
 from shapely.ops import transform
 from pyproj import Transformer
 HERE=os.path.dirname(os.path.abspath(__file__)); GPKG=os.path.join(HERE,"..","data","edenrise.gpkg"); OUT=os.path.join(HERE,"data.js")
-KEEP=["name","status","year","system","category","alternative","spec","cadastral_article","areas_doc_m2","notes_text","site","uid"]
+KEEP=["fid","name","status","year","system","category","alternative","spec","cadastral_article","areas_doc_m2","notes_text","site","uid"]
 to4326=Transformer.from_crs(3763,4326,always_xy=True).transform
 def gpkg_geom(blob):
     # GeoPackage binary header: magic 'GP', version, flags, srs_id, envelope → then WKB
@@ -31,6 +31,7 @@ for t in tables:
         if r["geom"] is None: continue
         g3763=gpkg_geom(r["geom"]); g=transform(to4326,g3763)
         p={k:r[k] for k in KEEP if k in r.keys() and r[k] not in (None,"")}
+        if t!="buildings_pt": p.pop("fid",None)   # only buildings need it (footprints point at them)
         if g3763.geom_type.endswith("LineString"): p["m"]=round(g3763.length)
         elif g3763.geom_type.endswith("Polygon"): p["m2"]=round(g3763.area)
         gj=multi(g); gj["coordinates"]=rnd(gj["coordinates"])

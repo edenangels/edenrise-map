@@ -15,11 +15,22 @@
     @media(max-width:700px){ #card{left:8px;right:8px;top:auto;bottom:8px;width:auto;max-height:55vh;border-radius:12px} }`;
   document.head.appendChild(css);
   document.getElementById("cclose").onclick = ()=>{ el.hidden = true; };
+  /* The identity of a map item, everywhere: asset id › permanent uid › (footprint → its building's uid) › layer:name.
+     Aliases are every key the item was ever filed under, so older records still attach — including the
+     translated-title keys written before 2026-10-10, when a wrapper dropped the layer key. */
+  function ptTitle(t){ try{ for(const [, , layers] of GROUPS) for(const l of layers) if(l[0] === t) return l[1]; }catch(e){} return null; }
+  function enTitle(t){ try{ return (typeof T_EN !== "undefined" && T_EN[t]) || null; }catch(e){ return null; } }
+  function buildingOf(props){ try{ if(props.core_fid == null) return null; return DATA.buildings_pt.features.find(f => f.properties && +f.properties.fid === +props.core_fid) || null; }catch(e){ return null; } }
+  window.edrRefOf = function(t, props, title){ props = props || {};
+    if(props.asset_id) return {ref:"asset:" + props.asset_id, aliases:[]};
+    const nm = props.key || props.name || props.tree_name || "?"; const legacy = new Set([`${t}:${nm}`]); const pt = ptTitle(t), en = enTitle(t); if(pt) legacy.add(`${pt}:${nm}`); if(en) legacy.add(`${en}:${nm}`); if(title) legacy.add(`${title}:${nm}`);
+    let uid = props.uid; if(!uid && t === "building_footprints"){ const b = buildingOf(props); if(b){ uid = b.properties.uid; const bn = b.properties.name || "?"; legacy.add(`buildings_pt:${bn}`); const bpt = ptTitle("buildings_pt"), ben = enTitle("buildings_pt"); if(bpt) legacy.add(`${bpt}:${bn}`); if(ben) legacy.add(`${ben}:${bn}`); } }
+    const ref = uid ? "u:" + uid : `${t}:${nm}`; legacy.delete(ref); return {ref, aliases:[...legacy]}; };
   window.showCard = function(props, latlng, layerTitle, layerKey){
     const L = (typeof LANG!=="undefined" && LANG==="en");
     document.getElementById("cbadge").textContent = layerTitle || "";
     document.getElementById("cbody").innerHTML = popup(props);
-    { const legacy = props.asset_id ? ("asset:"+props.asset_id) : ((layerKey||layerTitle||"item")+":"+(props.key||props.name||props.tree_name||"?")); const ref = props.asset_id ? legacy : (props.uid ? "u:"+props.uid : legacy); const aliases = ref===legacy ? [] : [legacy]; const holder=document.createElement("div"); document.getElementById("cbody").appendChild(holder); let tries=0; const go=()=>{ if(window.edrItem) edrItem(ref, holder, {latlng, aliases}); else if(tries++<25) setTimeout(go,200); }; go(); }
+    { const id = edrRefOf(layerKey||layerTitle||"item", props, layerTitle); const ref = id.ref, aliases = id.aliases; const holder=document.createElement("div"); document.getElementById("cbody").appendChild(holder); let tries=0; const go=()=>{ if(window.edrItem) edrItem(ref, holder, {latlng, aliases, name:(props.name||props.asset_id||props.tree_name||layerTitle||"")}); else if(tries++<25) setTimeout(go,200); }; go(); }
     const lat = latlng ? latlng.lat.toFixed(6) : null, lon = latlng ? latlng.lng.toFixed(6) : null;
     const key = props.asset_id ? `#asset=${props.asset_id}` : (props.key ? `#work=${props.key}` : (lat ? `#at=${lat},${lon}` : ""));
     const link = `${location.origin}${location.pathname}${key}`;

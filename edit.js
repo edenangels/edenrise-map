@@ -136,7 +136,7 @@ let lastFeats=[];
 async function loadFeatures(){ try{ const d=await fetch(apiSite(API+"/features")).then(r=>r.json()); try{ localStorage.setItem("edr_last_pull",new Date().toISOString()); }catch(e){} drawn.clearLayers(); lastFeats=d.features||[]; lastFeats.forEach(f=>{ try{ render(f); }catch(e){ console.error("render",f.properties&&f.properties.id,e); } }); try{ applyOverrides(lastFeats); }catch(e){ console.error("overrides",e); } try{ renderTeamCat(); }catch(e){ console.error("teamcat",e); } }catch(e){ console.error("loadFeatures",e); } }
 window.renderFeatures=loadFeatures;
 function legacyRef(t,f){ const p=f.properties||{}; return p.asset_id ? ("asset:"+p.asset_id) : `${t}:${p.key||p.name||p.tree_name||"?"}`; }
-function coreRef(t,f){ const p=f.properties||{}; return p.asset_id ? ("asset:"+p.asset_id) : (p.uid ? "u:"+p.uid : legacyRef(t,f)); }
+function coreRef(t,f){ if(window.edrRefOf) return edrRefOf(t,f.properties||{}).ref; const p=f.properties||{}; return p.asset_id ? ("asset:"+p.asset_id) : (p.uid ? "u:"+p.uid : legacyRef(t,f)); }
 function refsOf(t,f){ const a=coreRef(t,f), b=legacyRef(t,f); return a===b?[a]:[a,b]; }
 /* every id a core feature has ever been known by → its current ref (for proposals, media and boards recorded before uids) */
 let REFMAP=null; function refMap(){ if(REFMAP) return REFMAP; REFMAP=new Map(); try{ for(const t in DATA){ const fc=DATA[t]; if(!fc||!fc.features) continue; for(const f of fc.features){ const cur=coreRef(t,f); for(const r of refsOf(t,f)) REFMAP.set(r,cur); } } }catch(e){} return REFMAP; }
@@ -159,7 +159,7 @@ setInterval(refreshBtn,1500);
 new MutationObserver(()=>{ const b=document.getElementById("brain"); btn.hidden=!!(b&&!b.hidden)&&!E.on; }).observe(document.getElementById("map"),{attributes:true,subtree:true,attributeFilter:["hidden"]});
 /* intercept clicks on core items while editing */
 const origShow=window.showCard; let pickBlock=false;
-window.showCard=function(p,ll,t){ if(E.on) return; return origShow&&origShow(p,ll,t); };
+window.showCard=function(...args){ if(E.on) return; return origShow&&origShow(...args); };
 function onCore(e){ if(!E.on||E.tool||placeMode||(typeof wandOn!=="undefined"&&wandOn)||(typeof measuring!=="undefined"&&measuring)) return; if(E.cur&&!form.hidden) return; openExisting(e.target); }
 function hookCore(on){ if(typeof layerObjs==="undefined") return; for(const [t,o] of Object.entries(layerObjs)){ const geo=o.geo; if(!geo||!geo.eachLayer) continue; geo.eachLayer(l=>{ l.__t=t; l.off("click",onCore); if(on) l.on("click",onCore); }); } }
 map.on("layeradd",e=>{ if(E.on&&e.layer&&e.layer.feature&&!e.layer.__ed&&e.layer.__t===undefined){ for(const [t,o] of Object.entries(layerObjs||{})) if(o.geo&&o.geo.hasLayer&&o.geo.hasLayer(e.layer)){ e.layer.__t=t; e.layer.on("click",onCore); } } });
