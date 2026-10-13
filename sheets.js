@@ -10,7 +10,8 @@
     {id:"tpanel", open: e => !e.hidden,                close: e => { e.hidden = true; }},
     {id:"brain",  open: e => !e.hidden,                close: () => { const x = $("bclose"); if(x) x.click(); }},
     {id:"teamp",  open: e => e.classList.contains("on"), close: e => { const x = e.querySelector("[data-x]"); if(x) x.click(); else e.classList.remove("on"); }},
-    {id:"propc",  open: e => e.classList.contains("on"), close: () => { if(window.edrProposals) edrProposals.close(); }}
+    {id:"propc",  open: e => e.classList.contains("on"), close: () => { if(window.edrProposals) edrProposals.close(); }},
+    {id:"revw",   open: e => e.classList.contains("on"), close: () => { if(window.edrReview) edrReview.close(); }}
   ];
   const was = {}; let busy = false;
   function check(){

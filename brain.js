@@ -67,8 +67,10 @@ async function legacyKeySignIn(){ if(KEY){ if(confirm(T.logout+"?")){ KEY=""; tr
 (async()=>{ if(KEY){ try{ const h=await fetch(API+"/health",{headers:hdr()}).then(r=>r.json()); setRole(h.role||"viewer"); if(h.name){ ACTOR=h.name; try{ localStorage.setItem("edr_actor",h.name); }catch(e){} } if(KEY.startsWith("mt_") && h.role==="viewer"){ KEY=""; try{ localStorage.removeItem("edr_role_key"); }catch(e){} } document.dispatchEvent(new CustomEvent("edr-auth",{detail:{role:ROLE,actor:ACTOR}})); }catch(e){} } })();
 // ---------- live layers from the brain (proposals, occurrences) ----------
 const liveP = L.layerGroup().addTo(map), liveO = L.layerGroup().addTo(map);
-async function loadFeatures(){ if(window.renderFeatures) return window.renderFeatures(); try{ const d = await fetch(apiSite(API+"/features")).then(r=>r.json()); liveP.clearLayers(); liveO.clearLayers();
-  for(const f of d.features){ const p=f.properties; const isO = p.layer==="ocorrencias"; const c=f.geometry.coordinates; const m=L.marker([c[1],c[0]],{icon:L.divIcon({className:"",html:`<div class="prop-pin ${isO?"occ":""}">${isO?"!":"+"}</div>`,iconSize:[30,30],iconAnchor:[15,30]})});
+/* the edit module draws team items; this simple pin layer is only the fallback when it never loads. Wait for it first
+   (on a slow phone it can arrive a moment after this runs), and place a pin at the middle of lines and areas. */
+async function loadFeatures(tries){ if(window.renderFeatures) return window.renderFeatures(); if((tries||0) < 20){ setTimeout(() => loadFeatures((tries||0) + 1), 500); return; } try{ const d = await fetch(apiSite(API+"/features")).then(r=>r.json()); if(window.renderFeatures) return window.renderFeatures(); liveP.clearLayers(); liveO.clearLayers();
+  for(const f of d.features){ const p=f.properties; const isO = p.layer==="ocorrencias"; let c=null; try{ if(f.geometry.type==="Point") c=f.geometry.coordinates; else { const k=L.geoJSON(f).getBounds().getCenter(); c=[k.lng,k.lat]; } }catch(e){} if(!c||!isFinite(c[0])||!isFinite(c[1])) continue; const m=L.marker([c[1],c[0]],{icon:L.divIcon({className:"",html:`<div class="prop-pin ${isO?"occ":""}">${isO?"!":"+"}</div>`,iconSize:[30,30],iconAnchor:[15,30]})});
     m.on("click", ()=>{ if(window.showCard) showCard({name:p.name, kind:p.kind, status:p.status, created_by:p.created_by, created_at:String(p.created_at).slice(0,16), note:p.note, brain_id:p.id}, L.latLng(c[1],c[0]), isO?T.layerO:T.layerP); });
     (isO?liveO:liveP).addLayer(m); } }catch(e){} }
 loadFeatures();
