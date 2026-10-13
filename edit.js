@@ -318,7 +318,7 @@ function likelyExisting(g){
   return best;
 }
 /* ---------- info on a brain feature ---------- */
-async function openInfo(l){ const p=l.feature.properties; const a=auth(); const leader=a.role==="leader"; const own=a.role==="team"||(a.role==="field"&&p.created_by===a.actor);   // members may change, move and delete any team item; approving stays leadership const m=p.measures||{}; const sk=({proposto:"prop",aprovado:"appr",rejeitado:"rej",reportado:"rep",resolvido:"res"})[p.status];
+async function openInfo(l){ const p=l.feature.properties; const a=auth(); const leader=a.role==="leader"; const own=a.role==="team"||(a.role==="field"&&p.created_by===a.actor); /* members may change, move and delete any team item; approving stays leadership */ const m=p.measures||{}; const sk=({proposto:"prop",aprovado:"appr",rejeitado:"rej",reportado:"rep",resolvido:"res"})[p.status];
   const row=(k,v,u="")=>v==null?"":`<div><span>${k}</span><b>${typeof v==="number"?fmt(v,v>=100?0:1):v}${u}</b></div>`;
   closeForm(); form.hidden=false; form.innerHTML=`<div class="hd"><h3>${p.name||p.kind||p.id}</h3><span class="st" style="background:${STATUS_COL[p.status]||"#c9a227"}">${T[sk]||p.status}</span></div><div class="bd">
   <div style="font:12px var(--ui);color:var(--muted)">${p.id} · ${T.v}${p.version} · ${(EN?PRESETS.find(x=>x.id===p.preset)?.en:PRESETS.find(x=>x.id===p.preset)?.pt)||p.kind||""} · ${p.op==="modify"?T.modified+" → "+(p.ref_name||p.ref_id):p.op==="retire"?T.retired+" → "+(p.ref_name||p.ref_id):""}</div>
