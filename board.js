@@ -15,9 +15,9 @@ const EN = (typeof LANG !== "undefined") && LANG === "en";
 const API = "https://edenrise-brain.edenrise.workers.dev";
 const V = "vendor/excalidraw/";
 const GRID = 20;                                   // px per metre on the board
-const T = EN ? {board:"Board", open:"Open board", save:"Save", saved:"Saved", saving:"Saving…", draft:"local draft", viewOnly:"view only — sign in to edit", templates:"Templates", photos:"Photos", aerial:"Aerial photo", link:"Link to item", history:"Versions", close:"Close",
+const T = EN ? {board:"Board", open:"Open board", save:"Save", saved:"Saved", saving:"Saving…", draft:"kept on this device · sent to the server within 3 min", viewOnly:"view only — sign in to edit", templates:"Templates", photos:"Photos", aerial:"Aerial photo", link:"Link to item", history:"Versions", close:"Close",
   scale:"1 square = 1 m", noPhotos:"No photos on this item yet.", addPhoto:"Add photo", insert:"Tap a photo to place it on the board", pick:"Which item does this point to? Type to search", none:"nothing found", linked:"Linked", selectFirst:"Select a shape first", unsaved:"Unsaved changes. Save before closing?", versionOf:"Version", restore:"Restore this version", restored:"Restored as a new version", loading:"Loading the board…", queued:"No signal — saved on this device, will send later", err:"Could not save", aerialBusy:"Fetching aerial tiles…", tplQ:"Replace the board with this template?", size:(w,h)=>`${w} × ${h} m`, map:"Map", bring:"Bring from the map (60 m around)", send:"Send selection to the map", sent:n=>`${n} sent to the map as proposals`, nothingNear:"Nothing on the map within 60 m", brought:n=>`${n} items placed at true scale`, measure:"Measure", tape:"Tape measure (draw an arrow)", tapeOn:"Tape on: draw arrows, each shows its length", labelIt:"Label size of selection", calib:"Set scale from a photo", calibPick:"Select the photo first", calibDist:"Real distance between the two points (m)", calibTap:"Now tap the two points on the photo", calibDone:"Photo scaled", lock:"Walk mode (lock)", unlock:"Unlock", ficha:"Symbol", tag:"Tag / name", state:"State", open:"open", closed:"closed", on:"on", off:"off", note:"Note", reading:"Reading", capacity:"Capacity (m³)", record:"Record in the item timeline", recorded:"Recorded", apply:"Apply", area:"A"}
-: {board:"Quadro", open:"Abrir quadro", save:"Guardar", saved:"Guardado", saving:"A guardar…", draft:"rascunho local", viewOnly:"só leitura — entra para editar", templates:"Modelos", photos:"Fotos", aerial:"Foto aérea", link:"Ligar a item", history:"Versões", close:"Fechar",
+: {board:"Quadro", open:"Abrir quadro", save:"Guardar", saved:"Guardado", saving:"A guardar…", draft:"guardado neste aparelho · enviado ao servidor em 3 min", viewOnly:"só leitura — entra para editar", templates:"Modelos", photos:"Fotos", aerial:"Foto aérea", link:"Ligar a item", history:"Versões", close:"Fechar",
   scale:"1 quadrado = 1 m", noPhotos:"Este item ainda não tem fotos.", addPhoto:"Juntar foto", insert:"Toca numa foto para a pôr no quadro", pick:"Para que item aponta? Escreve para procurar", none:"nada encontrado", linked:"Ligado", selectFirst:"Seleciona primeiro uma forma", unsaved:"Há alterações por guardar. Guardar antes de fechar?", versionOf:"Versão", restore:"Repor esta versão", restored:"Reposta como nova versão", loading:"A carregar o quadro…", queued:"Sem rede — guardado neste aparelho, envia depois", err:"Não consegui guardar", aerialBusy:"A buscar a foto aérea…", tplQ:"Substituir o quadro por este modelo?", size:(w,h)=>`${w} × ${h} m`, map:"Mapa", bring:"Trazer do mapa (60 m à volta)", send:"Enviar seleção para o mapa", sent:n=>`${n} enviados para o mapa como propostas`, nothingNear:"Nada no mapa a menos de 60 m", brought:n=>`${n} itens colocados à escala`, measure:"Medir", tape:"Fita métrica (desenha uma seta)", tapeOn:"Fita ligada: desenha setas, cada uma mostra o comprimento", labelIt:"Etiquetar medida da seleção", calib:"Escala a partir de uma foto", calibPick:"Seleciona primeiro a foto", calibDist:"Distância real entre os dois pontos (m)", calibTap:"Agora toca nos dois pontos da foto", calibDone:"Foto posta à escala", lock:"Modo de passeio (bloquear)", unlock:"Desbloquear", ficha:"Símbolo", tag:"Tag / nome", state:"Estado", open:"aberta", closed:"fechada", on:"ligada", off:"desligada", note:"Nota", reading:"Leitura", capacity:"Capacidade (m³)", record:"Registar na linha do tempo do item", recorded:"Registado", apply:"Aplicar", area:"A"};
 const auth = () => window.edrAuth || {key:"", role:"viewer", actor:""};
 const say = m => window.toast && toast(m);
@@ -102,10 +102,10 @@ async function uploadImages(){
   for(const id of used){ if((S.fileUrls[id] && !String(S.fileUrls[id]).startsWith("data:")) || !files[id]) continue;
     try{ const blob = await dataURLToBlob(files[id].dataURL); const d = await edrUpload(blob, {feature_id:S.fid, caption:"[quadro-img] " + id, actor:auth().actor, lat:S.ll && S.ll.lat, lon:S.ll && S.ll.lng}); if(d && d.id) S.fileUrls[id] = `${API}/media/${d.id}`; }catch(e){ /* stays inline in the JSON this time */ } }
 }
-async function save(explicit){
-  if(S.saving) return false; S.saving = true; try{ return await saveNow(explicit); } finally { S.saving = false; }
+async function save(explicit, final){
+  if(S.saving) return false; S.saving = true; try{ return await saveNow(explicit, final); } finally { S.saving = false; }
 }
-async function saveNow(explicit){
+async function saveNow(explicit, final){
   if(!S.api || S.viewOnly) return false; const a = auth(); if(!a.key){ say(T.viewOnly); return false; }
   const now = liveCount(S.api.getSceneElements()); const before = S.loadedCount || 0;
   const h = sceneHash(); if(!explicit && h && h === S.lastHash){ S.dirty = false; setStatus(`${T.saved} · v${S.version}`); return true; }
@@ -115,10 +115,12 @@ async function saveNow(explicit){
   const n = S.version + 1; const data = serialize(); data.version = n; data.by = a.actor; data.at = new Date().toISOString(); data.name = S.name;
   const json = new Blob([JSON.stringify(data)], {type:"application/json"});
   const params = {feature_id:S.fid, caption:`[quadro] v${n}`, actor:a.actor, lat:S.ll && S.ll.lat, lon:S.ll && S.ll.lng};
-  let snap = null; try{ snap = await EdrBoardLib.exportToBlob({elements:S.api.getSceneElements(), appState:{...S.api.getAppState(), exportBackground:true, exportWithDarkMode:false}, files:S.api.getFiles(), mimeType:"image/jpeg", quality:0.82, maxWidthOrHeight:1400, exportPadding:24}); }catch(e){}
+  /* the cover picture is the heavy part: take it on an explicit save, on close, or at most every 10 minutes (the drawing itself is saved every time) */
+  const wantSnap = explicit || final || !S.lastSnap || Date.now() - S.lastSnap > 600000;
+  let snap = null; if(wantSnap) try{ snap = await EdrBoardLib.exportToBlob({elements:S.api.getSceneElements(), appState:{...S.api.getAppState(), exportBackground:true, exportWithDarkMode:false}, files:S.api.getFiles(), mimeType:"image/jpeg", quality:0.82, maxWidthOrHeight:1400, exportPadding:24}); }catch(e){}
   try{
     await edrUpload(json, params); if(snap) await edrUpload(snap, {feature_id:S.fid, caption:`[quadro-snap] v${n}`, actor:a.actor, lat:S.ll && S.ll.lat, lon:S.ll && S.ll.lng, w:1400});
-    S.version = n; S.loadedCount = now; S.lastHash = h; S.dirty = false; S.lastSaved = Date.now(); dropDraft(S.fid); setStatus(`${T.saved} · v${n}`); if(explicit) say(`${T.saved} · ${T.versionOf} ${n}`); document.dispatchEvent(new CustomEvent("edr-board-saved", {detail:{fid:S.fid, version:n}})); return true;
+    if(snap) S.lastSnap = Date.now(); S.version = n; S.loadedCount = now; S.lastHash = h; S.dirty = false; S.lastSaved = Date.now(); dropDraft(S.fid); setStatus(`${T.saved} · v${n}`); if(explicit) say(`${T.saved} · ${T.versionOf} ${n}`); document.dispatchEvent(new CustomEvent("edr-board-saved", {detail:{fid:S.fid, version:n}})); return true;
   }catch(e){
     try{ await edrQueuePhoto(json, params); if(snap) await edrQueuePhoto(snap, {feature_id:S.fid, caption:`[quadro-snap] v${n}`, actor:a.actor, w:1400}); S.version = n; S.dirty = false; dropDraft(S.fid); setStatus(`${T.queued} · v${n}`); say(T.queued); return true; }
     catch(e2){ setStatus(T.err); say(T.err); saveDraft(); return false; }
@@ -230,10 +232,12 @@ function showOnMap(e){ if(typeof map === "undefined" || !S.geo || !S.ui.classLis
 /* ---------- ui ---------- */
 function markDirty(){ S.dirty = true; setStatus(T.draft, true); clearTimeout(S.timer); S.timer = setTimeout(saveDraft, 1500); clearTimeout(S.auto); S.auto = setTimeout(autoSave, 15000); }
 /* the board saves itself: 15 s after the last change, and whenever the page is hidden or closed. Unchanged content is never saved twice. */
-function autoSave(){ if(!S.api || S.viewOnly || !S.dirty || !auth().key) return; if(S.saving){ clearTimeout(S.auto); S.auto = setTimeout(autoSave, 5000); return; } save(false); }
+/* this device keeps a copy 1.5 s after every change; the server gets a version after 15 s of calm but at most every 3 minutes, and always when the board closes or the app goes to the background (keeps a busy day inside the storage budget) */
+function autoSave(urgent){ if(!S.api || S.viewOnly || !S.dirty || !auth().key) return; if(S.saving){ clearTimeout(S.auto); S.auto = setTimeout(() => autoSave(urgent), 5000); return; }
+  const wait = urgent ? 0 : 180000 - (Date.now() - (S.lastSaved || 0)); if(wait > 0){ clearTimeout(S.auto); S.auto = setTimeout(autoSave, wait); return; } save(false, !!urgent); }
 function sceneHash(){ try{ const els = S.api.getSceneElements().filter(e => !e.isDeleted).map(e => [e.id, e.version, e.versionNonce]); return JSON.stringify(els); }catch(e){ return ""; } }
-document.addEventListener("visibilitychange", () => { if(document.visibilityState === "hidden" && S.api && S.dirty && !S.viewOnly){ saveDraft(); autoSave(); } });
-window.addEventListener("pagehide", () => { if(S.api && S.dirty && !S.viewOnly){ saveDraft(); autoSave(); } });
+document.addEventListener("visibilitychange", () => { if(document.visibilityState === "hidden" && S.api && S.dirty && !S.viewOnly){ saveDraft(); autoSave(true); } });
+window.addEventListener("pagehide", () => { if(S.api && S.dirty && !S.viewOnly){ saveDraft(); autoSave(true); } });
 function build(){
   const ui = document.createElement("div"); ui.id = "qboard"; ui.setAttribute("role", "dialog"); ui.setAttribute("aria-label", T.board);
   ui.innerHTML = `<div class="qhd"><button data-a="close" aria-label="${T.close}">← ${T.close}</button><div class="ttl"><span class="nm"></span><small class="st"></small></div>
@@ -256,7 +260,7 @@ function sizeBadge(els, st){
 }
 
 async function open(fid, opts){
-  opts = opts || {}; if(!S.ui) S.ui = build(); S.fid = fid; S.aliases = opts.aliases || []; S.name = opts.name || fid; S.ll = opts.latlng || null; S.viewOnly = !auth().key || auth().role === "viewer"; S.dirty = false; S.version = 0; S.fileUrls = {};
+  opts = opts || {}; if(!S.ui) S.ui = build(); S.fid = fid; S.lastSnap = 0; S.aliases = opts.aliases || []; S.name = opts.name || fid; S.ll = opts.latlng || null; S.viewOnly = !auth().key || auth().role === "viewer"; S.dirty = false; S.version = 0; S.fileUrls = {};
   S.ui.classList.add("on"); S.ui.querySelector(".nm").textContent = `${T.board} · ${S.name}`; setSplit(splitDefault(), true); setStatus(T.loading); S.ui.querySelector(".qload").style.display = "flex"; S.ui.querySelector(".qtray").classList.remove("on");
   S.ui.querySelectorAll('[data-a="save"],[data-a="tpl"],[data-a="photos"],[data-a="aerial"],[data-a="link"]').forEach(b => b.disabled = S.viewOnly);
   try{ await loadLib(); }catch(e){ say(T.err); close(true); return; }
@@ -305,7 +309,7 @@ function offerOlder(){
   b.querySelector("[data-r]").onclick = async () => { try{ const sc = await hydrate(o.d); S.api.updateScene({elements:sc.elements, appState:sc.appState}); S.api.addFiles(sc.files); S.api.scrollToContent(sc.elements, {fitToContent:true}); markDirty(); b.remove(); say(EN ? `Version ${verOf(o.m)} is back — Save to keep it` : `Versão ${verOf(o.m)} recuperada — Guarda para a manter`); }catch(e){ say(T.err); } };
 }
 async function close(force){
-  if(!force && S.dirty && !S.viewOnly){ clearTimeout(S.auto); await saveDraft(); const ok = auth().key ? await save(false) : false; if(!ok) say(EN ? "Kept on this device — it is sent the next time the map is open with signal" : "Guardado neste aparelho — é enviado da próxima vez que o mapa abrir com rede"); }
+  if(!force && S.dirty && !S.viewOnly){ clearTimeout(S.auto); await saveDraft(); const ok = auth().key ? await save(false, true) : false; if(!ok) say(EN ? "Kept on this device — it is sent the next time the map is open with signal" : "Guardado neste aparelho — é enviado da próxima vez que o mapa abrir com rede"); }
   clearTimeout(S.auto);
   if(S.ui) S.ui.classList.remove("on"); document.body.classList.remove("qsplit"); if(S.mount){ try{ S.mount.unmount(); }catch(e){} S.mount = null; } S.api = null; unhookMap();
 }
