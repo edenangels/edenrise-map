@@ -43,6 +43,7 @@ const css = document.createElement("style"); css.textContent = `
 #qboard .qtray .list{overflow-y:auto;padding:0 10px 12px;display:flex;flex-direction:column;gap:6px} #qboard .qtray .list button{text-align:left;border:1px solid rgba(241,233,216,.15);background:rgba(255,255,255,.04);color:#f1e9d8;border-radius:10px;padding:10px 12px;font:500 13px var(--ui);cursor:pointer;min-height:48px} #qboard .qtray .list button:hover{border-color:#c9a227} #qboard .qtray .list button small{display:block;font:500 11px var(--mono);opacity:.6;margin-top:2px}
 #qboard .qtray input{margin:0 10px 8px;height:40px;border-radius:10px;border:1px solid rgba(241,233,216,.2);background:rgba(0,0,0,.3);color:#f1e9d8;padding:0 12px;font:500 14px var(--ui)}
 #qboard .qscale{position:absolute;left:50%;transform:translateX(-50%);bottom:14px;z-index:5;background:rgba(28,24,19,.86);color:#f1e9d8;border-radius:10px;padding:6px 10px;font:600 11px var(--mono);pointer-events:none}
+#qboard .qolder{position:absolute;left:50%;top:12px;transform:translateX(-50%);z-index:8;display:flex;gap:8px;align-items:center;flex-wrap:wrap;max-width:calc(100% - 24px);background:#1c1813;color:#f1e9d8;border:1px solid #c9a227;border-radius:12px;padding:8px 10px;font:600 12.5px var(--ui);box-shadow:0 8px 24px rgba(0,0,0,.35)} #qboard .qolder button{height:34px;border-radius:17px;border:1px solid rgba(241,233,216,.3);background:transparent;color:#f1e9d8;font:600 12px var(--ui);padding:0 12px;cursor:pointer} #qboard .qolder button.ok{background:#c9a227;color:#1c1813;border-color:#c9a227}
 #qboard .qload{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(241,233,216,.9);font:600 14px var(--ui);color:#1c1813;z-index:6}
 .qcover{position:relative;border-radius:12px;overflow:hidden;margin:6px 0 8px;cursor:pointer;background:#2a241d;aspect-ratio:16/9} .qcover img{width:100%;height:100%;object-fit:cover;display:block} .qcover span{position:absolute;left:10px;bottom:8px;background:rgba(28,24,19,.85);color:#f1e9d8;border-radius:999px;padding:4px 10px;font:700 11px var(--ui)}
 #qboard .ficha{padding:0 14px 14px;display:flex;flex-direction:column;gap:10px} #qboard .ficha label{display:flex;flex-direction:column;gap:4px;font:600 11px var(--ui);opacity:.9} #qboard .ficha input,#qboard .ficha textarea{height:40px;border-radius:10px;border:1px solid rgba(241,233,216,.2);background:rgba(0,0,0,.3);color:#f1e9d8;padding:0 12px;font:500 14px var(--ui)} #qboard .ficha textarea{height:auto;padding:10px 12px}
@@ -78,14 +79,19 @@ const verOf = m => +((m.caption || "").match(/v(\d+)/) || [0, 0])[1];
 async function listVersions(fid){ const media = await itemMedia(fid); S.versions = media.filter(isBoardFile).sort((a, b) => verOf(b) - verOf(a)); S.snaps = media.filter(isSnap); return S.versions; }
 async function loadVersion(m){ const d = await fetch(`${API}/media/${m.id}`).then(r => r.json()); return d; }
 const draftKey = fid => "edr_qb_" + fid;
-function saveDraft(){ try{ if(!S.api) return; const d = serialize(); d.at = Date.now(); d.version = S.version; localStorage.setItem(draftKey(S.fid), JSON.stringify(d)); }catch(e){} }
-function readDraft(fid){ try{ return JSON.parse(localStorage.getItem(draftKey(fid)) || "null"); }catch(e){ return null; } }
-function dropDraft(fid){ try{ localStorage.removeItem(draftKey(fid)); }catch(e){} }
+/* Drafts live in IndexedDB (a board with photos is too big for localStorage, which failed silently once full).
+   Older drafts written to localStorage are still read, and rescued to the server by rescueDrafts(). */
+const DDB = (() => { let p = null; const db = () => p || (p = new Promise((res, rej) => { const r = indexedDB.open("edr_board", 1); r.onupgradeneeded = () => r.result.createObjectStore("drafts"); r.onsuccess = () => res(r.result); r.onerror = () => { p = null; rej(r.error); }; }));
+  const tx = (m, f) => db().then(d => new Promise((res, rej) => { const t = d.transaction("drafts", m); const q = f(t.objectStore("drafts")); t.oncomplete = () => res(q && q.result); t.onerror = () => rej(t.error); }));
+  return {get:k => tx("readonly", s => s.get(k)), set:(k, v) => tx("readwrite", s => s.put(v, k)), del:k => tx("readwrite", s => s.delete(k)), keys:() => tx("readonly", s => s.getAllKeys())}; })();
+function saveDraft(){ try{ if(!S.api) return Promise.resolve(); const d = serialize(); d.at = Date.now(); d.version = S.version; d.fid = S.fid; d.name = S.name; return DDB.set(draftKey(S.fid), d).catch(() => { try{ localStorage.setItem(draftKey(S.fid), JSON.stringify(d)); }catch(e){} }); }catch(e){ return Promise.resolve(); } }
+async function readDraft(fid){ let d = null; try{ d = await DDB.get(draftKey(fid)); }catch(e){} if(!d){ try{ d = JSON.parse(localStorage.getItem(draftKey(fid)) || "null"); }catch(e){} } return d || null; }
+function dropDraft(fid){ try{ localStorage.removeItem(draftKey(fid)); }catch(e){} DDB.del(draftKey(fid)).catch(() => {}); }
 
 function serialize(){
   const api = S.api; const els = api.getSceneElements(); const st = api.getAppState(); const files = api.getFiles();
   const used = new Set(els.filter(e => e.type === "image" && e.fileId).map(e => e.fileId));
-  const outFiles = {}; for(const id of used){ const f = files[id]; if(!f) continue; outFiles[id] = {mimeType:f.mimeType, url:S.fileUrls[id] || null, dataURL:S.fileUrls[id] ? null : f.dataURL}; }
+  const outFiles = {}; for(const id of used){ const f = files[id]; if(!f) continue; const u = S.fileUrls[id] && !String(S.fileUrls[id]).startsWith("data:") ? S.fileUrls[id] : null; outFiles[id] = {mimeType:f.mimeType, url:u, dataURL:u ? null : f.dataURL}; }
   return {type:"edr-board", v:1, fid:S.fid, geo:S.geo, elements:els, appState:{viewBackgroundColor:st.viewBackgroundColor, gridSize:st.gridSize, gridStep:st.gridStep, gridModeEnabled:st.gridModeEnabled, scrollX:st.scrollX, scrollY:st.scrollY, zoom:st.zoom}, files:outFiles};
 }
 async function blobToDataURL(b){ return new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(b); }); }
@@ -93,11 +99,18 @@ async function dataURLToBlob(u){ return (await fetch(u)).blob(); }
 /** upload any image the board holds that is not yet in the media store; returns a url map */
 async function uploadImages(){
   const files = S.api.getFiles(); const els = S.api.getSceneElements(); const used = new Set(els.filter(e => e.type === "image" && e.fileId).map(e => e.fileId));
-  for(const id of used){ if(S.fileUrls[id] || !files[id]) continue;
+  for(const id of used){ if((S.fileUrls[id] && !String(S.fileUrls[id]).startsWith("data:")) || !files[id]) continue;
     try{ const blob = await dataURLToBlob(files[id].dataURL); const d = await edrUpload(blob, {feature_id:S.fid, caption:"[quadro-img] " + id, actor:auth().actor, lat:S.ll && S.ll.lat, lon:S.ll && S.ll.lng}); if(d && d.id) S.fileUrls[id] = `${API}/media/${d.id}`; }catch(e){ /* stays inline in the JSON this time */ } }
 }
 async function save(explicit){
+  if(S.saving) return false; S.saving = true; try{ return await saveNow(explicit); } finally { S.saving = false; }
+}
+async function saveNow(explicit){
   if(!S.api || S.viewOnly) return false; const a = auth(); if(!a.key){ say(T.viewOnly); return false; }
+  const now = liveCount(S.api.getSceneElements()); const before = S.loadedCount || 0;
+  const h = sceneHash(); if(!explicit && h && h === S.lastHash){ S.dirty = false; setStatus(`${T.saved} · v${S.version}`); return true; }
+  if(!now && before && !explicit) return false;   // an empty board is never saved by itself over a drawing
+  if(!now && before && !confirm(EN ? `This board is now empty. Saving will put an empty version over version ${S.version} (${before} shapes). Save the empty board?` : `Este quadro está vazio. Guardar vai pôr uma versão vazia por cima da versão ${S.version} (${before} formas). Guardar o quadro vazio?`)){ setStatus(T.draft, true); return false; }
   setStatus(T.saving); await uploadImages();
   const n = S.version + 1; const data = serialize(); data.version = n; data.by = a.actor; data.at = new Date().toISOString(); data.name = S.name;
   const json = new Blob([JSON.stringify(data)], {type:"application/json"});
@@ -105,7 +118,7 @@ async function save(explicit){
   let snap = null; try{ snap = await EdrBoardLib.exportToBlob({elements:S.api.getSceneElements(), appState:{...S.api.getAppState(), exportBackground:true, exportWithDarkMode:false}, files:S.api.getFiles(), mimeType:"image/jpeg", quality:0.82, maxWidthOrHeight:1400, exportPadding:24}); }catch(e){}
   try{
     await edrUpload(json, params); if(snap) await edrUpload(snap, {feature_id:S.fid, caption:`[quadro-snap] v${n}`, actor:a.actor, lat:S.ll && S.ll.lat, lon:S.ll && S.ll.lng, w:1400});
-    S.version = n; S.dirty = false; S.lastSaved = Date.now(); dropDraft(S.fid); setStatus(`${T.saved} · v${n}`); if(explicit) say(`${T.saved} · ${T.versionOf} ${n}`); document.dispatchEvent(new CustomEvent("edr-board-saved", {detail:{fid:S.fid, version:n}})); return true;
+    S.version = n; S.loadedCount = now; S.lastHash = h; S.dirty = false; S.lastSaved = Date.now(); dropDraft(S.fid); setStatus(`${T.saved} · v${n}`); if(explicit) say(`${T.saved} · ${T.versionOf} ${n}`); document.dispatchEvent(new CustomEvent("edr-board-saved", {detail:{fid:S.fid, version:n}})); return true;
   }catch(e){
     try{ await edrQueuePhoto(json, params); if(snap) await edrQueuePhoto(snap, {feature_id:S.fid, caption:`[quadro-snap] v${n}`, actor:a.actor, w:1400}); S.version = n; S.dirty = false; dropDraft(S.fid); setStatus(`${T.queued} · v${n}`); say(T.queued); return true; }
     catch(e2){ setStatus(T.err); say(T.err); saveDraft(); return false; }
@@ -215,7 +228,12 @@ function centreOn(lat, lon){ if(!S.api || !S.geo) return; const [x, y] = toBoard
 function showOnMap(e){ if(typeof map === "undefined" || !S.geo || !S.ui.classList.contains("split")) return; const o = outline(e); if(!o || !o.pts.length) return; const cx = o.pts.reduce((s, p) => s + p[0], 0) / o.pts.length, cy = o.pts.reduce((s, p) => s + p[1], 0) / o.pts.length; const [lat, lon] = toLL(cx, cy);
   if(pulse) map.removeLayer(pulse); pulse = L.circleMarker([lat, lon], {radius:14, color:"#ffd166", weight:3, fill:false, className:"qpulse"}).addTo(map); map.panTo([lat, lon]); }
 /* ---------- ui ---------- */
-function markDirty(){ S.dirty = true; setStatus(T.draft, true); clearTimeout(S.timer); S.timer = setTimeout(saveDraft, 1500); }
+function markDirty(){ S.dirty = true; setStatus(T.draft, true); clearTimeout(S.timer); S.timer = setTimeout(saveDraft, 1500); clearTimeout(S.auto); S.auto = setTimeout(autoSave, 15000); }
+/* the board saves itself: 15 s after the last change, and whenever the page is hidden or closed. Unchanged content is never saved twice. */
+function autoSave(){ if(!S.api || S.viewOnly || !S.dirty || !auth().key) return; if(S.saving){ clearTimeout(S.auto); S.auto = setTimeout(autoSave, 5000); return; } save(false); }
+function sceneHash(){ try{ const els = S.api.getSceneElements().filter(e => !e.isDeleted).map(e => [e.id, e.version, e.versionNonce]); return JSON.stringify(els); }catch(e){ return ""; } }
+document.addEventListener("visibilitychange", () => { if(document.visibilityState === "hidden" && S.api && S.dirty && !S.viewOnly){ saveDraft(); autoSave(); } });
+window.addEventListener("pagehide", () => { if(S.api && S.dirty && !S.viewOnly){ saveDraft(); autoSave(); } });
 function build(){
   const ui = document.createElement("div"); ui.id = "qboard"; ui.setAttribute("role", "dialog"); ui.setAttribute("aria-label", T.board);
   ui.innerHTML = `<div class="qhd"><button data-a="close" aria-label="${T.close}">← ${T.close}</button><div class="ttl"><span class="nm"></span><small class="st"></small></div>
@@ -244,7 +262,9 @@ async function open(fid, opts){
   try{ await loadLib(); }catch(e){ say(T.err); close(true); return; }
   // what to show: the newest server version, unless a newer local draft exists
   let data = null; const vs = await listVersions(fid); if(vs.length){ try{ data = await loadVersion(vs[0]); S.version = verOf(vs[0]); }catch(e){} }
-  const draft = readDraft(fid); if(draft && (!data || (draft.version || 0) >= S.version) && draft.elements && draft.elements.length){ data = draft; S.dirty = true; }
+  S.loadedCount = liveCount(data && data.elements); S.olderFull = null;
+  if(vs.length > 1 && !S.loadedCount){ for(const m of vs.slice(1, 8)){ try{ const d = await loadVersion(m); const c = liveCount(d && d.elements); if(c){ S.olderFull = {m, d, c}; break; } }catch(e){} } }
+  const draft = await readDraft(fid); if(draft && (!data || (draft.version || 0) >= S.version) && draft.elements && draft.elements.length){ data = draft; S.dirty = true; }
   S.geo = (data && data.geo) || (S.ll ? {lat:S.ll.lat, lon:S.ll.lng, ppm:GRID} : null); S.tape = false; S.calib = null; S.known = new Set();
   const scene = data ? await hydrate(data) : {elements:[], appState:defaultsState(), files:[]};
   if(S.mount){ try{ S.mount.unmount(); }catch(e){} } const host = S.ui.querySelector(".qmount"); host.innerHTML = "";
@@ -254,12 +274,39 @@ async function open(fid, opts){
   S.api = await S.mount.ready(); await new Promise(r => setTimeout(r, 300));   // the engine applies initialData asynchronously; defaults go in after it settles
   if(!S.api || !S.ui || !S.ui.classList.contains("on") || S.fid !== fid) return;   // closed or switched while settling
   if(scene.elements.length) S.api.scrollToContent(scene.elements, {fitToContent:true, viewportZoomFactor:0.8});
-  const d0 = defaultsState(); const saved = (data && data.appState) || {}; S.api.updateScene({appState:{...d0, gridModeEnabled:saved.gridModeEnabled != null ? saved.gridModeEnabled : true, gridSize:saved.gridSize || GRID, viewBackgroundColor:saved.viewBackgroundColor || d0.viewBackgroundColor}}); S.lastV = EdrBoardLib.getSceneVersion(S.api.getSceneElements());
+  const d0 = defaultsState(); const saved = (data && data.appState) || {}; S.api.updateScene({appState:{...d0, gridModeEnabled:saved.gridModeEnabled != null ? saved.gridModeEnabled : true, gridSize:saved.gridSize || GRID, viewBackgroundColor:saved.viewBackgroundColor || d0.viewBackgroundColor}}); S.lastV = EdrBoardLib.getSceneVersion(S.api.getSceneElements()); S.lastHash = S.dirty ? "" : sceneHash(); if(S.dirty && !S.viewOnly){ clearTimeout(S.auto); S.auto = setTimeout(autoSave, 4000); }
   S.ui.querySelector(".qload").style.display = "none"; setStatus(S.viewOnly ? T.viewOnly : (S.dirty ? T.draft : (S.version ? `${T.saved} · v${S.version}` : "")), S.dirty);
   if(!S.viewOnly) installLibrary();
+  if(S.olderFull && S.fid === fid) offerOlder();
+}
+async function rescueDrafts(){
+  if(!auth().key || auth().role === "viewer") return; const found = [];
+  try{ for(const k of await DDB.keys()) if(String(k).startsWith("edr_qb_")) found.push([String(k), await DDB.get(k)]); }catch(e){}
+  try{ for(let i = 0; i < localStorage.length; i++){ const k = localStorage.key(i); if(k && k.startsWith("edr_qb_") && !found.some(f => f[0] === k)){ try{ found.push([k, JSON.parse(localStorage.getItem(k))]); }catch(e){} } } }catch(e){}
+  let sent = 0;
+  for(const [k, d] of found){
+    const fid = k.slice(7); if(!d || !liveCount(d.elements) || (S.fid === fid && S.ui && S.ui.classList.contains("on"))) continue;
+    try{
+      const vs = (await itemMedia(fid)).filter(isBoardFile).sort((a, b) => verOf(b) - verOf(a)); const top = vs[0];
+      if(top){ const cur = await loadVersion(top); const same = JSON.stringify((cur.elements || []).filter(e => !e.isDeleted).map(e => [e.id, e.version])) === JSON.stringify(d.elements.filter(e => !e.isDeleted).map(e => [e.id, e.version])); if(same){ dropDraft(fid); continue; } }
+      const n = (top ? verOf(top) : 0) + 1; const a = auth(); const body = {...d, version:n, by:a.actor, at:new Date().toISOString(), rescued:true};
+      await edrUpload(new Blob([JSON.stringify(body)], {type:"application/json"}), {feature_id:fid, caption:`[quadro] v${n}`, actor:a.actor}); dropDraft(fid); sent++;
+    }catch(e){}
+  }
+  if(sent) say(EN ? `${sent} board${sent > 1 ? "s" : ""} kept on this device ${sent > 1 ? "were" : "was"} saved to the server` : `${sent} quadro${sent > 1 ? "s" : ""} guardado${sent > 1 ? "s" : ""} neste aparelho ${sent > 1 ? "foram enviados" : "foi enviado"} para o servidor`);
+}
+setTimeout(() => rescueDrafts().catch(() => {}), 9000);
+/* a board's newest save can be empty by accident (opened before it loaded, cleared and saved): offer the last version with drawings */
+function liveCount(els){ return (els || []).filter(e => e && !e.isDeleted).length; }
+function offerOlder(){
+  const o = S.olderFull; if(!o) return; let b = S.ui.querySelector(".qolder"); if(!b){ b = document.createElement("div"); b.className = "qolder"; S.ui.querySelector(".qbody").appendChild(b); }
+  b.innerHTML = `<span>${EN ? `The latest save (v${S.version}) is empty. Version ${verOf(o.m)} has ${o.c} shapes.` : `A última versão (v${S.version}) está vazia. A versão ${verOf(o.m)} tem ${o.c} formas.`}</span><button data-r class="ok">${EN ? "Bring back v" : "Recuperar v"}${verOf(o.m)}</button><button data-n>${EN ? "Keep empty" : "Manter vazio"}</button>`;
+  b.querySelector("[data-n]").onclick = () => b.remove();
+  b.querySelector("[data-r]").onclick = async () => { try{ const sc = await hydrate(o.d); S.api.updateScene({elements:sc.elements, appState:sc.appState}); S.api.addFiles(sc.files); S.api.scrollToContent(sc.elements, {fitToContent:true}); markDirty(); b.remove(); say(EN ? `Version ${verOf(o.m)} is back — Save to keep it` : `Versão ${verOf(o.m)} recuperada — Guarda para a manter`); }catch(e){ say(T.err); } };
 }
 async function close(force){
-  if(!force && S.dirty && !S.viewOnly){ if(confirm(T.unsaved)){ const ok = await save(true); if(!ok) return; } else saveDraft(); }
+  if(!force && S.dirty && !S.viewOnly){ clearTimeout(S.auto); await saveDraft(); const ok = auth().key ? await save(false) : false; if(!ok) say(EN ? "Kept on this device — it is sent the next time the map is open with signal" : "Guardado neste aparelho — é enviado da próxima vez que o mapa abrir com rede"); }
+  clearTimeout(S.auto);
   if(S.ui) S.ui.classList.remove("on"); document.body.classList.remove("qsplit"); if(S.mount){ try{ S.mount.unmount(); }catch(e){} S.mount = null; } S.api = null; unhookMap();
 }
 /* ---------- geometry helpers (board px ↔ metres ↔ lon/lat) ---------- */
@@ -390,6 +437,6 @@ function openFicha(body){
 /* walk mode: the board can be carried around without being nudged */
 function toggleLock(btn){ const st = S.api.getAppState(); const on = !st.viewModeEnabled; S.api.updateScene({appState:{viewModeEnabled:on}}); btn.textContent = on ? "🔒" : "🔓"; btn.title = on ? T.unlock : T.lock; btn.classList.toggle("on", on); }
 
-window.edrBoard = {open, close, save:() => save(true), state:S, bringFromMap, sendToMap, labelSelection, toggleTape, _serialize:serialize, _candidates:candidates, _geo:{toLL:(x, y) => toLL(x, y), toBoard:(a, b) => toBoard(a, b)}, _areaOf:areaOf, _lengthOf:lengthOf, _elementToGeometry:elementToGeometry};
+window.edrBoard = {open, close, save:() => save(true), state:S, _rescue:rescueDrafts, _auto:autoSave, _drafts:DDB, bringFromMap, sendToMap, labelSelection, toggleTape, _serialize:serialize, _candidates:candidates, _geo:{toLL:(x, y) => toLL(x, y), toBoard:(a, b) => toBoard(a, b)}, _areaOf:areaOf, _lengthOf:lengthOf, _elementToGeometry:elementToGeometry};
 
 })();

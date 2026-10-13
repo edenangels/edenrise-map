@@ -23,6 +23,10 @@
   function buildingOf(props){ try{ if(props.core_fid == null) return null; return DATA.buildings_pt.features.find(f => f.properties && +f.properties.fid === +props.core_fid) || null; }catch(e){ return null; } }
   window.edrRefOf = function(t, props, title){ props = props || {};
     if(props.asset_id) return {ref:"asset:" + props.asset_id, aliases:[]};
+    // a team item (proposal, report, change) is filed under its own id. Before 2026-10-13 the brain's proposal pins opened
+    // the card under "<layer title>:<name>", so boards and notes made that way are read back through these aliases.
+    const tid = String(props.brain_id || props.id || "");
+    if(/^(PROP|MOD|OCC|REP)-/.test(tid)){ const nm = props.name || props.tipo_livre || "?"; const a = new Set([`${t}:${nm}`, `propostas:${nm}`, "Proposals (from the brain):" + nm, "Propostas (do cérebro):" + nm, "Reports (from the brain):" + nm, "Ocorrências (do cérebro):" + nm]); if(title) a.add(`${title}:${nm}`); a.delete(tid); return {ref:tid, aliases:[...a]}; }
     const nm = props.key || props.name || props.tree_name || "?"; const legacy = new Set([`${t}:${nm}`]); const pt = ptTitle(t), en = enTitle(t); if(pt) legacy.add(`${pt}:${nm}`); if(en) legacy.add(`${en}:${nm}`); if(title) legacy.add(`${title}:${nm}`);
     let uid = props.uid; if(!uid && t === "building_footprints"){ const b = buildingOf(props); if(b){ uid = b.properties.uid; const bn = b.properties.name || "?"; legacy.add(`buildings_pt:${bn}`); const bpt = ptTitle("buildings_pt"), ben = enTitle("buildings_pt"); if(bpt) legacy.add(`${bpt}:${bn}`); if(ben) legacy.add(`${ben}:${bn}`); } }
     const ref = uid ? "u:" + uid : `${t}:${nm}`; legacy.delete(ref); return {ref, aliases:[...legacy]}; };
