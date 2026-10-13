@@ -109,7 +109,7 @@ async function saveNow(explicit){
   if(!S.api || S.viewOnly) return false; const a = auth(); if(!a.key){ say(T.viewOnly); return false; }
   const now = liveCount(S.api.getSceneElements()); const before = S.loadedCount || 0;
   const h = sceneHash(); if(!explicit && h && h === S.lastHash){ S.dirty = false; setStatus(`${T.saved} · v${S.version}`); return true; }
-  if(!now && before && !explicit) return false;   // an empty board is never saved by itself over a drawing
+  if(!now && !explicit) return false;   // an empty board never saves itself (and never over a drawing)
   if(!now && before && !confirm(EN ? `This board is now empty. Saving will put an empty version over version ${S.version} (${before} shapes). Save the empty board?` : `Este quadro está vazio. Guardar vai pôr uma versão vazia por cima da versão ${S.version} (${before} formas). Guardar o quadro vazio?`)){ setStatus(T.draft, true); return false; }
   setStatus(T.saving); await uploadImages();
   const n = S.version + 1; const data = serialize(); data.version = n; data.by = a.actor; data.at = new Date().toISOString(); data.name = S.name;

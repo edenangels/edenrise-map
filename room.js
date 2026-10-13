@@ -130,7 +130,8 @@ function syncButtons(){
   $(".rtools").style.display = hasScan ? "flex" : "none";
   $(".sub").textContent = hasScan ? `v${verOf(R.scan)} · ${R.pins.length} ${T.pins}` : "";
 }
-function markDirty(){ R.dirty = true; writeDraft(); setStatus(T.draft, true); syncButtons(); }
+function markDirty(){ R.dirty = true; writeDraft(); setStatus(T.draft, true); syncButtons(); clearTimeout(R.auto); R.auto = setTimeout(() => { if(R.dirty && !R.viewOnly && auth().key) save(); }, 8000); }
+document.addEventListener("visibilitychange", () => { if(document.visibilityState === "hidden" && R.dirty && !R.viewOnly && auth().key) save(); });
 function pushUndo(){ R.undo.push(JSON.stringify({pins:R.pins, xf:R.xf})); if(R.undo.length > 60) R.undo.shift(); }
 function undo(){ if(R.viewOnly || !R.undo.length) return; const s = JSON.parse(R.undo.pop()); R.pins = s.pins; R.xf = s.xf; applyXf(); renderPins(true); markDirty(); closeSheet(); }
 function setMode(m){ R.mode = m; hint(m === "pin" ? T.pinHint : m === "move" ? T.moveHint : ""); syncButtons(); }
@@ -154,7 +155,7 @@ async function open(fid, opts){
   setLoad(null); syncButtons(); refreshStatus(); if(!R.pins.length && !R.viewOnly) say(T.walk);
 }
 async function close(force){
-  if(!force && R.dirty && !R.viewOnly){ if(confirm(T.unsaved)){ const ok = await save(); if(!ok) return; } }   // "no" keeps the local draft — nothing is thrown away
+  clearTimeout(R.auto); if(!force && R.dirty && !R.viewOnly){ writeDraft(); const ok = auth().key ? await save() : false; if(!ok) say(EN ? "Pins kept on this device — saved next time with signal" : "Pinos guardados neste aparelho — enviados na próxima vez com rede"); }
   if(R.ui) R.ui.classList.remove("on"); teardown(); R.fid = null;
 }
 
@@ -297,6 +298,9 @@ async function openCard(p){
 
 /* ---------- saving: a new version every time, never an overwrite ---------- */
 async function save(){
+  if(R.saving) return false; R.saving = true; try{ return await saveNow(); } finally { R.saving = false; }
+}
+async function saveNow(){
   if(R.viewOnly || !R.dirty) return true; const a = auth(); if(!a.key){ say(EN ? "Sign in first" : "Entra primeiro"); return false; }
   setStatus(T.saving); const n = Math.max(R.pinsVer, ...R.pinFiles.map(verOf), 0) + 1;
   const blob = new Blob([JSON.stringify({v:1, scan:R.scan && R.scan.id, xf:R.xf, pins:R.pins, by:a.actor, at:new Date().toISOString()})], {type:"application/json"});
