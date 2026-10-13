@@ -56,10 +56,10 @@ function ageText(o){ const a = age(o), m = Math.round(a / 60000); if(a < 2 * 600
 /* ---------- drawing people ---------- */
 const layer = L.layerGroup().addTo(map);
 const css = document.createElement("style"); css.textContent = `
-.pp{position:relative;width:34px;height:34px} .pp .d{position:absolute;inset:0;border-radius:50%;display:flex;align-items:center;justify-content:center;font:800 12px var(--ui);color:#fff;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.45)}
-.pp.recent .d{border-color:#ffb347} .pp.stale .d{opacity:.55;filter:grayscale(.8);border-style:dashed} .pp .lb{position:absolute;left:38px;top:4px;white-space:nowrap;background:rgba(28,24,19,.9);color:#f1e9d8;font:700 11px var(--ui);padding:3px 8px;border-radius:999px} .pp .lb small{font:600 10px var(--mono);opacity:.75;margin-left:5px}
-.pp.live .d::after{content:"";position:absolute;inset:-7px;border-radius:50%;border:2px solid currentColor;opacity:.6;animation:ppl 2s ease-out infinite} @keyframes ppl{0%{transform:scale(.7);opacity:.7}100%{transform:scale(1.35);opacity:0}}
-.pp .dt{position:absolute;right:-3px;bottom:-3px;width:12px;height:12px;border-radius:50%;border:2px solid #fff} @media (prefers-reduced-motion:reduce){ .pp.live .d::after{animation:none} }
+.ppres{position:relative;width:34px;height:34px} .ppres .d{position:absolute;inset:0;border-radius:50%;display:flex;align-items:center;justify-content:center;font:800 12px var(--ui);color:#fff;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.45)}
+.ppres.recent .d{border-color:#ffb347} .ppres.stale .d{opacity:.55;filter:grayscale(.8);border-style:dashed} .ppres .lb{position:absolute;left:38px;top:4px;white-space:nowrap;background:rgba(28,24,19,.9);color:#f1e9d8;font:700 11px var(--ui);padding:3px 8px;border-radius:999px} .ppres .lb small{font:600 10px var(--mono);opacity:.75;margin-left:5px}
+.ppres.live .d::after{content:"";position:absolute;inset:-7px;border-radius:50%;border:2px solid currentColor;opacity:.6;animation:ppl 2s ease-out infinite} @keyframes ppl{0%{transform:scale(.7);opacity:.7}100%{transform:scale(1.35);opacity:0}}
+.ppres .dt{position:absolute;right:-3px;bottom:-3px;width:12px;height:12px;border-radius:50%;border:2px solid #fff} @media (prefers-reduced-motion:reduce){ .ppres.live .d::after{animation:none} }
 #teamp{position:fixed;top:calc(var(--nav-h,52px) + 8px);right:12px;width:min(380px,calc(100vw - 24px));max-height:calc(100vh - var(--nav-h,52px) - 24px);z-index:1700;background:#1c1813;color:#f1e9d8;border:1px solid rgba(241,233,216,.15);border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.55);display:none;flex-direction:column;overflow:hidden}
 #teamp.on{display:flex} @media (max-width:700px), ((pointer:coarse) and (max-width:1366px)){ #teamp{top:auto;bottom:0;right:0;left:0;width:auto;max-height:78vh;border-radius:18px 18px 0 0} }
 #teamp .hd{display:flex;align-items:center;gap:8px;padding:12px 14px 8px;font:700 15px var(--ui)} #teamp .hd span{flex:1} #teamp .hd button{height:34px;border-radius:17px;border:1px solid rgba(241,233,216,.25);background:transparent;color:#f1e9d8;font:600 12px var(--ui);padding:0 12px;cursor:pointer}
@@ -80,7 +80,7 @@ function render(others){
   S.others = others.map(o => ({...o, ...decode(o)})).filter(o => o.actor && o.actor !== auth().actor);
   const keep = new Set();
   for(const o of S.others){ if(!o.gps || o.lat == null) continue; keep.add(o.actor); const fr = fresh(o); const col = colour(o.actor);
-    const html = `<div class="pp ${fr}" style="color:${col}"><div class="d" style="background:${col}">${initials(o.actor)}</div><i class="dt" style="background:${dutyCol[o.duty] || dutyCol.on}"></i><div class="lb">${o.actor}<small>${ageText(o)}</small></div></div>`;
+    const html = `<div class="ppres ${fr}" style="color:${col}"><div class="d" style="background:${col}">${initials(o.actor)}</div><i class="dt" style="background:${dutyCol[o.duty] || dutyCol.on}"></i><div class="lb">${o.actor}<small>${ageText(o)}</small></div></div>`;
     let m = S.markers.get(o.actor);
     if(!m){ const ring = L.circle([o.lat, o.lon], {radius:o.acc || 10, color:col, weight:1, opacity:.6, fillColor:col, fillOpacity:.1, interactive:false});
       const mk = L.marker([o.lat, o.lon], {icon:L.divIcon({className:"", html, iconSize:[34, 34], iconAnchor:[17, 17]}), zIndexOffset:950, keyboard:true, title:o.actor});
