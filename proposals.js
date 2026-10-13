@@ -61,7 +61,7 @@ function build(){
   ui.querySelector(".filt").addEventListener("input", e => { const f = e.target.dataset.f; if(!f) return; S[f] = e.target.type === "checkbox" ? e.target.checked : e.target.value; paintList(); });
   ui.addEventListener("click", e => { const b = e.target.closest("[data-a]"); if(!b) return; const a = b.dataset.a;
     if(a === "close") return close(); if(a === "map") return toggleOnMap(); if(a === "selall"){ visible().forEach(f => S.sel.add(P(f).id)); paintList(); return; } if(a === "clear"){ S.sel.clear(); paintList(); return; }
-    if(a === "approve") return gate("approve"); if(a === "reject") return gate("reject"); if(a === "dest") return gate("dest"); if(a === "gj") return exportG(); if(a === "kml") return exportK(); if(a === "showall"){ if(window.edrEdit && edrEdit.showAllCats) edrEdit.showAllCats(); paintList(); return; } });
+    if(a === "approve") return gate("approve"); if(a === "reject") return gate("reject"); if(a === "dest") return gate("dest"); if(a === "del") return delSelected(); if(a === "gj") return exportG(); if(a === "kml") return exportK(); if(a === "showall"){ if(window.edrEdit && edrEdit.showAllCats) edrEdit.showAllCats(); paintList(); return; } });
   return ui;
 }
 function paint(){ const ui = S.ui; const counts = {}; for(const f of S.all){ const s = P(f).status || "proposto"; counts[s] = (counts[s] || 0) + 1; }
@@ -87,9 +87,17 @@ function paintList(){
   ui.querySelectorAll("[data-fly],[data-open]").forEach(b => b.onclick = () => { const id = b.dataset.fly || b.dataset.open; const f = S.all.find(x => P(x).id === id); if(!f || !f.geometry) return; try{ const bb = L.geoJSON(f).getBounds(); map.fitBounds(bb, {maxZoom:19, padding:[60, 60]}); }catch(e){} if(b.dataset.open && window.edrEdit && edrEdit.openById) edrEdit.openById(id); });
   paintFooter(); if(S.onlyOnMap) applyOnMap();
 }
-function paintFooter(){ const ui = S.ui; const leader = auth().role === "leader"; const n = S.sel.size;
-  ui.querySelector(".ft").innerHTML = (leader ? `<button class="ok" data-a="approve" ${n ? "" : "disabled"}>✓ ${T.approve} ${n || ""}</button><button data-a="dest" ${n ? "" : "disabled"}>📁 ${T.send}</button><button class="x" data-a="reject" ${n ? "" : "disabled"}>✗ ${T.reject} ${n || ""}</button>` : "") + `<button data-a="gj">⤓ ${T.exportG}</button><button data-a="kml">⤓ ${T.exportK}</button>`;
+function paintFooter(){ const ui = S.ui; const leader = auth().role === "leader"; const member = leader || auth().role === "team"; const n = S.sel.size;
+  ui.querySelector(".ft").innerHTML = (leader ? `<button class="ok" data-a="approve" ${n ? "" : "disabled"}>✓ ${T.approve} ${n || ""}</button>` : "") + (member ? `<button data-a="dest" ${n ? "" : "disabled"}>📁 ${T.send}</button>` : "") + (leader ? `<button class="x" data-a="reject" ${n ? "" : "disabled"}>✗ ${T.reject} ${n || ""}</button>` : "") + (member ? `<button class="x" data-a="del" ${n ? "" : "disabled"}>🗑 ${(typeof LANG !== "undefined" && LANG === "en") ? "Delete" : "Apagar"} ${n || ""}</button>` : "") + `<button data-a="gj">⤓ ${T.exportG}</button><button data-a="kml">⤓ ${T.exportK}</button>`;
   ui.querySelector('[data-a="map"]').textContent = S.onlyOnMap ? T.onMapOff : T.onMap; }
+/* ---------- delete (members and leadership): retired, never erased — Recover brings them back ---------- */
+async function delSelected(){
+  const ids = [...S.sel]; if(!ids.length || !window.edrEdit) return; const EN_ = (typeof LANG !== "undefined" && LANG === "en");
+  if(!confirm(EN_ ? `Delete ${ids.length} item${ids.length > 1 ? "s" : ""}? They can be brought back under ↶ Recover.` : `Apagar ${ids.length} ite${ids.length > 1 ? "ns" : "m"}? Podem ser recuperados em ↶ Recuperar.`)) return;
+  const why = prompt(EN_ ? "Why? (kept in the history)" : "Porquê? (fica no histórico)", ""); if(why === null) return;
+  let ok = 0; for(const id of ids){ const r = await edrEdit.send("DELETE", `/features/${id}?actor=${encodeURIComponent(auth().actor)}&note=${encodeURIComponent(why)}`); if(r && (r.ok || r.retired || r.queued)) ok++; }
+  window.toast && toast(EN_ ? `${ok} deleted — recoverable under ↶ Recover` : `${ok} apagados — recuperáveis em ↶ Recuperar`); S.sel.clear(); if(edrEdit.reload) await edrEdit.reload(); load && load();
+}
 /* ---------- the gate ---------- */
 function gate(kind){
   const ids = [...S.sel]; if(!ids.length) return; const ui = S.ui; const tax = (window.edrEdit && edrEdit.TAX) ? edrEdit.TAX() : []; const catLabel = (window.edrEdit && edrEdit.catLabel) || (x => x);
