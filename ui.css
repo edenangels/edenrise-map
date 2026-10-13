@@ -124,6 +124,7 @@ body{padding-top:44px!important}
         border-radius:999px;padding:9px 15px;font:600 12px var(--ui);min-height:38px;cursor:pointer}
   #mleg.on{color:var(--linen);border-color:var(--oak)}
   body:has(#side.open) #mleg, body:has(#side.open) .legend{display:none}
+  body.sheet-open #mleg, body.sheet-open .legend{display:none}
 
   /* the layers panel: a visible way out, and less header before the work */
   #side{width:min(86vw,370px);padding-bottom:calc(var(--mbar) + 16px)}

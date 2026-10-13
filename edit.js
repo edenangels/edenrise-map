@@ -528,6 +528,19 @@ function wireCategory(p,ctx){ const ecat=form.querySelector("#ecat"), elay=form.
   form.querySelector("#ename").addEventListener("input",()=>{ clearTimeout(aiTimer); aiTimer=setTimeout(ask,900); }); }
 /* sidebar section */
 const hiddenCats=new Set();
+/* items sorted by name; several items with the same name fold into one row that opens to show each one with its size */
+const esc=t=>String(t==null?"":t).replace(/[<>&"]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;"}[c]));
+const teamName=p=>String(p.name||p.kind||p.id||"").trim();
+const teamSize=p=>{ const m=p.measures||{}; if(m.area_ha) return m.area_ha>=1?`${(+m.area_ha).toFixed(2)} ha`:`${Math.round(m.area_m2||m.area_ha*1e4)} m²`; if(m.comprimento_m&&m.kind!=="polygon") return `${Math.round(m.comprimento_m)} m`; return ""; };
+function teamRow(f,label,indent){ const p=f.properties; const pr=PRESETS.find(x=>x.id===p.preset); const lt=p.layer_title&&p.layer_title!=="—"?p.layer_title:""; const sub=[label?teamSize(p):(pr?(EN?pr.en:pr.pt):""),lt].filter(Boolean).join(" · ");
+  return `<div class="lyr" data-id="${p.id}" style="padding-left:${indent}px;font-size:12px"><span class="sw" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${STATUS_COL[p.status]||"#c9a227"};flex:none"></span><span class="nm" style="flex:1 1 auto;min-width:0">${label||esc(teamName(p))}</span><span style="color:var(--muted);font-size:10.5px;flex:0 1 auto;max-width:42%;text-align:right;line-height:1.3">${esc(sub)}</span></div>`; }
+function teamRows(g){ const by=new Map(); for(const f of g){ const k=teamName(f.properties).toLowerCase(); if(!by.has(k)) by.set(k,[]); by.get(k).push(f); }
+  const keys=[...by.keys()].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
+  return keys.map(k=>{ const fs=by.get(k); if(fs.length===1) return teamRow(fs[0],"",22);
+    fs.sort((a,b)=>String(a.properties.created_at||"").localeCompare(String(b.properties.created_at||"")));
+    const open=openTeamGroups.has(k); const nm=esc(teamName(fs[0].properties));
+    return `<div class="lyr tgrp" data-g="${esc(k)}" style="padding-left:22px;font-size:12px;cursor:pointer"><span style="display:inline-block;width:9px;flex:none;color:var(--muted);transform:rotate(${open?90:0}deg)">›</span><span class="nm">${nm}</span><span style="font:600 10.5px var(--mono);color:var(--straw)">×${fs.length}</span></div>${open?fs.map((f,i)=>teamRow(f,`${nm} <span style="color:var(--muted)">#${i+1}</span>`,38)).join(""):""}`; }).join(""); }
+const openTeamGroups=new Set();
 function renderTeamCat(){ const tree=document.getElementById("tree"); if(!tree||typeof catIcon==="undefined") return; let cat=document.getElementById("teamcat"); const feats=lastFeats.filter(f=>f.properties.status!=="rejeitado"); if(!feats.length){ if(cat) cat.remove(); return; }
   const groups={}; for(const f of feats){ const k=f.properties.category||(f.properties.ai&&f.properties.ai.category)||""; (groups[k]=groups[k]||[]).push(f); }
   const keys=Object.keys(groups).sort(); const was=cat?cat.classList.contains("open"):true; if(cat) cat.remove(); cat=document.createElement("div"); cat.id="teamcat"; cat.className="cat"+(was?" open":"");
@@ -535,8 +548,9 @@ function renderTeamCat(){ const tree=document.getElementById("tree"); if(!tree||
   cat.innerHTML=`<div class="ch"><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 6 6 6-6 6"/></svg><span class="ico">✎</span><span class="cn">${T.teamCat}</span><span class="cc ${onN?"on":""}">${feats.length}</span><label class="tg"><input type="checkbox" class="gc" ${onN===keys.length?"checked":""}><i></i></label></div><div class="cb"></div>`;
   const body=cat.querySelector(".cb");
   for(const k of keys){ const g=groups[k]; const row=document.createElement("div"); row.style.cssText="margin:2px 0 6px";
-    row.innerHTML=`<label class="lyr"><span class="ico" style="width:16px;height:16px;display:inline-flex;flex:none">${k?catIcon(k):"✎"}</span><span class="nm" style="font-weight:600">${k?catLabel(k):T.noCat}</span><span style="font:600 10.5px var(--mono);color:var(--muted)">${g.length}</span><span class="tg"><input type="checkbox" ${hiddenCats.has(k)?"":"checked"}><i></i></span></label>`+g.map(f=>{ const p=f.properties; const pr=PRESETS.find(x=>x.id===p.preset); return `<div class="lyr" data-id="${p.id}" style="padding-left:22px;font-size:12px"><span class="sw" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${STATUS_COL[p.status]||"#c9a227"}"></span><span class="nm">${p.name||p.kind||p.id}</span><span style="color:var(--muted);font-size:10.5px">${pr?(EN?pr.en:pr.pt):""}${p.layer_title?" · "+p.layer_title:""}</span></div>`; }).join("");
+    row.innerHTML=`<label class="lyr"><span class="ico" style="width:16px;height:16px;display:inline-flex;flex:none">${k?catIcon(k):"✎"}</span><span class="nm" style="font-weight:600">${k?catLabel(k):T.noCat}</span><span style="font:600 10.5px var(--mono);color:var(--muted)">${g.length}</span><span class="tg"><input type="checkbox" ${hiddenCats.has(k)?"":"checked"}><i></i></span></label>`+teamRows(g);
     row.querySelector("input").onchange=e=>{ if(e.target.checked) hiddenCats.delete(k); else hiddenCats.add(k); applyCatVisibility(); renderTeamCat(); };
+    row.querySelectorAll("[data-g]").forEach(el=>el.onclick=()=>{ const k=el.dataset.g; if(openTeamGroups.has(k)) openTeamGroups.delete(k); else openTeamGroups.add(k); renderTeamCat(); });
     row.querySelectorAll("[data-id]").forEach(el=>el.onclick=()=>{ const f=feats.find(x=>x.properties.id===el.dataset.id); const g=f.geometry; const ll=g.type==="Point"?L.latLng(g.coordinates[1],g.coordinates[0]):L.geoJSON(f).getBounds().getCenter(); map.setView(ll,Math.max(map.getZoom(),18)); drawn.eachLayer(l=>{ if(l.feature&&l.feature.properties.id===f.properties.id) openInfo(l); }); });
     body.appendChild(row); }
   cat.querySelector(".ch").onclick=e=>{ if(e.target.closest(".tg")) return; cat.classList.toggle("open"); };
