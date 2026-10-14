@@ -224,10 +224,10 @@
      "type": "choice",
      "img": "guides/icnf/3-catalogo.jpg",
      "hot": {
-      "x": 0.1162,
-      "y": 0.3905,
-      "w": 0.8247,
-      "h": 0.4292
+      "x": 0.182,
+      "y": 0.3957,
+      "w": 0.7596,
+      "h": 0.5325
      },
      "title": "O que vai fazer às árvores?",
      "text": "O catálogo mostra os pedidos possíveis. Escolha o seu caso — cada um tem regras diferentes.",
