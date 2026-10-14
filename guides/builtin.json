@@ -1,0 +1,164 @@
+[
+ {
+  "id": "builtin-propose",
+  "builtin": true,
+  "agency": "Interno",
+  "title": "Propor uma alteração no mapa",
+  "title_en": "Propose a change on the map",
+  "summary": "Como acrescentar um ponto, uma linha ou uma área ao mapa da equipa, pelo telemóvel.",
+  "status": "publicado",
+  "version": 1,
+  "updated_by": "EdenRise",
+  "updated_at": "2026-10-14",
+  "links": [],
+  "tree": {
+   "start": "s1",
+   "needs": [
+    "O seu nome e PIN da equipa",
+    "Estar perto do sítio ajuda (GPS)"
+   ],
+   "needs_en": [
+    "Your team name and PIN",
+    "Being near the spot helps (GPS)"
+   ],
+   "nodes": {
+    "s1": {
+     "id": "s1",
+     "type": "step",
+     "img": "guides/propose/1-edit.jpg",
+     "hot": {
+      "x": 0.4846,
+      "y": 0.9218,
+      "w": 0.1974,
+      "h": 0.0853
+     },
+     "title": "Abrir o modo de edição",
+     "title_en": "Open edit mode",
+     "text": "No fundo do ecrã, toque em Editar. Se ainda não entrou, o mapa pede o seu nome e o seu PIN — só da primeira vez neste telemóvel.",
+     "text_en": "At the bottom of the screen, tap Edit. If you haven't signed in yet, the map asks for your name and PIN — only the first time on this phone.",
+     "next": "s2"
+    },
+    "s2": {
+     "id": "s2",
+     "type": "choice",
+     "img": "guides/propose/2-tools.jpg",
+     "hot": {
+      "x": 0.0051,
+      "y": 0.846,
+      "w": 0.9897,
+      "h": 0.0806
+     },
+     "title": "O que quer acrescentar?",
+     "title_en": "What do you want to add?",
+     "text": "As ferramentas aparecem numa fila em baixo. Deslize para o lado para ver todas.",
+     "text_en": "The tools appear in a row at the bottom. Swipe sideways to see them all.",
+     "options": [
+      {
+       "label": "Um ponto — torneira, árvore, marco, caixa",
+       "label_en": "A point — tap, tree, marker, box",
+       "next": "s3a"
+      },
+      {
+       "label": "Uma linha — tubo, cabo, vedação, caminho",
+       "label_en": "A line — pipe, cable, fence, track",
+       "next": "s3b"
+      },
+      {
+       "label": "Uma área — zona, parque, plantação",
+       "label_en": "An area — zone, paddock, planting",
+       "next": "s3c"
+      }
+     ]
+    },
+    "s3a": {
+     "id": "s3a",
+     "type": "step",
+     "img": "guides/propose/3a-point.jpg",
+     "hot": {
+      "x": 0.0179,
+      "y": 0.8519,
+      "w": 0.1795,
+      "h": 0.0687
+     },
+     "title": "Marcar o ponto",
+     "title_en": "Place the point",
+     "text": "Toque em Ponto e depois toque no mapa exatamente onde fica. Pode aproximar o mapa antes, com dois dedos.",
+     "text_en": "Tap Point, then tap the map exactly where it is. Zoom in first with two fingers if needed.",
+     "next": "s4"
+    },
+    "s3b": {
+     "id": "s3b",
+     "type": "step",
+     "img": "guides/propose/3b-line.jpg",
+     "hot": {
+      "x": 0.1718,
+      "y": 0.8519,
+      "w": 0.1795,
+      "h": 0.0687
+     },
+     "title": "Desenhar a linha",
+     "title_en": "Draw the line",
+     "text": "Toque em Linha e vá tocando ao longo do percurso. Para terminar, toque de novo no último ponto.",
+     "text_en": "Tap Line and tap along the route. To finish, tap the last point again.",
+     "next": "s4"
+    },
+    "s3c": {
+     "id": "s3c",
+     "type": "step",
+     "img": "guides/propose/3c-area.jpg",
+     "hot": {
+      "x": 0.3256,
+      "y": 0.8519,
+      "w": 0.1795,
+      "h": 0.0687
+     },
+     "title": "Desenhar a área",
+     "title_en": "Draw the area",
+     "text": "Toque em Área e toque em cada canto. Para fechar, toque no primeiro ponto.",
+     "text_en": "Tap Area and tap each corner. To close it, tap the first point.",
+     "next": "s4"
+    },
+    "s4": {
+     "id": "s4",
+     "type": "step",
+     "img": "guides/propose/4-form.jpg",
+     "hot": {
+      "x": 0.035,
+      "y": 0.32,
+      "w": 0.93,
+      "h": 0.3
+     },
+     "title": "Dizer o que é",
+     "title_en": "Say what it is",
+     "text": "Escolha o tipo mais parecido (ou escreva-o), a cor se quiser, e um nome que a equipa reconheça — por exemplo «Torneira nova junto ao moinho».",
+     "text_en": "Pick the closest type (or type your own), a colour if you like, and a name the team will recognise — e.g. “New tap by the mill”.",
+     "next": "s5"
+    },
+    "s5": {
+     "id": "s5",
+     "type": "step",
+     "img": "guides/propose/5-save.jpg",
+     "hot": {
+      "x": 0.0436,
+      "y": 0.846,
+      "w": 0.3413,
+      "h": 0.0675
+     },
+     "title": "Guardar",
+     "title_en": "Save",
+     "text": "Toque em Guardar. Sem rede, fica guardado no telemóvel e segue sozinho quando houver sinal.",
+     "text_en": "Tap Save. Without signal it is kept on the phone and sent by itself when there is signal.",
+     "next": "end"
+    },
+    "end": {
+     "id": "end",
+     "type": "end",
+     "title": "Proposta enviada",
+     "title_en": "Proposal sent",
+     "text": "Aparece a tracejado no mapa até a liderança aprovar; depois fica sólida, como o resto do mapa. Acompanhe em «Meus».",
+     "text_en": "It shows dashed on the map until leadership approves it; then it turns solid like the rest of the map. Follow it under “Mine”."
+    }
+   }
+  }
+ }
+]

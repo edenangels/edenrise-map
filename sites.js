@@ -47,7 +47,7 @@ const id = (q && SITES[q]) ? q : "edenrise";
 window.SITES = SITES; window.SITE = SITES[id]; window.SITE_ID = id;
 // hrefs between pages keep the property; the worker always receives the explicit scope
 window.siteQ = (sep) => id === "edenrise" ? "" : (sep || "?") + "site=" + id;
-window.siteHref = (page) => page + (id === "edenrise" ? "" : (page.includes("?") ? "&" : "?") + "site=" + id);
+window.siteHref = (page) => { if(id === "edenrise") return page; const [p, h] = page.split("#"); return p + (p.includes("?") ? "&" : "?") + "site=" + id + (h ? "#" + h : ""); };
 window.apiSite = (path) => path + (path.includes("?") ? "&" : "?") + "site=" + id;
 // data loader: a page declares the EdenRise file list (kept stamped by stamp.py); another property gets its own core
 // file in place of data.js and only the analysis files it actually has (SITE.data.files), so nothing foreign is drawn.

@@ -3,6 +3,7 @@
    author a question. Every decision can be undone. Approving never touches the core map: it marks the proposal
    approved, the map then draws it as part of the map, and the 15-minute sync carries it into QGIS. */
 (function(){
+const API = "https://edenrise-brain.edenrise.workers.dev";
 const EN = (typeof LANG !== "undefined" && LANG === "en");
 const T = EN ? {
   title:"Review", of:"of", start:"Review", none:"Nothing waiting for review — the map is up to date.", done:"All reviewed", doneSub:"Every proposal in this list has a decision.",

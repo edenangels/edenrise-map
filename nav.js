@@ -6,7 +6,7 @@
   const T = {pt:{share:"PARTILHAR",title:"Partilhar esta vista",sub:"O link abre exatamente o que está no ecrã — posição, camadas e idioma.",copy:"Copiar link",copied:"Link copiado",wa:"WhatsApp",wasub:"enviar à equipa",qr:"Mostrar QR",qrsub:"para telemóvel",print:"Imprimir / PDF",printsub:"esta página",asset:"Link do ativo",assetsub:"ficha aberta",view:"vista atual"},
              en:{share:"SHARE",title:"Share this view",sub:"The link opens exactly what's on screen — position, layers and language.",copy:"Copy link",copied:"Link copied",wa:"WhatsApp",wasub:"send to the team",qr:"Show QR",qrsub:"for a phone",print:"Print / PDF",printsub:"this page",asset:"Asset link",assetsub:"open card",view:"current view"}};
   const t = T[LANG];
-  const items = [["index.html",{pt:"Mapa",en:"Map"}],["3d.html",{pt:"3D",en:"3D"}],["dashboard.html",{pt:"Painel",en:"Dashboard"}],["climate.html",{pt:"Clima",en:"Climate"}],["report.html",{pt:"Relatório",en:"Report"}],["guest.html",{pt:"Hóspedes",en:"Guests"}],["labels.html",{pt:"Etiquetas",en:"Labels"}],["help.html",{pt:"Ajuda",en:"Help"}]];
+  const items = [["index.html",{pt:"Mapa",en:"Map"}],["3d.html",{pt:"3D",en:"3D"}],["dashboard.html",{pt:"Painel",en:"Dashboard"}],["climate.html",{pt:"Clima",en:"Climate"}],["report.html",{pt:"Relatório",en:"Report"}],["index.html#guides",{pt:"Guias",en:"Guides"}],["guest.html",{pt:"Hóspedes",en:"Guests"}],["labels.html",{pt:"Etiquetas",en:"Labels"}],["help.html",{pt:"Ajuda",en:"Help"}]];
   const SHOW = {"climate.html":"climate","labels.html":"labels"};   // pages that exist only where the products exist
   const visible = items.filter(([h])=>!SHOW[h] || (window.SITE && SITE.flags && SITE.flags[SHOW[h]]));
   const sh = (h) => window.siteHref ? siteHref(h) : h;
