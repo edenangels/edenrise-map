@@ -160,5 +160,386 @@
     }
    }
   }
+ },
+ {
+  "id": "builtin-icnf-sobreiro",
+  "builtin": true,
+  "agency": "ICNF",
+  "title": "ICNF — poda, corte ou arranque de sobreiros e azinheiras",
+  "title_en": "ICNF — pruning, cutting or uprooting cork and holm oaks",
+  "summary": "Pedido no RUBUS (DL 169/2001): escolha entre poda, corte/arranque e desbaste com PGF, entre com Autenticação.Gov, preencha e acompanhe o pedido.",
+  "portal_url": "https://rubus.icnf.pt",
+  "status": "publicado",
+  "version": 1,
+  "updated_by": "EdenRise",
+  "updated_at": "2026-10-14",
+  "links": [
+   {
+    "layer": "tree_permits"
+   },
+   {
+    "layer": "tree_actions_pt"
+   }
+  ],
+  "tree": {
+   "start": "r1",
+   "needs": [
+    "Chave Móvel Digital ou Cartão de Cidadão com leitor (ou NIF e senha das Finanças)",
+    "Caderneta predial ou certidão permanente do prédio",
+    "Área desenhada em shapefile (ETRS89 / PT-TM06) — feita no QGIS da herdade",
+    "Espécie e número de árvores, fase de crescimento, idade da cortiça",
+    "Assinatura digital para os documentos (Cartão de Cidadão ou Chave Móvel Digital)"
+   ],
+   "nodes": {
+    "r1": {
+     "id": "r1",
+     "type": "step",
+     "title": "Abrir o RUBUS",
+     "text": "Abra rubus.icnf.pt no computador. Na barra em baixo, aceite os cookies essenciais (Aceitar e Continuar) — sem isso o site não deixa avançar.",
+     "next": "r2",
+     "img": "guides/icnf/1-rubus.jpg",
+     "hot": {
+      "x": 0.7446,
+      "y": 0.8862,
+      "w": 0.1547,
+      "h": 0.065
+     }
+    },
+    "r2": {
+     "id": "r2",
+     "type": "step",
+     "title": "Entrar na área do sobreiro e da azinheira",
+     "text": "Na página inicial, desça até ao cartão «Proteção do Sobreiro e da Azinheira» e abra-o.",
+     "next": "r3",
+     "img": "guides/icnf/2-sobreiro.jpg",
+     "hot": {
+      "x": 0.1905,
+      "y": 0.6527,
+      "w": 0.2984,
+      "h": 0.045
+     }
+    },
+    "r3": {
+     "id": "r3",
+     "type": "choice",
+     "img": "guides/icnf/3-catalogo.jpg",
+     "hot": {
+      "x": 0.1162,
+      "y": 0.3905,
+      "w": 0.8247,
+      "h": 0.4292
+     },
+     "title": "O que vai fazer às árvores?",
+     "text": "O catálogo mostra os pedidos possíveis. Escolha o seu caso — cada um tem regras diferentes.",
+     "options": [
+      {
+       "label": "Podar",
+       "next": "p1"
+      },
+      {
+       "label": "Cortar ou arrancar (vivas, secas ou doentes)",
+       "next": "c1"
+      },
+      {
+       "label": "Desbastar, com Plano de Gestão Florestal (PGF) aprovado",
+       "next": "d1"
+      }
+     ]
+    },
+    "p1": {
+     "id": "p1",
+     "type": "step",
+     "title": "Pedir autorização para poda",
+     "text": "Toque em «Pedir autorização para poda».\n\nA poda só é autorizada para melhorar a produção das árvores e só entre 1 de novembro e 31 de março. Nos sobreiros, não pode haver poda nas duas épocas antes nem nas duas depois do descortiçamento.",
+     "next": "l1",
+     "img": "guides/icnf/4a-poda.jpg",
+     "hot": {
+      "x": 0.182,
+      "y": 0.3957,
+      "w": 0.3153,
+      "h": 0.262
+     },
+     "link": "https://icnf.gitbook.io/sobreiro-e-azinheira/servicos/pedido-de-poda/como-cidadao"
+    },
+    "c1": {
+     "id": "c1",
+     "type": "step",
+     "title": "Pedir autorização para corte ou arranque",
+     "text": "Toque em «Pedir autorização para corte ou arranque».\n\nTodo o corte ou arranque precisa de autorização — também árvores secas, doentes ou com pragas. Dentro de um povoamento só é autorizado por razões fitossanitárias, para desbaste sem PGF, conversão de utilidade pública ou agrícola local (com compensação), ou regeneração natural. Antes de cortar, as árvores têm de ser marcadas com tinta indelével, e quem corta regista o manifesto de corte no SiCorte (exceto até 10 árvores para uso próprio).",
+     "next": "l1",
+     "img": "guides/icnf/4b-corte.jpg",
+     "hot": {
+      "x": 0.6263,
+      "y": 0.3957,
+      "w": 0.3153,
+      "h": 0.262
+     },
+     "link": "https://icnf.gitbook.io/sobreiro-e-azinheira/corte-ou-arranque/como-cidadao"
+    },
+    "d1": {
+     "id": "d1",
+     "type": "step",
+     "title": "Fazer comunicação prévia de desbaste",
+     "text": "Toque em «Fazer comunicação prévia de desbaste».\n\nSó serve quando há um Plano de Gestão Florestal aprovado. Comunique pelo menos 30 dias úteis antes de começar. Sem PGF, o desbaste é um pedido de autorização (volte atrás e escolha «Cortar ou arrancar»).",
+     "next": "l1",
+     "img": "guides/icnf/4c-desbaste.jpg",
+     "hot": {
+      "x": 0.182,
+      "y": 0.6662,
+      "w": 0.3153,
+      "h": 0.262
+     },
+     "link": "https://icnf.gitbook.io/sobreiro-e-azinheira/rubus/enquadramento"
+    },
+    "l1": {
+     "id": "l1",
+     "type": "step",
+     "title": "Entrar com Autenticação.Gov ou AT",
+     "text": "Toque no ícone de pessoa no canto superior direito e entre com Autenticação.Gov (Cartão de Cidadão com leitor, ou Chave Móvel Digital) ou Autenticação AT (NIF e senha das Finanças). Na primeira vez é preciso validar o NIF desta forma.\n\nSe o pedido é em nome da empresa: registe a entidade com o NIPC e a senha AT e use «Ver como Cidadão» para mudar para ela. Um representante usa «Pedido por terceiros».",
+     "next": "f1",
+     "img": "guides/icnf/5-entrar.jpg",
+     "hot": {
+      "x": 0.928,
+      "y": 0.0294,
+      "w": 0.0383,
+      "h": 0.0587
+     },
+     "link": "https://icnf.gitbook.io/sobreiro-e-azinheira/rubus/registar-utilizador"
+    },
+    "f1": {
+     "id": "f1",
+     "type": "step",
+     "title": "Requerente",
+     "text": "No separador «Requerente» confirme os dados do perfil e deixe pelo menos um número de telefone.",
+     "next": "f2",
+     "link": "https://icnf.gitbook.io/sobreiro-e-azinheira/rubus/enquadramento",
+     "login": true
+    },
+    "f2": {
+     "id": "f2",
+     "type": "step",
+     "title": "Localização",
+     "text": "No separador «Localização» desenhe a área no mapa (um ou vários polígonos) e indique o nome do prédio e a área total em hectares.",
+     "next": "f3",
+     "link": "https://icnf.gitbook.io/sobreiro-e-azinheira/rubus/enquadramento",
+     "login": true
+    },
+    "f3": {
+     "id": "f3",
+     "type": "step",
+     "title": "Dados do pedido e espécies",
+     "text": "Preencha a qualidade do requerente (proprietário, arrendatário…), o tipo de ação, o objeto e o motivo, e aceite o termo de responsabilidade. Na lista de espécies indique, para sobreiro e/ou azinheira, o número de árvores, a fase de crescimento e, se souber, a idade da cortiça.",
+     "next": "f4",
+     "link": "https://icnf.gitbook.io/sobreiro-e-azinheira/rubus/enquadramento",
+     "login": true
+    },
+    "f4": {
+     "id": "f4",
+     "type": "step",
+     "title": "Ficheiros",
+     "text": "Junte a caderneta predial ou a certidão permanente do prédio (arrendatários: o contrato que autoriza o ato; empresas: a certidão comercial; procuradores: a procuração), e a delimitação da área em shapefile (ETRS89 / PT-TM06). Cada ficheiro até 25 MB; os documentos formais com assinatura digital (Cartão de Cidadão ou Chave Móvel Digital).",
+     "next": "f5",
+     "link": "https://www.icnf.pt/api/file/doc/fc11a5dd60f03b94",
+     "login": true
+    },
+    "f5": {
+     "id": "f5",
+     "type": "step",
+     "title": "Submeter e confirmar",
+     "text": "Reveja tudo, submeta e confirme. Guarde o número do pedido. Os rascunhos não submetidos são apagados ao fim de 30 dias.",
+     "next": "end",
+     "link": "https://icnf.gitbook.io/sobreiro-e-azinheira/rubus/enquadramento",
+     "login": true
+    },
+    "end": {
+     "id": "end",
+     "type": "end",
+     "title": "Pedido submetido",
+     "text": "Acompanhe em «Consultar histórico de pedidos» e responda a eventuais «Pedidos de esclarecimento».\n\nSe o ICNF não responder no prazo, o pedido considera-se aprovado: poda 30 dias, corte fitossanitário 45 dias, desbaste/conversão/regeneração 60 dias. Em área protegida ou Rede Natura 2000 há um parecer prévio que suspende o prazo — confirmar se a zona da herdade está abrangida."
+    }
+   }
+  }
+ },
+ {
+  "id": "builtin-ifap-pu",
+  "builtin": true,
+  "agency": "IFAP",
+  "title": "IFAP — Pedido Único e parcelário",
+  "title_en": "IFAP — Single Application and parcels",
+  "summary": "Do NIFAP à entrega do Pedido Único: registo, alterações ao parcelário (presenciais), conferir superfícies e entregar online ou por uma entidade reconhecida.",
+  "portal_url": "https://www.ifap.pt/portal/area-reservada",
+  "status": "publicado",
+  "version": 1,
+  "updated_by": "EdenRise",
+  "updated_at": "2026-10-14",
+  "links": [
+   {
+    "layer": "cadastre_parcels"
+   }
+  ],
+  "tree": {
+   "start": "i1",
+   "needs": [
+    "Cartão de Cidadão com Chave Móvel Digital (ou utilizador IFAP)",
+    "NIF, número de Segurança Social e NIFAP (se já tiver)",
+    "IBAN da conta para pagamentos",
+    "Documentos de posse das parcelas (certidão matricial, escritura, contrato de arrendamento)"
+   ],
+   "nodes": {
+    "i1": {
+     "id": "i1",
+     "type": "step",
+     "title": "Confirmar o prazo do Pedido Único",
+     "text": "Em ifap.pt › Pedido Único › Enquadramento e Calendário veja as datas deste ano. Em 2026 o PU decorreu de 16 de fevereiro a 1 de junho (sem penalização, sem entregas fora de prazo). As parcelas têm de estar à sua disposição a 31 de maio.",
+     "next": "i2",
+     "img": "guides/ifap/1-pu.jpg",
+     "hot": {
+      "x": 0.257,
+      "y": 0.3931,
+      "w": 0.7047,
+      "h": 0.0887
+     },
+     "link": "https://www.ifap.pt/portal/pedido-unico-enquadramento"
+    },
+    "i2": {
+     "id": "i2",
+     "type": "choice",
+     "title": "Já tem NIFAP (Identificação do Beneficiário)?",
+     "text": "Sem NIFAP não é possível entregar o PU.",
+     "options": [
+      {
+       "label": "Sim, já tenho NIFAP",
+       "next": "i4"
+      },
+      {
+       "label": "Não — pessoa singular",
+       "next": "i3a"
+      },
+      {
+       "label": "Não — empresa",
+       "next": "i3b"
+      }
+     ]
+    },
+    "i3a": {
+     "id": "i3a",
+     "type": "step",
+     "title": "Registar-se com Cartão de Cidadão / Chave Móvel Digital",
+     "text": "Em «Entrar / Registar» escolha «Registar/Recuperar/Desbloquear» e registe-se com o Cartão de Cidadão ou a Chave Móvel Digital — a Identificação do Beneficiário (e o NIFAP) é criada automaticamente.",
+     "next": "i4",
+     "img": "guides/ifap/2-registar.jpg",
+     "hot": {
+      "x": 0.5132,
+      "y": 0.2462,
+      "w": 0.2963,
+      "h": 0.06
+     },
+     "link": "https://www.ifap.pt/portal/identificacao-do-benficiario"
+    },
+    "i3b": {
+     "id": "i3b",
+     "type": "step",
+     "title": "Empresa: Identificação do Beneficiário presencial",
+     "text": "Para uma empresa a IB é feita presencialmente na CCDR (Alentejo ou Algarve), numa entidade acreditada ou num GAL. Leve: Cartão de Cidadão do representante, NIF/NIPC, número de Segurança Social, código da certidão permanente e o RCBE. Depois a empresa usa um único utilizador para entrar.",
+     "next": "i4",
+     "link": "https://www.ifap.pt/portal/identificacao-do-benficiario"
+    },
+    "i4": {
+     "id": "i4",
+     "type": "choice",
+     "img": "guides/ifap/3-isip.jpg",
+     "hot": {
+      "x": 0.4586,
+      "y": 0.3987,
+      "w": 0.0906,
+      "h": 0.075
+     },
+     "link": "https://publico-isip.ifap.pt/",
+     "title": "As parcelas mudaram desde o ano passado?",
+     "text": "Áreas, usos, parcelas novas ou que deixaram de estar à sua disposição. Pode ver as parcelas no iSIP público.",
+     "options": [
+      {
+       "label": "Sim, há alterações",
+       "next": "i5"
+      },
+      {
+       "label": "Não, está tudo igual",
+       "next": "i6"
+      }
+     ]
+    },
+    "i5": {
+     "id": "i5",
+     "type": "step",
+     "title": "Alterar o parcelário — presencialmente",
+     "text": "As alterações ao parcelário (iSIP) não podem ser feitas online pelo agricultor: só um técnico credenciado numa Sala de Parcelário. Leve identificação e prova de posse (certidão matricial, escritura, habilitação de herdeiros; arrendamentos e autorizações de compropriedade com assinatura certificada ou digital). No fim, confira e assine o ALT-iE.",
+     "next": "i6",
+     "link": "https://www.ifap.pt/portal/sip-sistema-de-identificacao-parcelar"
+    },
+    "i6": {
+     "id": "i6",
+     "type": "step",
+     "title": "Entrar na Área Reservada",
+     "text": "Em ifap.pt › Entrar / Registar entre com Cartão de Cidadão / Chave Móvel Digital, ou com o utilizador IFAP (NIF + NIFAP) e a palavra-chave.",
+     "next": "i7",
+     "img": "guides/ifap/4-entrar.jpg",
+     "hot": {
+      "x": 0.2332,
+      "y": 0.43,
+      "w": 0.2367,
+      "h": 0.045
+     },
+     "link": "https://www.ifap.pt/portal/area-reservada"
+    },
+    "i7": {
+     "id": "i7",
+     "type": "step",
+     "title": "Conferir as superfícies",
+     "text": "Em «O Meu Processo › Superfícies» confira o iE e o P3 das parcelas antes de preencher o pedido.",
+     "next": "i8",
+     "link": "https://www.ifap.pt/portal/manuais-footer",
+     "login": true
+    },
+    "i8": {
+     "id": "i8",
+     "type": "choice",
+     "title": "Quem entrega o Pedido Único?",
+     "text": "Pode entregar sozinho online ou através de uma entidade reconhecida (por exemplo uma associação de agricultores).",
+     "options": [
+      {
+       "label": "Eu, online",
+       "next": "i9"
+      },
+      {
+       "label": "Uma entidade reconhecida",
+       "next": "i9b"
+      }
+     ]
+    },
+    "i9": {
+     "id": "i9",
+     "type": "step",
+     "title": "Entregar o PU",
+     "text": "Em «O Meu Processo › Candidaturas › Pedido Único (PU) › Entregar/Alterar/Consultar» preencha e submeta. Guarde o comprovativo.",
+     "next": "i10",
+     "link": "https://www.ifap.pt/portal/pedido-unico-enquadramento",
+     "login": true
+    },
+    "i9b": {
+     "id": "i9b",
+     "type": "step",
+     "title": "Entregar numa entidade reconhecida",
+     "text": "Marque atendimento numa Sala de Atendimento de uma entidade reconhecida. Leve o NIFAP, identificação e a informação das parcelas e culturas.",
+     "next": "i10",
+     "link": "https://www.ifap.pt/portal/pedido-unico-enquadramento"
+    },
+    "i10": {
+     "id": "i10",
+     "type": "end",
+     "title": "Pedido Único entregue",
+     "text": "Esteja atento às janelas de correção depois da entrega — em 2026: correções SVS/CAD de 27 de agosto a 11 de setembro e correções por fotografias de 28 de julho a 30 de setembro.\n\nNota 2026: novos compromissos ou aumentos só foram aceites em agricultura biológica, produção integrada (PRODI) e raças autóctones. Confirme as regras e datas do ano em curso no site do IFAP."
+    }
+   }
+  }
  }
 ]
