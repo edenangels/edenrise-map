@@ -528,9 +528,13 @@ async function saveVersion(){
 /* ---------- open / close, nav entry, shared links, map cards ---------- */
 function open(id){ ui.classList.add("on"); if(id) play(id); else library(); }
 function close(){ if(document.fullscreenElement === ui && document.exitFullscreen) document.exitFullscreen(); ui.classList.remove("on", "present"); S.pub = null; if(/^#guides?(=|$)/.test(location.hash)) history.replaceState(null, "", location.pathname + location.search); }
-function route(){ const m = location.hash.match(/^#guide=([A-Za-z0-9]{16,40})$/); if(m) return openPublic(m[1]); if(location.hash === "#guides") open(); }
-addEventListener("hashchange", route);
-if(/^#guides?(=|$)/.test(location.hash)) setTimeout(route, 1200);
+function route(){ const m = location.hash.match(/^#guide=([A-Za-z0-9]{16,40})$/); if(m) return openPublic(m[1]); if(location.hash === "#guides" && !ui.classList.contains("on")) open(); }
+addEventListener("hashchange", () => { if(ui.classList.contains("on") && !/^#guides?(=|$)/.test(location.hash) && S.view !== "edit") { ui.classList.remove("on", "present"); return; } route(); });
+/* the menu link opens the guides straight away — no page reload, and it works even when the address already ends in #guides */
+document.addEventListener("click", e => { const a = e.target.closest && e.target.closest('a[href$="#guides"]'); if(!a) return; e.preventDefault(); if(location.hash !== "#guides") history.pushState(null, "", location.pathname + location.search + "#guides"); open(); }, true);
+/* opened by address (#guides): open at once; when the sign-in is confirmed a moment later, the library refreshes */
+if(/^#guides?(=|$)/.test(location.hash)) route();
+document.addEventListener("edr-auth", () => { if(ui.classList.contains("on") && S.view === "lib") library(); });
 document.addEventListener("keydown", e => { if(e.key === "Escape" && ui.classList.contains("on") && !ui.querySelector(".lbx, .dlg") && !document.fullscreenElement) close(); });
 let LINKS = null, linksAt = 0;
 async function cacheLinks(force){ if(auth().role === "viewer") return []; if(!force && LINKS && Date.now() - linksAt < 300000) return LINKS; const d = await api("GET", "/guides"); LINKS = (d.guides || []).filter(g => (g.links || []).length); linksAt = Date.now(); return LINKS; }
