@@ -153,7 +153,7 @@ q.oninput = ()=>{ const v=q.value.trim().toLowerCase(); if(v.length<2){ qres.inn
   qres.querySelectorAll(".qhit[data-i]").forEach(el=>el.onclick=()=>{ const h=hits[+el.dataset.i]; goTo(h); qres.innerHTML=""; q.value=h.label; });
 };
 q.onkeydown = e=>{ if(e.key==="Enter"){ const first=qres.querySelector(".qhit[data-i]"); if(first) first.click(); } };
-function goTo(h){ if(h.t==="__team"){ const g=h.f.geometry; const ll=g.type==="Point"?L.latLng(g.coordinates[1],g.coordinates[0]):L.geoJSON(h.f).getBounds().getCenter(); map.setView(ll,Math.max(map.getZoom(),18)); map.eachLayer(l=>{ if(l.feature&&l.__ed&&l.feature.properties.id===h.f.properties.id) l.fire("click",{latlng:ll}); }); return; } const o=layerObjs[h.t]; setLayer(h.t,true); let target=null; (o.geo||o.lyr).eachLayer(l=>{ if(!target && l.feature===h.f) target=l; });
+function goTo(h){ if(h.t==="__team"){ const g=h.f.geometry; const ll=g.type==="Point"?L.latLng(g.coordinates[1],g.coordinates[0]):L.geoJSON(h.f).getBounds().getCenter(); map.setView(ll,Math.max(map.getZoom(),18)); /* the card opens even for an earlier version or a hidden one, which are not drawn on the map */ if(window.edrEdit&&edrEdit.openVersion) edrEdit.openVersion(h.f.properties.id); else map.eachLayer(l=>{ if(l.feature&&l.__ed&&l.feature.properties.id===h.f.properties.id) l.fire("click",{latlng:ll}); }); return; } const o=layerObjs[h.t]; setLayer(h.t,true); let target=null; (o.geo||o.lyr).eachLayer(l=>{ if(!target && l.feature===h.f) target=l; });
   if(!target) return; const ll = typeof target.getLatLng==="function" ? target.getLatLng() : target.getBounds().getCenter();
   map.setView(ll, typeof target.getLatLng==="function"?18:17); if(window.showCard) showCard(h.f.properties, ll, h.t); else target.openPopup(ll); }
 
