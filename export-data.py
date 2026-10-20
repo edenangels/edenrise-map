@@ -22,11 +22,17 @@ def multi(g):
     return json.loads(json.dumps(g.__geo_interface__))
 def rnd(c):
     return [rnd(x) for x in c] if isinstance(c,list) and c and isinstance(c[0],(list,tuple)) else [round(float(v),6) for v in c[:2]]
+# Taken off the web map on request (2026-10-20, Jeremy): the 2025 project is obsolete. The GeoPackage keeps every feature.
+#   DROP  = layer not exported at all;  EMPTY = layer kept (team items still file under it) but its old base features are not shown
+DROP={"prop_etar_pt","prop_etar_ln","prop_etar_pg","prop_water_deposits_pt","prop_water_deposits_ln","prop_water_deposits_pg","prop_reforestation_ln","prop_reforestation_pg"}
+EMPTY={"fire_mgmt_pt","fire_mgmt_pg"}
 con=sqlite3.connect(GPKG); con.row_factory=sqlite3.Row
 tables=[r[0] for r in con.execute("select table_name from gpkg_contents where data_type='features' order by table_name")]
 out={}; n=0
 for t in tables:
+    if t in DROP: continue
     feats=[]
+    if t in EMPTY: out[t]={"type":"FeatureCollection","features":[]}; continue
     for r in con.execute(f'select * from "{t}" order by fid'):
         if r["geom"] is None: continue
         g3763=gpkg_geom(r["geom"]); g=transform(to4326,g3763)

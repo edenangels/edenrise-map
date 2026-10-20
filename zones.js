@@ -14,7 +14,7 @@ const T = EN ? {service:"Service done", part:"Part ordered", problem:"Problem", 
 const auth = () => window.edrAuth || {key:"", role:"viewer", actor:""};
 const say = m => window.toast && toast(m);
 /* the layers whose areas count as places you can be inside */
-const ZONE_LAYERS = ["building_footprints", "grazing_parks_pg", "agri_features_pg", "power_pg", "prop_etar_pg", "orchards_pg"];
+const ZONE_LAYERS = ["building_footprints", "grazing_parks_pg", "agri_features_pg", "power_pg", "orchards_pg"];
 const ZONE_PRESETS = ["edificio", "zona", "pasto", "infraestrutura", "tanque"];
 function coreRef(t, f){ if(window.edrRefOf) return edrRefOf(t, f.properties || {}).ref; const p = f.properties || {}; return p.asset_id ? ("asset:" + p.asset_id) : (p.uid ? "u:" + p.uid : `${t}:${p.key || p.name || p.tree_name || "?"}`); }
 function nameOf(f, t){ const p = f.properties || {}; return p.name || p.asset_id || p.tree_name || (typeof title_i18n === "function" ? title_i18n(t, t) : t); }

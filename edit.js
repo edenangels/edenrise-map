@@ -355,7 +355,7 @@ async function openInfo(l){ const p=l.feature.properties; const a=auth(); const 
   const row=(k,v,u="")=>v==null?"":`<div><span>${k}</span><b>${typeof v==="number"?fmt(v,v>=100?0:1):v}${u}</b></div>`;
   closeForm(); form.hidden=false; form.innerHTML=`<div class="hd"><h3>${p.name||p.kind||p.id}</h3><span class="st" style="background:${STATUS_COL[p.status]||"#c9a227"}">${T[sk]||p.status}</span></div><div class="bd">
   <div style="font:12px var(--ui);color:var(--muted)">${p.id} · ${T.v}${p.version} · ${(EN?PRESETS.find(x=>x.id===p.preset)?.en:PRESETS.find(x=>x.id===p.preset)?.pt)||p.kind||""} · ${p.op==="modify"?T.modified+" → "+(p.ref_name||p.ref_id):p.op==="retire"?T.retired+" → "+(p.ref_name||p.ref_id):""}</div>
-  ${p.category?`<div style="font:12px var(--ui);color:var(--straw)">📁 ${catLabel(p.category)}${p.layer_title?` › ${p.layer_title}`:""}${p.category_by==="ai"?" · AI":""}</div>`:(p.ai?`<div style="font:12px var(--ui);color:var(--muted)">✨ ${T.aiSug}: ${catLabel(p.ai.category)}${p.ai.layer_title?` › ${p.ai.layer_title}`:""} (${Math.round((p.ai.confidence||0)*100)}%)</div>`:"")}
+  ${p.category?`<div style="font:12px var(--ui);color:var(--straw)">📁 ${catLabel(p.category)}${layerName(p)?` › ${layerName(p)}`:""}${p.category_by==="ai"?" · AI":""}</div>`:(p.ai?`<div style="font:12px var(--ui);color:var(--muted)">✨ ${T.aiSug}: ${catLabel(p.ai.category)}${p.ai.layer_title?` › ${p.ai.layer_title}`:""} (${Math.round((p.ai.confidence||0)*100)}%)</div>`:"")}
   <div style="font:12px var(--ui);color:var(--linen-2)">${T.by} <b>${p.created_by||"—"}</b> · ${String(p.updated_at||p.created_at).slice(0,16).replace("T"," ")}${p.changeset?` · ${p.changeset}`:""}</div>
   ${Object.keys(p).filter(k=>FL[k]&&p[k]!=null&&p[k]!=="").length?`<div class="meas">${Object.keys(p).filter(k=>FL[k]&&p[k]!=null&&p[k]!=="").map(k=>row(FL[k][EN?1:0],p[k])).join("")}</div>`:""}
   <div class="meas"><div class="t">${T.measures}</div>${row(T.len,m.comprimento_m," m")}${row(T.wid,m.largura_m," m")}${row(T.area_,m.area_m2," m²")}${row(T.radius,m.raio_m," m")}${row(T.az,m.orientacao_deg,"°")}${row(T.elev,m.cota_m??m.cota_inicio_m," m")}${row(T.slope,m.declive_pct??m.declive_medio_pct," %")}${row(T.aspect,m.exposicao)}${row(T.drop,m.desnivel_m," m")}</div>
@@ -552,6 +552,7 @@ map.on("zoomend moveend",()=>{ if(rotBall&&E.cur) placeRotBall(E.cur); });
 
 /* ---------- categories: the map's own taxonomy (from GROUPS), AI placement, and the "Team proposals" sidebar section ---------- */
 function TAX(){ try{ return (typeof GROUPS!=="undefined"?GROUPS:[]).filter(([g])=>!/^(70|00|OPS|LiDAR|🏗️|🔥)/.test(g)).map(([g,on,layers])=>({category:g,layers:layers.map(([t,title,kind])=>({key:t,title,kind}))})); }catch(e){ return []; } }
+function layerName(p){ const k=p&&p.layer_key; if(k&&typeof GROUPS!=="undefined"){ for(const [,,ls] of GROUPS) for(const l of ls) if(l[0]===k) return typeof title_i18n==="function"?title_i18n(k,l[1]):l[1]; } return p&&p.layer_title&&p.layer_title!=="—"?p.layer_title:""; }
 function catLabel(g){ return (typeof gname_i18n==="function"?gname_i18n(g):g).replace(/^[\d]+ · /,""); }
 function fillLayers(sel,cat,cur){ const c=TAX().find(x=>x.category===cat); sel.innerHTML=`<option value="">—</option>`+(c?c.layers.map(l=>`<option value="${l.key}" ${cur===l.key?"selected":""}>${(typeof title_i18n==="function"?title_i18n(l.key,l.title):l.title)}</option>`).join(""):""); }
 let aiTimer=null;
@@ -568,7 +569,7 @@ const hiddenCats=new Set();
 const esc=t=>String(t==null?"":t).replace(/[<>&"]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;"}[c]));
 const teamName=p=>String(p.name||p.kind||p.id||"").trim();
 const teamSize=p=>{ const m=p.measures||{}; if(m.area_ha) return m.area_ha>=1?`${(+m.area_ha).toFixed(2)} ha`:`${Math.round(m.area_m2||m.area_ha*1e4)} m²`; if(m.comprimento_m&&m.kind!=="polygon") return `${Math.round(m.comprimento_m)} m`; return ""; };
-function teamRow(f,label,indent){ const p=f.properties; const pr=PRESETS.find(x=>x.id===p.preset); const lt=p.layer_title&&p.layer_title!=="—"?p.layer_title:""; const sub=[label?teamSize(p):(pr?(EN?pr.en:pr.pt):""),lt].filter(Boolean).join(" · ");
+function teamRow(f,label,indent){ const p=f.properties; const pr=PRESETS.find(x=>x.id===p.preset); const lt=layerName(p); const sub=[label?teamSize(p):(pr?(EN?pr.en:pr.pt):""),lt].filter(Boolean).join(" · ");
   return `<div class="lyr" data-id="${p.id}" style="padding-left:${indent}px;font-size:12px"><span class="sw" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${STATUS_COL[p.status]||"#c9a227"};flex:none"></span><span class="nm" style="flex:1 1 auto;min-width:0">${label||esc(teamName(p))}</span><span style="color:var(--muted);font-size:10.5px;flex:0 1 auto;max-width:42%;text-align:right;line-height:1.3">${esc(sub)}</span></div>`; }
 const openTeamCats=new Set(); const TEAM_CAP=8;
 function teamRows(g,cat){ const by=new Map(); for(const f of g){ const k=teamName(f.properties).toLowerCase(); if(!by.has(k)) by.set(k,[]); by.get(k).push(f); }
